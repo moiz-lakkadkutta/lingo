@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Lingo Phone",
+    "slug": "lingo-phone",
+    "version": "0.1.0",
+    "userInterfaceStyle": "dark",
+    "scheme": "lingo",
+    "android": {
+      "package": "dev.moizp.lingo.phone"
+    }
+  }
+}

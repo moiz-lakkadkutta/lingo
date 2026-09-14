@@ -1,0 +1,15 @@
+export const strings = {
+  rail: { watch: 'Watch', review: 'Review', words: 'Words', plus: 'Plus', settings: 'Settings' },
+  home: { continue: 'Continue', justRight: (l: string) => `Just right for you · ${l}`, harder: (l: string) => `A bit harder · ${l}`, fresh: 'New this week', watch: 'Watch' },
+  clip: { wordsYoullMeet: "Words you'll meet", watch: 'Watch', challenge: 'Watch in Challenge mode', preparing: (m: number) => `Preparing subtitles — about ${m} minutes.` },
+  explain: { save: 'Save word', replay: 'Replay', slower: 'Slower', continue: 'Continue', saved: (n: number) => `Saved. ${n} words this clip.`, limit: "That's 20 today. Lingo Plus removes the limit.", plusCta: 'See Lingo Plus' },
+  summary: { newWords: (n: number, lang: 'de' | 'en') => (lang === 'de' ? `${n} neue Wörter` : `${n} new words`), quizTv: 'Quiz on TV', quizPhone: 'Quiz on your phone', again: 'Watch again', next: 'Next clip', none: 'You watched the whole clip. Try Challenge mode next time?' },
+  quiz: { progress: (i: number, n: number) => `${i} of ${n}`, replayLine: 'Replay the line', done: (c: number, n: number) => `${c} of ${n} right` },
+  words: { empty: 'Words you save while watching land here.', filters: ['All', 'Due today', 'Learned'] },
+  pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code or type it in the Lingo app.', later: 'Later', connected: (name: string) => `${name} connected` },
+  firstRun: { learning: "I'm learning", speak: 'I speak', placement: 'Did you understand this line?', yes: 'Yes', mostly: 'Mostly', no: 'No' },
+  settings: { learning: 'Learning language', native: 'I speak', level: 'Level', nativeLine: 'Native line', nativeLineOpts: { always: 'Always', onPause: 'On pause', never: 'Never' }, autoPause: 'Pause at the end of each line', cueSize: 'Subtitle size', pair: 'Pair phone', plus: 'Lingo Plus', about: 'About & attributions' },
+  plus: { title: 'Lingo Plus', body: 'Challenge mode, unlimited saved words, slower playback.', price: (p: string) => `${p} per month`, buy: 'Subscribe', restore: 'Restore purchase' },
+  streak: { back: 'Welcome back', day: (n: number) => `Day ${n}` },
+  offline: 'Can\u2019t reach Lingo. Check the network and press Select to retry.',
+}

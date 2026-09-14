@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Level {
+  A1
+  A2
+  B1
+  B2
+}
+enum Lang {
+  de
+  en
+}
+enum QuizKind {
+  meaning
+  cloze
+}
+enum Grade {
+  again
+  hard
+  good
+  easy
+}
+model Clip {
+  id String @id @default(cuid() )
+  slug String @unique
+  title String
+  sourceLang Lang
+  durationS Float
+  level Level
+  coverageRank Int
+  license String
+  attribution String
+  posterKey String?
+  manifestKey String?
+  status String @default("draft")
+  createdAt DateTime @default(now() )
+  cues Cue[]
+  quiz QuizItem[]
+  progress Progress[]
+  sessions Session[]
+}
+model Cue {
+  id String @id @default(cuid() )
+  clipId String
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  index Int
+  startMs Int
+  endMs Int
+  text String
+  native Json
+  highlights Highlight[]
+  @@unique([clipId, index])
+}
+model Highlight {
+  id String @id @default(cuid() )
+  cueId String
+  cue Cue @relation(fields: [cueId], references: [id], onDelete: Cascade)
+  word String
+  lemma String
+  rank Int
+  gloss String
+  grammar String
+  example String
+  level Level
+  saved SavedWord[]
+}
+model QuizItem {
+  id String @id @default(cuid())
+  clipId String
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  kind QuizKind
+  prompt String
+  options String[]
+  answer Int
+  cueId String?
+}
+model Learner {
+  id String @id @default(cuid() )
+  deviceId String @unique
+  learning Lang @default(de)
+  native String @default("en")
+  level Level @default(A2)
+  knownRank Int @default(1000)
+  plus Boolean @default(false)
+  streak Int @default(0)
+  lastActive DateTime?
+  firstRunDone Boolean @default(false)
+  words SavedWord[]
+  progress Progress[]
+  sessions Session[]
+}
+model SavedWord {
+  id String @id @default(cuid() )
+  learnerId String
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  highlightId String
+  highlight Highlight @relation(fields: [highlightId], references: [id])
+  ease Float @default(2.5)
+  intervalD Int @default(0)
+  due DateTime @default(now() )
+  reps Int @default(0)
+  lapses Int @default(0)
+  createdAt DateTime @default(now() )
+  reviews Review[]
+  @@unique([learnerId, highlightId])
+}
+model Review {
+  id String @id @default(cuid())
+  savedWordId String
+  savedWord SavedWord @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
+  grade Grade
+  at DateTime @default(now())
+}
+model Session {
+  code String @id
+  learnerId String
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  clipId String?
+  clip Clip? @relation(fields: [clipId], references: [id])
+  phoneConnected Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+model Progress {
+  learnerId String
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  clipId String
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  positionS Float
+  completed Boolean @default(false)
+  updatedAt DateTime @updatedAt
+  @@id([learnerId, clipId])
+}

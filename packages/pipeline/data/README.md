@@ -1,0 +1,1 @@
+Put open subtitle-frequency lists here: `freq-de.txt`, `freq-en.txt` — one lemma per line, most frequent first (e.g. from the OpenSubtitles-based word-frequency lists, CC-BY-SA; note the license in docs/aws.md → Sources).
