@@ -6,7 +6,7 @@ export const strings = {
   summary: { newWords: (n: number, lang: 'de' | 'en') => (lang === 'de' ? `${n} neue Wörter` : `${n} new words`), quizTv: 'Quiz on TV', quizPhone: 'Quiz on your phone', again: 'Watch again', next: 'Next clip', none: 'You watched the whole clip. Try Challenge mode next time?' },
   quiz: { progress: (i: number, n: number) => `${i} of ${n}`, replayLine: 'Replay the line', done: (c: number, n: number) => `${c} of ${n} right` },
   words: { empty: 'Words you save while watching land here.', filters: ['All', 'Due today', 'Learned'] },
-  pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code or type it in the Lingo app.', later: 'Later', connected: (name: string) => `${name} connected` },
+  pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code or type it in the Lingo app.', later: 'Later', connected: (name: string) => `${name} connected`, qrLabel: (code: string) => `QR code to pair your phone, code ${code.split('').join(' ')}`, waiting: 'Getting a code…', defaultPhone: 'Your phone' },
   firstRun: { learning: "I'm learning", speak: 'I speak', placement: 'Did you understand this line?', yes: 'Yes', mostly: 'Mostly', no: 'No' },
   settings: { learning: 'Learning language', native: 'I speak', level: 'Level', nativeLine: 'Native line', nativeLineOpts: { always: 'Always', onPause: 'On pause', never: 'Never' }, autoPause: 'Pause at the end of each line', cueSize: 'Subtitle size', pair: 'Pair phone', plus: 'Lingo Plus', about: 'About & attributions' },
   plus: { title: 'Lingo Plus', body: 'Challenge mode, unlimited saved words, slower playback.', price: (p: string) => `${p} per month`, buy: 'Subscribe', restore: 'Restore purchase' },

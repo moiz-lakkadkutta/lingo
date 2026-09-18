@@ -13,6 +13,7 @@
     "db:up": "docker compose up -d postgres",
     "db:migrate": "pnpm --filter @lingo/api prisma migrate dev",
     "db:generate": "pnpm --filter @lingo/api prisma generate",
+    "db:deploy": "pnpm --filter @lingo/api prisma migrate deploy",
     "pipeline": "pnpm --filter @lingo/pipeline cli",
     "friction": "node scripts/new-friction.mjs",
     "lint:words": "node scripts/lint-words.mjs"

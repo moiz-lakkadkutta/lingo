@@ -1,9 +1,10 @@
 import { Router } from 'express'
-import { LearnerDto, ReviewPost, SaveWord } from '@lingo/contracts'
+import { LearnerDto, ReviewPost, SaveWord, WordSavedPayload } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { ok, validate } from '../lib/http'
 import { sm2 } from '../lib/sm2'
 import { getIo } from '../lib/io'
+import { logger } from '../lib/logger'
 export const me: Router = Router()
 const learner = async (h: unknown) => db.learner.upsert({ where: { deviceId: String(h ?? 'anon') }, create: { deviceId: String(h ?? 'anon') }, update: { lastActive: new Date() } })
 
@@ -20,8 +21,15 @@ me.post('/words', validate(SaveWord, (r) => r.body), async (req, res, next) => {
       const n = await db.savedWord.count({ where: { learnerId: l.id, createdAt: { gte: today } } })
       if (n >= 20) return ok(res, { limit: true, saved: null })
     }
-    const saved = await db.savedWord.upsert({ where: { learnerId_highlightId: { learnerId: l.id, highlightId } }, create: { learnerId: l.id, highlightId }, update: {}, include: { highlight: true } })
-    if (sessionCode) getIo()?.to(sessionCode).emit('word:saved', { word: saved.highlight.word, gloss: saved.highlight.gloss, savedWordId: saved.id })
+    const saved = await db.savedWord.upsert({ where: { learnerId_highlightId: { learnerId: l.id, highlightId } }, create: { learnerId: l.id, highlightId }, update: {}, include: { highlight: { include: { cue: { include: { clip: true } } } } } })
+    if (sessionCode) {
+      // The only place word:saved originates: the save is real once the row exists and the limit is checked (docs/decisions/0005-realtime-session.md).
+      // The row is already written, so the emit must never decide the HTTP result: a bad payload is logged, not thrown.
+      const h = saved.highlight
+      const payload = WordSavedPayload.safeParse({ code: sessionCode, savedWordId: saved.id, highlightId: h.id, word: h.word, lemma: h.lemma, gloss: h.gloss, example: h.example, level: h.level, clipSlug: h.cue.clip.slug, clipTitle: h.cue.clip.title, savedAt: saved.createdAt.toISOString() })
+      if (payload.success) getIo()?.to(sessionCode).emit('word:saved', payload.data)
+      else logger.error({ issues: payload.error.issues, savedWordId: saved.id }, 'word:saved payload invalid; saved but not emitted')
+    }
     ok(res, { limit: false, saved }, 201)
   } catch (e) { next(e) }
 })

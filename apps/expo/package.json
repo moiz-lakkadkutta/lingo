@@ -16,7 +16,8 @@
     "react-native": "0.81.0",
     "react-native-video": "^6.16.0",
     "@lingo/shared-ui": "workspace:*",
-    "@moizp/vega-media-kit": "^0.1.0-alpha.0"
+    "@moizp/vega-media-kit": "^0.1.0-alpha.0",
+    "react-native-svg": "15.12.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

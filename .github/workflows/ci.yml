@@ -27,6 +27,7 @@ jobs:
         working-directory: vega-media-kit
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
+      - run: pnpm --filter @lingo/api prisma migrate deploy
       - run: pnpm typecheck
       - run: pnpm lint:words
       - run: pnpm test

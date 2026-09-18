@@ -7,6 +7,7 @@
     "userInterfaceStyle": "dark",
     "android": {
       "package": "dev.moizp.lingo",
+      "usesCleartextTraffic": true,
       "permissions": [],
       "intentFilters": [
         {

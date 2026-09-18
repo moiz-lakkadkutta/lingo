@@ -1,17 +1,9 @@
-import http from 'node:http'
-import { Server } from 'socket.io'
-import { createApp } from './app'
-import { setIo } from './lib/io'
 import { env } from './lib/env'
 import { logger } from './lib/logger'
 import { startQueue } from './lib/queue'
-import { registerSockets } from './sockets'
+import { createServer } from './server'
 
-const app = createApp()
-const server = http.createServer(app)
-const io = new Server(server, { cors: { origin: '*' } })
-setIo(io)
-registerSockets(io)
+const { server } = createServer()
 
 startQueue()
   .then(() => server.listen(env.PORT, () => logger.info({ port: env.PORT }, 'api listening')))
