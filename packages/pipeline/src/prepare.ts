@@ -11,7 +11,7 @@ import { isName, loadNames, rankOf } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
 import { tokenizeCues } from './tokenize'
 import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
-import { createAi } from './ai/index'
+import { AiSchemaError, createAi } from './ai/index'
 import { normalize, probeMezz } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
@@ -146,7 +146,11 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   let quiz: PreparedQuizItem[] | undefined
   if (doAi) {
     const glossed: Array<PreparedHighlight & { gloss: string }> = []
-    for (const h of picked) glossed.push({ ...h, ...(await deps.gloss(h.word, h.lemma, segs[h.cueIndex]!.text, lang, natives[0]!, level)) })
+    for (const h of picked) {
+      const r = await deps.gloss({ word: h.word, lemma: h.lemma, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!], lang, native: natives[0]!, level })
+      if (r.status === 'rejected') throw new AiSchemaError('gloss', r.issues, r.lastOutput)
+      glossed.push({ ...h, ...r.gloss })
+    }
     highlights.push(...glossed)
     quiz = (await deps.quiz(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '', highlights: glossed.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), lang, natives[0]!)).items
   } else highlights.push(...picked)

@@ -237,13 +237,13 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(r.clip.warnings.length).toBeGreaterThan(0)
     expect(r.clip.warnings.some((w) => /native .* lineLength=/.test(w))).toBe(true)
   })
-  it('gloss and quiz doubles are called with (word, lemma, cue, lang, native, level)', async () => {
+  it('gloss is called with {word, lemma, cue, nativeCue, lang, native, level} and quiz with the cues', async () => {
     const d = fixtureDeps(lang)
     const gloss = vi.fn(d.gloss), quiz = vi.fn(d.quiz)
     d.gloss = gloss; d.quiz = quiz
     const r = await prepare({ slug: `spy-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
     expect(gloss).toHaveBeenCalledTimes(r.clip.highlights.length)
-    for (const h of r.clip.highlights) expect(gloss).toHaveBeenCalledWith(h.word, h.lemma, r.clip.cues[h.cueIndex]!.text, lang, native, r.clip.level)
+    for (const h of r.clip.highlights) expect(gloss).toHaveBeenCalledWith({ word: h.word, lemma: h.lemma, cue: r.clip.cues[h.cueIndex]!.text, nativeCue: r.clip.cues[h.cueIndex]!.native[native], lang, native, level: r.clip.level })
     expect(quiz).toHaveBeenCalledTimes(1)
     const [cues, l, n] = quiz.mock.calls[0]!
     expect(l).toBe(lang); expect(n).toBe(native); expect(cues.length).toBe(r.clip.cues.length)

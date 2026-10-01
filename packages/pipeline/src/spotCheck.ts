@@ -2,7 +2,6 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { PreparedClip, type Lang, type PreparedCost, type PreparedQuizItem } from '@lingo/contracts'
 import { createAi, type Ai, type AiOptions } from './ai/index'
-import { AiSchemaError } from './ai/errors'
 import { loadFreqList, rankFn } from './freq'
 import { NEXT, pickHighlights } from './highlights'
 import { asrSuspects, MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
@@ -81,14 +80,9 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const rejected = new Set<SpotGlossRow>()
   for (const c of candidates) {
     const before = ai.cost().cachedCalls
-    let g: { gloss: string; grammar: string; example: string }
-    try {
-      g = await ai.gloss(c.word, c.lemma, c.cue, clip.sourceLang, native, clip.level)
-    } catch (e) {
-      if (!(e instanceof AiSchemaError)) throw e
-      // a twice-rejected answer is a result to score (it fails), not a reason to abort the sheet
-      g = { gloss: `REJECTED: ${e.issues.join('; ')}`, grammar: JSON.stringify(e.lastOutput), example: '' }
-    }
+    const r = await ai.gloss({ word: c.word, lemma: c.lemma, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], lang: clip.sourceLang, native, level: clip.level })
+    // a twice-rejected answer is a result to score (it fails), not a reason to abort the sheet
+    const g = r.status === 'rejected' ? { gloss: `REJECTED: ${r.issues.join('; ')}`, grammar: JSON.stringify(r.lastOutput), example: '' } : r.gloss
     const row = { cueIndex: c.cueIndex, cue: c.cue, word: c.word, lemma: c.lemma, rank: c.rank, ...g, cached: ai.cost().cachedCalls > before }
     if (g.gloss.startsWith('REJECTED: ')) rejected.add(row)
     glossed.push(row)

@@ -30,7 +30,8 @@ export function fixtureSend(): BedrockSend {
     let toolInput: Record<string, unknown>
     if (tool === GLOSS_TOOL) {
       const { word, lemma } = payload as { word: string; lemma: string }
-      toolInput = { gloss: `stub meaning of ${lemma}`, grammar: 'stub grammar note', example: `Hier steht ${word} noch einmal.` }
+      const english = /ONE word of a English subtitle line/.test(input.system?.[0]?.text ?? '')
+      toolInput = { sense: `stub sense of ${lemma}`, pos: 'other', gloss: [`stub-${lemma}`], register: 'neutral', example: english ? `Here is the word ${word} once more.` : `Hier steht das Wort ${word} noch einmal.` }
     } else if (tool === QUIZ_TOOL) {
       const H = (payload.highlights as Array<Omit<QuizHighlight, 'cueIndex'>>).map((h) => ({ ...h, cueIndex: 0 }))
       toolInput = fallbackPlan(H, quizCounts(H.length))
@@ -84,7 +85,10 @@ export function fixtureDeps(lang: Lang, opts: { durationS?: number; transcript?:
     lemmatizer: tableLemmatizer(lemmaTableFor(name, lang)),
     freqList: (l) => loadFreqList(l),
     names: (l) => loadNames(resolve(DATA_DIR, `names-${l}.txt`)),
-    gloss: async (word, lemma) => ({ gloss: `gloss of ${lemma}`, grammar: 'test grammar note', example: `Example with ${word}.` }),
+    gloss: async ({ word, lemma }) => {
+      const card = { sense: `sense of ${lemma}`, pos: 'other' as const, gloss: [`gloss of ${lemma}`], register: 'neutral' as const, example: `Example with ${word}.` }
+      return { status: 'ok', card, gloss: { gloss: `gloss of ${lemma}`, grammar: 'test grammar note', example: `Example with ${word}.` }, issues: [], attempts: 1, cached: false }
+    },
     quiz: async () => ({ items: [] }),
     now: () => new Date('2026-09-15T12:00:00Z'),
     log: () => {},

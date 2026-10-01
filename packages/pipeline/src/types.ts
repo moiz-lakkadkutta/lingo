@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import type { PreparedClip, PreparedCost } from '@lingo/contracts'
 import type { Lemmatizer } from './lemmatize'
-import type { glossWord, quizForClip } from './prompts'
+import type { quizForClip } from './prompts'
+import type { GlossFn } from './ai/gloss'
 import type { Formality } from './steps/translate'
 
 export type Lang = 'de' | 'en'
@@ -65,7 +66,7 @@ export interface PrepareDeps {
   /** data/names-{lang}.txt or empty set */
   names(lang: Lang): Promise<Set<string>>
   /** from ./prompts (LING-002 owns the body) */
-  gloss: typeof glossWord
+  gloss: GlossFn
   quiz: typeof quizForClip
   /** Bedrock spend so far (LING-002); written to clip.json.cost when present. fixtureDeps() has none. */
   cost?(): PreparedCost

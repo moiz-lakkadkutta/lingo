@@ -3,6 +3,7 @@ import { AiCache, DEFAULT_AI_CACHE_DIR } from './cache'
 import { createBedrockSend, type BedrockSend } from './client'
 import { CostLedger, novaLiteModelId, type Prices } from './cost'
 import { makeGloss, type GlossFn } from './gloss'
+export type { GlossFn, GlossOutcome, GlossRequest } from './gloss'
 import { makeQuiz, type QuizFn } from './quiz'
 
 export { AiSchemaError } from './errors'

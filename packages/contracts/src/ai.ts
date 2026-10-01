@@ -5,19 +5,14 @@ import { PreparedQuizItem } from './prepared'
  * LING-002: shapes the pipeline asks Amazon Nova Lite for (gloss card, quiz plan) and the context rules a schema cannot express.
  * The quiz items themselves are built by code from the plan (see packages/pipeline/src/ai/quiz.ts).
  */
-export const GLOSS_MAX_WORDS = 6, GLOSS_MAX_CHARS = 60
-export const GRAMMAR_MAX_WORDS = 14, GRAMMAR_MAX_CHARS = 90
-export const EXAMPLE_MAX_WORDS = 12, EXAMPLE_MAX_CHARS = 120
+import { boundedLine, EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MAX_CHARS, GLOSS_MAX_WORDS, GRAMMAR_MAX_CHARS, GRAMMAR_MAX_WORDS } from './text'
+export { EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MAX_CHARS, GLOSS_MAX_WORDS, GRAMMAR_MAX_CHARS, GRAMMAR_MAX_WORDS } from './text'
 export const QUIZ_MEANING_ITEMS = 6, QUIZ_CLOZE_ITEMS = 4, QUIZ_MIN_HIGHLIGHTS = 4
 
 /** Names used in prompts; unknown codes fall back to the upper-cased code. */
 export const LANGUAGE_NAMES: Record<string, string> = { de: 'German', en: 'English', tr: 'Turkish', ar: 'Arabic', uk: 'Ukrainian', fr: 'French', es: 'Spanish', it: 'Italian', pl: 'Polish', ru: 'Russian' }
 
-const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
-const line = (max: number, maxWords: number) =>
-  z.string().trim().min(1).max(max)
-    .refine((s) => !/[\r\n]/.test(s), 'single line')
-    .refine((s) => words(s) <= maxWords, `≤ ${maxWords} words`)
+const line = boundedLine
 
 /** Shape of one explanation (what Nova returns and what PreparedHighlight carries). Context checks live in glossIssues(). */
 export const Gloss = z.object({ gloss: line(GLOSS_MAX_CHARS, GLOSS_MAX_WORDS), grammar: line(GRAMMAR_MAX_CHARS, GRAMMAR_MAX_WORDS), example: line(EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS) }).strict()

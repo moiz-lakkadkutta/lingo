@@ -5,7 +5,8 @@ import { toolUseInput, type BedrockSend } from './client'
 import type { CostLedger } from './cost'
 
 /** Everything a gloss or quiz call needs; injected so tests never reach Bedrock. */
-export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date }
+export type Reasoning = 'off' | 'low' | 'medium'
+export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning }
 
 export interface AskSpec<T> {
   kind: AiKind
@@ -13,10 +14,12 @@ export interface AskSpec<T> {
   label: string
   system: string
   payload: unknown
+  /** further user text blocks after the payload (e.g. the sibling hint of glossClip) */
+  extraText?: string[]
   toolName: string
   toolConfig: ToolConfiguration
   maxTokens: number
-  schema: z.ZodType<T>
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>
   /** context rules beyond the schema; [] = acceptable */
   check: (value: T) => string[]
   /** issues that only nudge: on the retry, an answer whose remaining issues are all soft is accepted with a warning */
@@ -24,7 +27,7 @@ export interface AskSpec<T> {
 }
 
 export type AskResult<T> =
-  | { ok: true; output: T; usage: { inputTokens: number; outputTokens: number } }
+  | { ok: true; output: T; usage: { inputTokens: number; outputTokens: number }; /** 1 or 2 */ attempt: number; /** soft issues left on an answer accepted on the retry */ issues: string[] }
   | { ok: false; issues: string[]; lastOutput: unknown }
 
 /**
@@ -67,7 +70,7 @@ export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskR
     const out = await converse(d, {
       modelId: d.model,
       system: [{ text: spec.system }],
-      messages: [{ role: 'user', content: [{ text: JSON.stringify(spec.payload) }, ...feedback] }],
+      messages: [{ role: 'user', content: [{ text: JSON.stringify(spec.payload) }, ...(spec.extraText ?? []).map((text) => ({ text })), ...feedback] }],
       toolConfig: spec.toolConfig,
       inferenceConfig: { maxTokens: spec.maxTokens },
     })
@@ -79,10 +82,10 @@ export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskR
     const parsed = spec.schema.safeParse(input)
     issues = parsed.success ? spec.check(parsed.data) : zodIssues(parsed.error)
     const usage = { inputTokens: out.usage?.inputTokens ?? 0, outputTokens: out.usage?.outputTokens ?? 0 }
-    if (parsed.success && !issues.length) return { ok: true, output: parsed.data, usage }
+    if (parsed.success && !issues.length) return { ok: true, output: parsed.data, usage, attempt, issues: [] }
     if (parsed.success && attempt === 2 && spec.soft && issues.every(spec.soft)) {
       d.log(`WARNING ai ${spec.kind} ${spec.label} accepted on retry with a soft issue: ${issues.join('; ')}`)
-      return { ok: true, output: parsed.data, usage }
+      return { ok: true, output: parsed.data, usage, attempt, issues }
     }
   }
   return { ok: false, issues, lastOutput }
