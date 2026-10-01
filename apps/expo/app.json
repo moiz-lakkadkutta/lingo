@@ -23,7 +23,11 @@
       [
         "expo-font",
         {
-          "fonts": []
+          "fonts": [
+            "../../packages/shared-ui/assets/fonts/NotoSans-Regular.ttf",
+            "../../packages/shared-ui/assets/fonts/NotoSans-SemiBold.ttf",
+            "../../packages/shared-ui/assets/fonts/Manrope-ExtraBold.ttf"
+          ]
         }
       ],
       "@react-native-tvos/config-tv",
