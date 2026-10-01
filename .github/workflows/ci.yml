@@ -30,8 +30,9 @@ jobs:
       - run: pnpm --filter @lingo/api prisma migrate deploy
       # simplemma for the pipeline's lemma bridge smoke tests (docs/decisions/0004); a venv because ubuntu's system Python is PEP 668 "externally managed".
       # With CI set, those tests throw (not skip) when LINGO_PYTHON or simplemma is missing (packages/pipeline/test/helpers/simplemma.ts).
-      - run: python3 -m venv .venv-lemma && .venv-lemma/bin/pip install --quiet simplemma==2.0.0
+      - run: python3 -m venv "$GITHUB_WORKSPACE/app/.venv-lemma" && "$GITHUB_WORKSPACE/app/.venv-lemma/bin/pip" install --quiet simplemma==2.0.0
       - run: pnpm typecheck
       - run: pnpm lint:words
       - run: pnpm test
-        env: { LINGO_PYTHON: ${{ github.workspace }}/app/.venv-lemma/bin/python }
+        env:
+          LINGO_PYTHON: ${{ github.workspace }}/app/.venv-lemma/bin/python
