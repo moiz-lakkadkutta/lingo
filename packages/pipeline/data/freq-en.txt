@@ -1256,7 +1256,6 @@ justice
 military
 main
 hill
-german
 request
 minister
 bridge
@@ -1395,7 +1394,6 @@ grandpa
 gang
 property
 dumb
-chinese
 sweetie
 truly
 honestly
@@ -1569,7 +1567,6 @@ clock
 borrow
 slowly
 wet
-spanish
 journey
 transfer
 ocean
@@ -1600,7 +1597,6 @@ assistant
 tongue
 sentence
 monkey
-russian
 desert
 buzz
 grave
@@ -1614,7 +1610,6 @@ heading
 whore
 schedule
 alien
-pete
 ed
 disgust
 shadow
@@ -1650,7 +1645,6 @@ gosh
 disappoint
 complicate
 outta
-japanese
 university
 gunshot
 sudden
@@ -1895,7 +1889,6 @@ rick
 indian
 stab
 surface
-italian
 grandmother
 sneak
 beating
@@ -1915,7 +1908,6 @@ pot
 midnight
 snap
 launch
-india
 aside
 governor
 scoff
@@ -2530,7 +2522,6 @@ terribly
 bum
 donna
 grass
-italy
 battery
 permit
 height
@@ -2659,7 +2650,6 @@ invitation
 makeup
 rage
 examine
-russia
 obey
 tube
 profile
@@ -2748,7 +2738,6 @@ compromise
 boil
 appearance
 feature
-spain
 foster
 awkward
 structure
@@ -2797,7 +2786,6 @@ slight
 smooth
 behalf
 reasonable
-polish
 beard
 statue
 le
@@ -2880,7 +2868,6 @@ population
 deed
 precisely
 walker
-greek
 merely
 underwear
 romance
@@ -3085,7 +3072,6 @@ lamb
 medication
 discussion
 medal
-latin
 ace
 rot
 divine
@@ -3267,7 +3253,6 @@ menu
 herr
 reception
 ritual
-jersey
 barn
 currently
 rumbling
@@ -3447,7 +3432,6 @@ hut
 halt
 collar
 wade
-irish
 october
 scandal
 euro
@@ -3463,7 +3447,6 @@ operator
 contrary
 poker
 arrival
-korean
 stun
 graham
 fu
@@ -3504,7 +3487,6 @@ gum
 companion
 con
 ban
-australia
 gently
 snore
 define
@@ -3526,7 +3508,6 @@ mitch
 spark
 leather
 bacon
-dutch
 endure
 forgiveness
 permanent
@@ -3803,7 +3784,6 @@ corrupt
 sixth
 dinosaur
 skate
-egypt
 adjust
 stiff
 author
@@ -3969,7 +3949,6 @@ eleven
 sector
 ginger
 violate
-iraq
 residence
 hobby
 connie
@@ -4081,7 +4060,6 @@ rival
 oblige
 scrub
 depart
-brazil
 brutal
 alison
 vain
@@ -4491,7 +4469,6 @@ cue
 limb
 dawson
 diner
-chad
 ballet
 raj
 alcoholic
@@ -4800,7 +4777,6 @@ jeep
 exile
 skeleton
 dynamite
-cuba
 stripper
 thigh
 unpleasant
@@ -4847,7 +4823,6 @@ sayin
 werewolf
 is-
 rehab
-switzerland
 tidy
 grown-up
 tow
@@ -4999,7 +4974,6 @@ acre
 peek
 mercedes
 emotionally
-poland
 assembly
 ounce
 me-
@@ -5082,7 +5056,6 @@ inevitable
 bandage
 yacht
 fiancé
-ireland
 dominate
 irritate
 breakdown
@@ -5100,14 +5073,12 @@ regiment
 sewer
 restrain
 distribute
-guinea
 province
 jelly
 satisfaction
 critic
 historical
 altar
-swedish
 cane
 uncover
 lizzie
@@ -5175,7 +5146,6 @@ compassion
 investor
 unload
 ceo
-arabic
 mon
 deb
 additional
@@ -5412,7 +5382,6 @@ spaghetti
 chester
 suffocate
 laurie
-thai
 prospect
 yah
 contestant
@@ -5473,7 +5442,6 @@ extension
 mini
 freezer
 destine
-turkish
 cupboard
 admission
 dispose
@@ -5488,7 +5456,6 @@ skipper
 overall
 caution
 reconsider
-sweden
 martini
 jog
 hooray
@@ -6157,7 +6124,6 @@ solitary
 wilderness
 olympic
 humiliation
-vietnamese
 plunge
 disk
 toothbrush
@@ -6528,7 +6494,6 @@ homo
 francine
 antibiotic
 valid
-portuguese
 lynch
 researcher
 plaster
@@ -6657,7 +6622,6 @@ frustration
 meddle
 full-time
 jumper
-danish
 anomaly
 leah
 empress
@@ -6853,7 +6817,6 @@ wei
 liang
 clash
 puncture
-norway
 assessment
 crore
 apprentice
@@ -6909,7 +6872,6 @@ monte
 moth
 patterson
 holiness
-denmark
 isolation
 transformation
 loft
@@ -7064,7 +7026,6 @@ starboard
 decay
 chauffeur
 closure
-hebrew
 inconvenience
 withdrawal
 garrison
@@ -7191,7 +7152,6 @@ stabilize
 rodeo
 typewriter
 cardiac
-argentina
 tavern
 administer
 velvet
@@ -7294,7 +7254,6 @@ rook
 ramp
 dork
 rama
-austria
 hoof
 trafficking
 philly
@@ -7458,7 +7417,6 @@ octopus
 meaningful
 daytime
 dowry
-hungarian
 liza
 reset
 ko
@@ -7735,7 +7693,6 @@ omega
 hideout
 zipper
 reptile
-belgium
 yankees
 brunette
 whichever
@@ -8146,7 +8103,6 @@ cesar
 consul
 correspond
 jensen
-norwegian
 zebra
 intimacy
 imminent
@@ -8159,7 +8115,6 @@ bulk
 allie
 default
 highland
-margot
 overthrow
 indictment
 proceeding
@@ -8198,7 +8153,6 @@ silas
 paranoia
 soften
 airborne
-syria
 filmmaker
 agitate
 protestant
@@ -8283,7 +8237,6 @@ hypothesis
 pc
 spec
 demolish
-persian
 hopeful
 conditioning
 proclaim
@@ -8377,7 +8330,6 @@ kiki
 downhill
 posse
 levi
-irving
 confrontation
 fungus
 terrain
@@ -8526,7 +8478,6 @@ well-
 ballroom
 mort
 phenomenal
-czech
 ae
 nominee
 sweetness
@@ -8550,7 +8501,6 @@ hamster
 entrepreneur
 norris
 kraut
-chile
 burrito
 twitch
 jeremiah
@@ -8679,7 +8629,6 @@ pollution
 flutter
 marlene
 billboard
-hindi
 hostility
 nab
 journalism
@@ -8694,7 +8643,6 @@ junction
 consumption
 astrid
 metropolis
-iceland
 traveller
 bridal
 victorious
@@ -9002,7 +8950,6 @@ mystical
 blacksmith
 depict
 dung
-welsh
 frat
 yikes
 windshield
@@ -9059,7 +9006,6 @@ rung
 walnut
 ames
 kayla
-hungary
 well-being
 porridge
 gavel
@@ -9070,7 +9016,6 @@ sensitivity
 fitzgerald
 tamara
 removal
-morocco
 saddam
 radha
 erection
@@ -9114,7 +9059,6 @@ sdh
 intensify
 gallows
 budge
-afar
 assurance
 guerrilla
 undertake
@@ -9188,7 +9132,6 @@ ulcer
 partisan
 socially
 orchard
-philippines
 archbishop
 climax
 cyborg
@@ -9227,7 +9170,6 @@ extraction
 participant
 diarrhea
 goggles
-colombia
 incense
 integrate
 fitness
@@ -9405,7 +9347,6 @@ sabine
 gore
 saunders
 dubois
-finland
 loretta
 unsolve
 or-
@@ -9852,7 +9793,6 @@ ip
 ozzy
 sterile
 lorelai
-kenya
 developer
 appliance
 dunn
@@ -10182,7 +10122,6 @@ climber
 fez
 charcoal
 recording
-tamil
 naw
 hub
 shoulda
@@ -10331,9 +10270,7 @@ participation
 caucasian
 newlywed
 baffle
-serbian
 manhood
-lao
 matilda
 dinah
 consultation
@@ -10349,7 +10286,6 @@ congo
 backside
 endeavor
 firefly
-antarctica
 investigative
 redneck
 musketeer
@@ -10816,7 +10752,6 @@ beaumont
 unborn
 quill
 latter
-indonesia
 plight
 hel
 dorian
@@ -10897,7 +10832,6 @@ talker
 tru
 technological
 saigon
-bermuda
 nucleus
 hit-and-run
 kosher
@@ -10908,7 +10842,6 @@ muster
 kebab
 unauthorize
 long-distance
-romanian
 flanders
 connors
 corroborate
@@ -11022,7 +10955,6 @@ timid
 meself
 garth
 denton
-romania
 earnings
 righteousness
 kel
@@ -11079,7 +11011,6 @@ oskar
 abolish
 flo
 potty
-algeria
 geometry
 horizontal
 lug
@@ -11530,7 +11461,6 @@ indicator
 cornell
 recession
 shepard
-ukrainian
 superboy
 infectious
 widen
@@ -11773,7 +11703,6 @@ disposable
 noir
 lem
 sturdy
-finnish
 wook
 so-so
 traditionally
@@ -11855,7 +11784,6 @@ captivity
 aroma
 pe
 manila
-armenian
 fir
 shill
 novice
@@ -12546,7 +12474,6 @@ beneficiary
 wreak
 enrich
 boutique
-serbia
 valentina
 douchebag
 drifter
@@ -12692,7 +12619,6 @@ infinitely
 exemplary
 bearing
 cao
-tibetan
 outdo
 solicit
 olympus
@@ -12711,7 +12637,6 @@ mongrel
 mince
 nourish
 ange
-cambodia
 jeb
 unison
 undertaking
@@ -12796,7 +12721,6 @@ brooch
 technicality
 rune
 schizophrenia
-netherlands
 inca
 ado
 odessa
@@ -12862,7 +12786,6 @@ asgard
 vogel
 companionship
 burnett
-bolivia
 banister
 gimmick
 tubbs
@@ -12970,7 +12893,6 @@ uphill
 emphasize
 contraband
 claudio
-albanian
 staten
 cahill
 ravine
@@ -12986,7 +12908,6 @@ unni
 pokémon
 one-eyed
 housework
-punjabi
 mami
 kiev
 ghostly
@@ -13200,7 +13121,6 @@ if-
 custer
 envie
 ajax
-lebanon
 pulmonary
 pawnee
 midtown
@@ -13412,7 +13332,6 @@ veterinarian
 lyin
 naught
 georgina
-greenland
 bane
 merle
 stoner
@@ -13577,7 +13496,6 @@ doggone
 gallo
 christening
 gothic
-ethiopia
 bri
 sundae
 ruffian
@@ -13645,7 +13563,6 @@ mavis
 intricate
 overstep
 nirvana
-cyprus
 selena
 aristotle
 quail
@@ -13791,7 +13708,6 @@ cabbie
 adrien
 comp
 vader
-madagascar
 audacity
 fluff
 yoshida
@@ -13901,7 +13817,6 @@ subversive
 tokugawa
 elastic
 refuel
-libya
 single-handedly
 pristine
 width
@@ -14068,10 +13983,8 @@ airtight
 yo-yo
 jazzy
 ufos
-bulgarian
 lebeau
 coney
-bulgaria
 armageddon
 sinbad
 inauguration
@@ -14368,7 +14281,6 @@ bebe
 gopher
 valencia
 annihilation
-filipino
 jawohl
 tennyson
 ps
@@ -15163,7 +15075,6 @@ keyes
 revert
 photoshop
 timely
-telugu
 ivanovich
 appropriately
 recap
@@ -15190,7 +15101,6 @@ corp
 compulsory
 taft
 famously
-gibraltar
 cuckold
 y-yeah
 renée
@@ -15306,7 +15216,6 @@ armchair
 floppy
 drainage
 sho
-mongolia
 scruple
 frisky
 cyclist
@@ -15582,7 +15491,6 @@ self-confidence
 creeper
 quirk
 shrek
-basque
 boardwalk
 poultry
 scrapbook
@@ -15624,7 +15532,6 @@ cosette
 verde
 vd
 rikers
-fiji
 prude
 lik
 boundless
@@ -15687,7 +15594,6 @@ huntington
 tigger
 stringer
 topher
-yemen
 vantage
 canadians
 abandonment
@@ -15767,7 +15673,6 @@ xanax
 high-class
 left-hand
 hyperspace
-yiddish
 elevation
 figaro
 pastime
@@ -15993,7 +15898,6 @@ anubis
 ronin
 intuitive
 to-do
-albania
 excalibur
 xing
 dinnertime
@@ -16025,7 +15929,6 @@ soot
 amalia
 umpire
 quicksand
-georgian
 bitterly
 sloth
 fondue
@@ -16491,7 +16394,6 @@ vc
 itunes
 playtime
 minx
-kazakhstan
 catacomb
 bleacher
 autopilot
@@ -16533,7 +16435,6 @@ yoshi
 adverse
 eastwood
 line-up
-croatia
 pinnacle
 gastric
 noriko
@@ -16752,7 +16653,6 @@ lakers
 scruffy
 misconception
 parmesan
-tunisia
 flagship
 hasten
 stead
@@ -17406,7 +17306,6 @@ cosimo
 hourly
 congresswoman
 rummy
-mongolian
 unforgive
 receptive
 neurosurgeon
@@ -17475,7 +17374,6 @@ rowena
 spender
 duster
 ideological
-bangladesh
 hpd
 tre
 nimble
@@ -17531,7 +17429,6 @@ minna
 norse
 pelé
 lib
-luxembourg
 athos
 azul
 corrigan
@@ -17610,7 +17507,6 @@ wheelbarrow
 giveaway
 clinically
 cubby
-indonesian
 vidya
 angelique
 whiny
@@ -18106,7 +18002,6 @@ shoddy
 juanito
 saturate
 jase
-cornish
 shik
 gar
 anaesthetic
@@ -18116,7 +18011,6 @@ robotics
 apprehension
 bharat
 objectively
-sanskrit
 computing
 high-risk
 unfairly
@@ -18268,7 +18162,6 @@ indigo
 chewy
 kal-el
 nom
-icelandic
 flounder
 candidacy
 playa
@@ -18385,7 +18278,6 @@ supersonic
 bigelow
 patronage
 dieu
-burmese
 constabulary
 morley
 farid
@@ -18546,7 +18438,6 @@ gunter
 letty
 zhaan
 whatyou
-bosnian
 rancid
 balthazar
 velcro
@@ -18788,7 +18679,6 @@ dumont
 mayans
 pleasurable
 sandrine
-navajo
 unknowingly
 marten
 scrounge
@@ -19177,7 +19067,6 @@ methink
 miko
 grouse
 clipboard
-swahili
 gennaro
 jot
 paisa
@@ -19214,7 +19103,6 @@ orry
 crevice
 collarbone
 reed
-lithuania
 somerset
 fernanda
 dynamo
@@ -19421,7 +19309,6 @@ kilt
 judea
 hayashi
 disembark
-togo
 snorkel
 nit
 inhibit
@@ -19777,7 +19664,6 @@ masako
 kipling
 ichiro
 corday
-croatian
 accountability
 sleepyhead
 spoonful
@@ -19866,7 +19752,6 @@ rotterdam
 kal
 imogen
 invariably
-laos
 stepmom
 pomegranate
 idiocy
@@ -19874,7 +19759,6 @@ quince
 surrey
 loave
 galore
-maltese
 unguard
 superfluous
 toshio
@@ -19916,7 +19800,6 @@ unmistakable
 lauderdale
 strudel
 och
-estonia
 moines
 absinthe
 tachibana
@@ -19998,3 +19881,120 @@ dandruff
 silvery
 affront
 tardy
+eaton
+blowin
+eoe
+norbert
+zou
+lactose
+dishonorable
+roundup
+avec
+discrete
+ciccio
+apprenticeship
+arno
+walkman
+adonis
+kyushu
+jezebel
+bixby
+holger
+ginza
+bogeyman
+workaholic
+up-to-date
+pda
+pina
+noches
+foal
+legitimacy
+theyre
+arrhythmia
+lehman
+restitution
+pallet
+brokenhearted
+reconvene
+subxpacio
+unconfirmed
+ode
+flavia
+mcpherson
+composure
+camillo
+swastika
+chickenshit
+gearbox
+jizz
+bloodstained
+repossess
+sahil
+pandit
+beech
+plop
+livid
+tron
+we--we
+cayenne
+você
+impossibility
+petri
+vigorously
+tomboy
+tatsuo
+cuppa
+odour
+motorist
+legionnaire
+boohoo
+continuance
+incompatible
+arrivederci
+spinner
+pesto
+expressly
+hollister
+broken-down
+infestation
+leach
+circumcision
+yonkers
+shashi
+broomstick
+templars
+diffuse
+eyeliner
+danton
+katana
+ballgame
+lar
+semi-final
+aravind
+urko
+noor
+inept
+fyodor
+parody
+amino
+hobart
+marsden
+futuristic
+pierson
+shangri-la
+home-cook
+germain
+tse
+packard
+cristal
+cyrano
+hussain
+ped
+israelite
+souffle
+matias
+gorbachev
+dissent
+kojak
+spanky
+dressmaker

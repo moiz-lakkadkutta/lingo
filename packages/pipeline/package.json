@@ -7,6 +7,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build:freq": "tsx scripts/build-freq.ts",
+    "build:names": "tsx scripts/build-names.ts",
     "gen:fixtures": "tsx scripts/gen-fixtures.ts",
     "lemma:smoke": "tsx scripts/lemma-smoke.ts",
     "stats": "tsx scripts/stats.ts"

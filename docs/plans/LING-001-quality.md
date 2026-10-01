@@ -547,6 +547,7 @@ coverage 6574, 14 highlights incl. Margot/Brasilien, 8 names incl. Isolierung/Ma
 ## 13. Later (not this ticket)
 
 - de name fallback with `¬known` (0008 L1) once the app reads `token.name`.
+- Wikidata given-name seed for `build:names` (§5.2 step 2, `--wikidata`): skipped in the P4 implementation; only the `Intl` seed and the hand additions shipped.
 - Use Transcribe's `audio_segments` (already in the fixtures) as a second utterance signal; today unused.
 - Automatic condensing (0007 M2.4) if ≥ 10 % of real cues need the `--cues` path.
 - Remove `known` from `isName`'s input once the gate PR's `prepare.ts` is settled.
