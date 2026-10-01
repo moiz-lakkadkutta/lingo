@@ -1,6 +1,22 @@
 import { pickHighlights, clipLevel, coverageRank, isCountable, isNumeral } from '../src/highlights'
 
 describe('highlights', () => {
+  it('pickHighlights never picks a token whose ASR confidence is below 0.4, but the token still counts for the clip level', () => {
+    const r = (l: string) => ({ sal: 4972, sale: 2121, the: 3 } as Record<string, number>)[l]
+    const tokens = [{ word: 'the', lemma: 'the', asr: 0.99 }, { word: 'sal', lemma: 'sal', asr: 0.158 }]
+    const skipped: string[] = []
+    expect(pickHighlights([{ index: 0, tokens }], r, 'A2', 1, undefined, (i, t) => skipped.push(`${i}|${t.word}`))).toEqual([])
+    expect(skipped).toEqual(['0|sal'])
+    expect(pickHighlights([{ index: 0, tokens: tokens.map((t) => ({ ...t, asr: undefined })) }], r, 'A2', 1).map((h) => h.word)).toEqual(['sal'])
+    expect(clipLevel(tokens, r)).toBe(clipLevel(tokens.map((t) => ({ ...t, asr: undefined })), r))
+    expect(coverageRank(tokens, r)).toBe(4972)
+    // exclude (asrSuspects keys) drops a candidate without a confidence
+    expect(pickHighlights([{ index: 7, tokens: [{ word: 'Sal', lemma: 'sal' }] }], r, 'A2', 1, new Set(['7|sal']))).toEqual([])
+  })
+  it('pickHighlights keeps a correct word at confidence 0.519 (old-timer)', () => {
+    const r = (l: string) => (l === 'old-timer' ? 14058 : undefined)
+    expect(pickHighlights([{ index: 66, tokens: [{ word: 'old-timer', lemma: 'old-timer', asr: 0.519 }] }], r, 'A2', 1)).toEqual([{ cueIndex: 66, word: 'old-timer', lemma: 'old-timer', rank: 14058 }])
+  })
   const rank = (l: string) => ({ ich: 1, warte: 1500, seit: 300, zwei: 200, stunden: 900, auf: 40, dich: 120, angerufen: 2500, abgenommen: 3800, berlin: undefined })[l]
   it('picks words at or above the floor of the band above the level (no ceiling), skipping names and numbers, ≤ 2 per cue', () => {
     const hl = pickHighlights([{ index: 0, tokens: 'Ich warte seit zwei Stunden auf dich'.split(' ').map((w) => ({ word: w, lemma: w.toLowerCase() })) }, { index: 1, tokens: 'Berlin 1989 angerufen abgenommen'.split(' ').map((w) => ({ word: w, lemma: w.toLowerCase(), name: w === 'Berlin' })) }], rank, 'A1', 1)

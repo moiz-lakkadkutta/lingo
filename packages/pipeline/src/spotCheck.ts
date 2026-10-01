@@ -5,6 +5,7 @@ import { createAi, type Ai, type AiOptions } from './ai/index'
 import { AiSchemaError } from './ai/errors'
 import { loadFreqList, rankFn } from './freq'
 import { NEXT, pickHighlights } from './highlights'
+import { asrSuspects, MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
 
 /**
  * LING-002 §8: the 30-item quality check. Glosses each clip's highlights (then wider-band words until `perClip` rows), builds the quiz
@@ -16,18 +17,21 @@ export const DEFAULT_PER_CLIP = 15
 export interface SpotCandidate { cueIndex: number; cue: string; word: string; lemma: string; rank: number; fromClip: boolean }
 
 /**
- * Pure. Every clip highlight first (in clip order; never dropped), then, while fewer than `perClip`, words picked by pickHighlights() at the
+ * Pure. Every clip highlight first (in clip order; dropped only by the ASR filter: confidence < 0.4 or asrSuspects), then, while fewer than `perClip`, words picked by pickHighlights() at the
  * clip level and the next two levels with maxShare 1 (so names, digits and number words never appear), minus lemmas already present,
  * ordered by cue index then rank.
  */
 export function spotCheckCandidates(clip: PreparedClip, rank: (lemma: string) => number | undefined, perClip: number): SpotCandidate[] {
   const cueText = (i: number) => clip.cues[i]!.text
-  const out: SpotCandidate[] = clip.highlights.map((h) => ({ cueIndex: h.cueIndex, cue: cueText(h.cueIndex), word: h.word, lemma: h.lemma, rank: h.rank, fromClip: true }))
+  // the ASR filter of LING-002-gate-c §2 also applies to a clip.json prepared before it existed
+  const cues = clip.cues.map((c) => ({ index: c.index, tokens: c.tokens }))
+  const exclude = asrSuspects(cues, rank)
+  const lowConfidence = (h: { cueIndex: number; word: string }) => clip.cues[h.cueIndex]?.tokens.some((t) => t.word === h.word && t.asr !== undefined && t.asr < MIN_HIGHLIGHT_CONFIDENCE) ?? false
+  const out: SpotCandidate[] = clip.highlights.filter((h) => !exclude.has(tokenKey(h.cueIndex, h.word)) && !lowConfidence(h)).map((h) => ({ cueIndex: h.cueIndex, cue: cueText(h.cueIndex), word: h.word, lemma: h.lemma, rank: h.rank, fromClip: true }))
   const seen = new Set(out.map((c) => c.lemma.toLowerCase()))
   if (out.length >= perClip) return out
-  const cues = clip.cues.map((c) => ({ index: c.index, tokens: c.tokens }))
   const levels = [...new Set([clip.level, NEXT[clip.level], NEXT[NEXT[clip.level]]])]
-  const wider = levels.flatMap((lvl) => pickHighlights(cues, rank, lvl, 1.0))
+  const wider = levels.flatMap((lvl) => pickHighlights(cues, rank, lvl, 1.0, exclude))
     .sort((a, b) => a.cueIndex - b.cueIndex || a.rank - b.rank)
   for (const w of wider) {
     if (out.length >= perClip) break

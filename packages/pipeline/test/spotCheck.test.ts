@@ -74,6 +74,22 @@ describe('spot check', () => {
     expect(spotCheckCandidates(clip, rank, 2)).toHaveLength(clip.highlights.length) // never drops a clip highlight
   })
 
+  it('spotCheckCandidates drops an ASR-suspect clip highlight from an older clip.json', () => {
+    const tok = (w: string, asr?: number) => ({ word: w, lemma: w.toLowerCase(), rank: 100, name: false, sentenceInitial: false, ...(asr !== undefined ? { asr } : {}) })
+    const mk = (index: number, words: string[], asr?: Record<string, number>) => ({ index, startMs: index * 2000, endMs: index * 2000 + 1500, text: words.join(' '), native: { de: 'x' }, tokens: words.map((w) => tok(w, asr?.[w])) })
+    const old = PreparedClip.parse({
+      ...clip, level: 'A2',
+      cues: [mk(0, ['that', 'scavenger', 'sale']), mk(1, ['the', 'sale']), mk(2, ['the', 'scavenger', 'sal']), mk(3, ['a', 'nifty', 'gadget'], { nifty: 0.2 })],
+      highlights: [{ cueIndex: 0, word: 'sale', lemma: 'sale', rank: 2121 }, { cueIndex: 2, word: 'sal', lemma: 'sal', rank: 4972 }, { cueIndex: 3, word: 'nifty', lemma: 'nifty', rank: 9000 }],
+    })
+    const r = (l: string) => ({ sale: 2121, sal: 4972, scavenger: 10858, nifty: 9000, gadget: 7000 } as Record<string, number>)[l]
+    const c = spotCheckCandidates(old, r, 3)
+    expect(c.filter((x) => x.fromClip).map((x) => x.word)).toEqual(['sale'])
+    // widening never brings them back either
+    expect(c.map((x) => x.word)).not.toContain('sal')
+    expect(c.map((x) => x.word)).not.toContain('nifty')
+  })
+
   it('writes spot-check.json and markdown with 15 gloss rows, blank score columns, a quiz section and the cost line', async () => {
     const { send, out, result } = await spot(undefined, 'full')
     expect(send).toHaveBeenCalledTimes(15 + 1)

@@ -1,5 +1,6 @@
 import type { Level } from '@lingo/contracts'
 import { rankOf } from './names'
+import { MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
 /**
  * Frequency-aware highlights: 1–2 words per cue whose rank is at or above the floor of the band above the clip level, lowest rank first
  * (no ceiling — the band just above fills first; the app filters per learner, 0007 M5; docs/decisions/0008 decision 9);
@@ -10,7 +11,7 @@ export type { Level }
 export const BANDS: Record<Level, [number, number]> = { A1: [0, 1000], A2: [1000, 2000], B1: [2000, 4000], B2: [4000, 8000] }
 export const NEXT: Record<Level, Level> = { A1: 'A2', A2: 'B1', B1: 'B2', B2: 'B2' }
 /** `name` is computed by names.ts (undefined = not a name); the caller passes a case-insensitive rank fn. */
-export interface Token { word: string; lemma: string; name?: boolean }
+export interface Token { word: string; lemma: string; name?: boolean; /** Transcribe confidence, when known (LING-002-gate-c §2) */ asr?: number }
 /** coverageRank when no token is ranked. */
 export const UNKNOWN_RANK = 99999
 
@@ -36,17 +37,24 @@ export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.
 /** The lowest rank a highlight may have for a clip at `level`: the floor of the band above it. */
 export function highlightFloor(level: Level): number { return BANDS[NEXT[level]][0] }
 
-export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
+/**
+ * ASR filter (LING-002-gate-c §2): a token with `asr` < MIN_HIGHLIGHT_CONFIDENCE, or whose `${cueIndex}|${word}` key is in `exclude`
+ * (asrSuspects), is never a candidate; it still counts for level and coverage. `onSkip` is told about each such token that would
+ * otherwise have been eligible (countable, ranked at or above the floor), so the caller can warn.
+ */
+export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4, exclude?: Set<string>, onSkip?: (cueIndex: number, t: Token) => void): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
   const lo = highlightFloor(level)
   const out: Array<{ cueIndex: number; word: string; lemma: string; rank: number }> = []
   const seen = new Set<string>()
   const used = new Set<number>()
   const budget = Math.floor(cues.length * maxShare)
+  const asrBad = (c: number, t: Token) => (t.asr !== undefined && t.asr < MIN_HIGHLIGHT_CONFIDENCE) || !!exclude?.has(tokenKey(c, t.word))
   for (const c of cues) {
     if (!used.has(c.index) && used.size >= budget) continue
     const cands = c.tokens
       .filter((t) => isCountable(t) && t.word.length > 2)
       .map((t) => ({ ...t, r: rank(t.lemma) })).filter((t): t is Token & { r: number } => t.r !== undefined && t.r >= lo && !seen.has(t.lemma))
+      .filter((t) => { if (!asrBad(c.index, t)) return true; onSkip?.(c.index, t); return false })
       .sort((a, b) => a.r - b.r).slice(0, 2)
     for (const t of cands) { seen.add(t.lemma); used.add(c.index); out.push({ cueIndex: c.index, word: t.word, lemma: t.lemma, rank: t.r }) }
   }

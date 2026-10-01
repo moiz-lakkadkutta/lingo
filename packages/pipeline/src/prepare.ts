@@ -17,6 +17,7 @@ import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './ste
 import { alignNative, translateWithAws } from './steps/translate'
 import { pack } from './steps/package'
 import { publish } from './steps/publish'
+import { alignConfidence, asrSkipWarning, asrSuspectReasons, confidenceItems } from './asr'
 import { TranscribeJson, type PrepareDeps, type PrepareInput, type PrepareResult } from './types'
 export { BANDS, NEXT, type Level }
 
@@ -68,8 +69,15 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   let transcribeJob: string | null = null
   let segs: Seg[]
   let dropped: Dropped[] = []
+  // kept for the ASR confidence of each token (LING-002-gate-c §2); absent for a --cues run without a transcript in the work dir
+  let transcriptForAsr: TranscribeJson | undefined
   if (input.cues) {
-    if (existsSync(tPath)) transcribeJob = (JSON.parse(await readFile(tPath, 'utf8')) as { jobName?: string }).jobName ?? null
+    if (existsSync(tPath)) {
+      const raw = JSON.parse(await readFile(tPath, 'utf8')) as { jobName?: string }
+      transcribeJob = raw.jobName ?? null
+      const parsed = TranscribeJson.safeParse(raw)
+      if (parsed.success) transcriptForAsr = parsed.data
+    }
     segs = (await loadCuesVtt(input.cues, lang)).map((s) => ({ ...s, text: wrap2(s.text) })) // read fully before anything is written
     mark(`cues from file ${input.cues}`)
   } else {
@@ -84,6 +92,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
       await writeFile(tPath, JSON.stringify(transcript, null, 2))
       mark('transcribed')
     }
+    transcriptForAsr = transcript
     const words = wordsFromTranscribe(transcript)
     if (!words.length) throw new Error(`no speech in ${slug}`)
     await writeFile(`${work}/words.json`, JSON.stringify(words))
@@ -115,10 +124,12 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   mark(`lemmatized ${keys.length} forms`)
   const nameCtx = { lang, rank, list: await deps.names(lang) }
   const tokensByCue: PreparedToken[][] = segs.map(() => [])
+  const confidence = transcriptForAsr ? alignConfidence(raw, segs, confidenceItems(transcriptForAsr)) : []
   raw.forEach((t, i) => {
     const { lemma, known } = lemmaOf.get(lemmaKey(t.word, t.sentenceInitial))!
     const name = isName({ word: t.word, lemma, known, sentenceInitial: t.sentenceInitial }, nameCtx)
-    tokensByCue[t.cueIndex]!.push({ word: t.word, lemma, rank: rankOf(t.word, lemma, rank) ?? null, name, sentenceInitial: t.sentenceInitial })
+    const asr = confidence[i]
+    tokensByCue[t.cueIndex]!.push({ word: t.word, lemma, rank: rankOf(t.word, lemma, rank) ?? null, name, sentenceInitial: t.sentenceInitial, ...(asr !== undefined ? { asr } : {}) })
   })
   // 6. level, coverage, highlights, glosses, quiz (names, digits and number words do not count, as in pickHighlights)
   const rankable = tokensByCue.flat().filter(isCountable)
@@ -126,7 +137,9 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const coverage = coverageRank(rankable, rank)
   const unranked = unrankedShare(rankable, rank)
   if (unranked.share > 0.05) warnings.push(`unranked tokens: ${Math.round(unranked.share * 100)} % of countable tokens have no frequency rank (${unranked.lemmas.slice(0, 12).join(', ')}${unranked.lemmas.length > 12 ? ', …' : ''}) — ASR errors or rare words; the level ignores them`)
-  const picked = pickHighlights(segs.map((s) => ({ index: s.index, tokens: tokensByCue[s.index]! })), rank, level)
+  const cueTokens = segs.map((s) => ({ index: s.index, tokens: tokensByCue[s.index]! }))
+  const suspects = asrSuspectReasons(cueTokens, rank)
+  const picked = pickHighlights(cueTokens, rank, level, 0.4, new Set(suspects.keys()), (ci, t) => warnings.push(asrSkipWarning(ci, t.word, t.asr, suspects.get(`${ci}|${t.word.toLowerCase()}`))))
   if (!picked.length) warnings.push(`no highlights: no countable token has rank ≥ ${highlightFloor(level)} (band above ${level}); the clip teaches nothing above its level — swap it (docs/content.md §8)`)
   warnings.push(...reviewHighlights(picked, lang))
   const highlights: PreparedHighlight[] = []
