@@ -9,10 +9,10 @@ import type { RemoteSource } from '../remote/types'
 import { useRemoteKeys } from '../remote/useRemoteKeys'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
+import { px } from '../theme/scale'
 import { Explain } from './Explain'
 import { alignHighlights } from './player/align'
 import { initialState, reduce, type Effect, type PlayerCtx, type PlayerEvent, type PlayerState } from './player/machine'
-import { lastStartedCue } from './player/seek'
 import { SettingsSheet, type SettingsSheetHandle } from './player/SettingsSheet'
 import { StatusLine } from './player/StatusLine'
 import { nativeVisible, statusParts } from './player/visibility'
@@ -84,7 +84,7 @@ export function Player(props: PlayerProps) {
   }, [clearHold, hold])
   useEffect(() => clearHold, [clearHold])
 
-  // Remote keys: select arrives through the stage Pressable; ◄► in the sheet cycle the focused row.
+  // Remote keys: select arrives through the stage Pressable; left/right in the sheet cycle the focused row.
   const onKey = useCallback((ev: RemoteEvent) => {
     if (ev.key === 'select') return
     if (stateRef.current.phase === 'sheet' && (ev.key === 'left' || ev.key === 'right')) {
@@ -110,8 +110,8 @@ export function Player(props: PlayerProps) {
   }, [state.chromeUntil])
   const chromeVisible = state.phase !== 'playing' || Date.now() < state.chromeUntil
 
-  // In a gap between cues, Explain uses the line that just ended.
-  const shownIdx = state.cueIndex ?? (state.phase === 'explain' ? lastStartedCue(clip.cues, state.positionS) : null)
+  // The machine keeps cueIndex on the line that just ended when Select lands in a gap.
+  const shownIdx = state.cueIndex
   const cue = shownIdx !== null ? clip.cues[shownIdx] ?? null : null
   const alignment = useMemo(() => (cue ? alignHighlights(cue.text, cue.highlights) : null), [cue])
   const alignmentOk = !!alignment && alignment.unmatched.length === 0
@@ -124,6 +124,10 @@ export function Player(props: PlayerProps) {
   useLayoutEffect(() => {
     setSaveHandle(explaining && saveRef.current ? findNodeHandle(saveRef.current) ?? undefined : undefined)
   }, [explaining, shownIdx])
+
+  // The card sits above the measured cue block; px(300) until the first layout.
+  const [cueBlockH, setCueBlockH] = useState<number | null>(null)
+  const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(24)
 
   const stageActive = state.phase === 'playing' || state.phase === 'holding'
   return (
@@ -145,7 +149,9 @@ export function Player(props: PlayerProps) {
         onPress={() => dispatch({ type: 'stageSelect', now: Date.now() })}
         style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, outlineWidth: 0 }}
       />
+      {explaining ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: tokens.color.scrim }} /> : null}
       <DualCue
+        onBlockLayout={setCueBlockH}
         cue={cue}
         alignment={alignment}
         nativeVisible={nativeVisible({ setting: learner.nativeLine, challenge, paused: state.phase === 'explain' || state.phase === 'holding', revealedCue: state.revealedCue, cueIndex: shownIdx })}
@@ -178,6 +184,7 @@ export function Player(props: PlayerProps) {
           onPlus={onPlus}
           chipRefs={chipRefs}
           saveRef={saveRef}
+          bottom={cardBottom}
         />
       ) : null}
       {state.phase === 'sheet' ? (
@@ -190,7 +197,6 @@ export function Player(props: PlayerProps) {
           cueScale={learner.cueScale}
           onRate={(r) => { if (r !== stateRef.current.rate) dispatch({ type: 'action', action: 'slower', now: Date.now() }) }}
           onLearnerChange={onLearnerChange}
-          onUpsell={onPlus}
         />
       ) : null}
     </View>

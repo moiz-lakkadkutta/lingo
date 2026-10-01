@@ -5,7 +5,7 @@
 import type { CueDto } from '@lingo/contracts'
 import type { RemoteKey } from '@moizp/vega-media-kit'
 import type { Caps } from '../../platformCaps'
-import { cueAt, seekTarget } from './seek'
+import { cueAt, lastStartedCue, seekTarget } from './seek'
 
 export type Phase = 'playing' | 'holding' | 'explain' | 'sheet'
 export interface PlayerCtx { cues: readonly CueDto[]; caps: Caps; plus: boolean; challenge: boolean; autoPause: boolean; holdMs: number; chromeMs: number; graceS: number }
@@ -28,6 +28,8 @@ export type Effect =
   | { kind: 'startHold'; ms: number } | { kind: 'cancelHold' } | { kind: 'end' } | { kind: 'exit'; positionS: number }
 
 type Result = [PlayerState, Effect[]]
+/** onPosition arrives at ≤ 4 Hz; anything beyond 1 s between two reports is not playback. */
+const MAX_PLAY_STEP_S = 1
 type KeyEvent = Extract<PlayerEvent, { type: 'key' }>
 
 export function initialState(startAt: number): PlayerState {
@@ -35,9 +37,15 @@ export function initialState(startAt: number): PlayerState {
 }
 
 const chrome = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState => ({ ...s, chromeUntil: now + ctx.chromeMs })
-const toExplain = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState => chrome({ ...s, phase: 'explain', wordIdx: 0 }, now, ctx)
-/** Leaving the card or the sheet remounts the stage Pressable (stageKey bump) so hasTVPreferredFocus applies again (decision 0006 §5). */
-const backToStage = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState => chrome({ ...s, phase: 'playing', stageKey: s.stageKey + 1 }, now, ctx)
+/** In a gap between lines the card explains the line that just ended, so cueIndex is never null while a cue is shown. */
+const toExplain = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =>
+  chrome({ ...s, phase: 'explain', wordIdx: 0, cueIndex: s.cueIndex ?? lastStartedCue(ctx.cues, s.positionS) }, now, ctx)
+/**
+ * Leaving the card or the sheet remounts the stage Pressable (stageKey bump) so hasTVPreferredFocus applies again (decision 0006 §5).
+ * cueIndex goes back to the cue under the playhead, so a line the card kept on screen (gap, hold) is not held on resume.
+ */
+const backToStage = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =>
+  chrome({ ...s, phase: 'playing', stageKey: s.stageKey + 1, cueIndex: cueAt(ctx.cues, s.positionS) }, now, ctx)
 const toggleReveal = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =>
   chrome({ ...s, revealedCue: s.revealedCue === s.cueIndex ? null : s.cueIndex }, now, ctx)
 
@@ -50,7 +58,9 @@ function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: b
   const old = s.cueIndex
   let next: PlayerState = { ...s, positionS: pos, cueIndex: cueAt(ctx.cues, pos) }
   const effects: Effect[] = []
-  if (hold && ctx.autoPause && old !== null && s.heldCue !== old) {
+  // Only continuous playback holds: a forward step of 0–1 s. A larger or backward jump is a seek or a stale report from before one.
+  const step = pos - s.positionS
+  if (hold && ctx.autoPause && old !== null && s.heldCue !== old && step >= 0 && step <= MAX_PLAY_STEP_S) {
     const c = ctx.cues[old]
     if (c && pos >= c.endS) {
       next = chrome({ ...next, phase: 'holding', heldCue: old, cueIndex: old }, now, ctx)

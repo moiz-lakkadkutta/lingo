@@ -10,9 +10,9 @@ import { px } from '../../theme/scale'
 
 export interface SettingsSheetProps {
   caps: Caps; plus: boolean; rate: 1 | 0.75; nativeLine: LearnerDto['nativeLine']; cueScale: number
-  onRate(r: 1 | 0.75): void; onLearnerChange(p: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>): void; onUpsell(): void
+  onRate(r: 1 | 0.75): void; onLearnerChange(p: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>): void
 }
-/** ◄► on the focused row; the Player forwards those keys here because the sheet is open while video plays. */
+/** Left/right on the focused row; the Player forwards those keys here because the sheet is open while video plays. */
 export interface SettingsSheetHandle { cycle(dir: -1 | 1): void }
 
 type RowKey = 'speed' | 'nativeLine' | 'size'
@@ -38,9 +38,9 @@ export const SettingsSheet = forwardRef<SettingsSheetHandle, SettingsSheetProps>
   useImperativeHandle(ref, () => ({ cycle: (dir) => cycle(focused.current, dir) }))
 
   const rows: Array<{ key: RowKey; name: string; value: string }> = [
-    ...(caps.rate ? [{ key: 'speed' as const, name: strings.sheet.speed, value: rate === 1 ? '1×' : '0.75×' }] : []),
+    ...(caps.rate ? [{ key: 'speed' as const, name: strings.sheet.speed, value: rate === 1 ? strings.sheet.rateNormal : strings.sheet.rateSlow }] : []),
     { key: 'nativeLine', name: strings.settings.nativeLine, value: strings.settings.nativeLineOpts[nativeLine] },
-    { key: 'size', name: strings.settings.cueSize, value: `${Math.round(cueScale * 100)} %` },
+    { key: 'size', name: strings.settings.cueSize, value: strings.sheet.sizeValue(Math.round(cueScale * 100)) },
   ]
   return (
     <View style={{ position: 'absolute', right: px(tokens.layout.safeX), top: px(tokens.layout.safeY), width: px(tokens.layout.sheetW), backgroundColor: tokens.color.surface1, borderRadius: 8, padding: px(24), gap: px(8) }}>

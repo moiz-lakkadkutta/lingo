@@ -315,7 +315,8 @@ describe('player machine', () => {
     const held = reduce(at(2.8, {}, c), { type: 'position', s: 3.1, now: NOW }, c)[0]
     expect(held.heldCue).toBe(0)
     const holdsAgain = (s: PlayerState) => {
-      let [n] = reduce(s, { type: 'position', s: 2, now: NOW }, c)
+      let n = s
+      for (const p of [1.5, 2, 2.5]) n = reduce(n, { type: 'position', s: p, now: NOW }, c)[0]
       expect(n.phase).toBe('playing')
       const [h, fx] = reduce(n, { type: 'position', s: 3.05, now: NOW }, c)
       n = h
@@ -350,5 +351,59 @@ describe('player machine', () => {
     const [s, fx] = reduce(sheet, { type: 'position', s: 3.1, now: NOW }, c)
     expect(s.phase).toBe('sheet')
     expect(fx).toEqual([])
+  })
+
+  it('Select in a gap opens Explain on the line that just ended, so cueIndex is never null in the card', () => {
+    const gap = at(3.5)
+    expect(gap.cueIndex).toBeNull()
+    for (const e of [{ type: 'stageSelect', now: NOW }, key('playPause'), { type: 'playerState', s: 'paused', now: NOW }] as PlayerEvent[]) {
+      const [s] = reduce(gap, e, ctx)
+      expect(s.phase).toBe('explain')
+      expect(s.cueIndex).toBe(0)
+    }
+    const [before] = reduce(at(0.5), { type: 'stageSelect', now: NOW }, ctx)
+    expect(before.cueIndex).toBeNull() // nothing has started yet
+  })
+
+  it('resuming from a gap does not hold the line Explain showed', () => {
+    const c = { ...ctx, autoPause: true }
+    const ex = reduce(at(3.4, {}, c), { type: 'stageSelect', now: NOW }, c)[0]
+    expect(ex.cueIndex).toBe(0)
+    const [back] = reduce(ex, { type: 'back', now: NOW }, c)
+    expect(back.cueIndex).toBeNull()
+    const [s, fx] = reduce(back, { type: 'position', s: 3.6, now: NOW }, c)
+    expect(s.phase).toBe('playing')
+    expect(fx).toEqual([])
+  })
+
+  it('a stale position after a ► seek does not hold the skipped cue', () => {
+    const c = { ...ctx, autoPause: true }
+    let s = reduce(at(4.5, {}, c), key('right'), c)[0]
+    expect(s.positionS).toBe(6.5)
+    let fx: unknown[]
+    ;[s, fx] = reduce(s, { type: 'position', s: 4.6, now: NOW }, c) // report from before the seek landed
+    expect(fx).toEqual([])
+    expect(s.cueIndex).toBe(1)
+    ;[s, fx] = reduce(s, { type: 'position', s: 6.5, now: NOW }, c)
+    expect(s.phase).toBe('playing')
+    expect(s.cueIndex).toBe(2)
+    expect(fx).toEqual([])
+  })
+
+  it('normal 0.25 s position steps still hold at the line end', () => {
+    const c = { ...ctx, autoPause: true }
+    let s = at(1, {}, c)
+    let fx: unknown[] = []
+    for (let p = 1.25; p <= 3.01; p += 0.25) [s, fx] = reduce(s, { type: 'position', s: p, now: NOW }, c)
+    expect(s.phase).toBe('holding')
+    expect(s.heldCue).toBe(0)
+    expect(fx).toEqual([{ kind: 'pause' }, { kind: 'startHold', ms: 2000 }])
+    // the step rule: forward 0–1 s is playback; a larger jump is a seek or a stale report
+    const [b, fxb] = reduce(at(5.5, {}, c), { type: 'position', s: 6.2, now: NOW }, c)
+    expect(b.phase).toBe('holding') // forward 0.7 s: holds cue 1
+    expect(fxb).toHaveLength(2)
+    const [j, fxj] = reduce(at(5.5, {}, c), { type: 'position', s: 7, now: NOW }, c)
+    expect(j.phase).toBe('playing') // forward 1.5 s: a jump, not playback
+    expect(fxj).toEqual([])
   })
 })
