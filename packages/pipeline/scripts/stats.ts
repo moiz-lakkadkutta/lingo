@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { PreparedClip } from '@lingo/contracts'
 import { prepare } from '../src/prepare'
 import { fixtureDeps } from '../src/fixtureDeps'
+import { RARE_RANK } from '../src/highlights'
 import type { Lang, Word } from '../src/types'
 
 export interface Dist { min: number; median: number; p95: number; max: number }
@@ -33,6 +34,10 @@ export interface Stats {
   warnings: string[]
   nativeCpsWarnings: number
   nativeLinesOver56: number
+  /** highlights above RARE_RANK (8000), listed as `review: rare highlight …` (0008 tail guard) */
+  rareHighlights: number
+  /** de: `review: possible name …` warnings */
+  possibleNames: number
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000
@@ -87,6 +92,8 @@ export function statsFor(clip: PreparedClip, words?: Word[]): Stats {
     unrankedLemmas: [...new Set(tokens.filter((t) => t.rank === null && !t.name).map((t) => t.lemma))].sort(),
     warnings: clip.warnings,
     nativeCpsWarnings: clip.warnings.filter((w) => /^native \S+ c\d+ cps=/.test(w)).length,
+    rareHighlights: clip.highlights.filter((h) => h.rank > RARE_RANK).length,
+    possibleNames: clip.warnings.filter((w) => w.startsWith('review: possible name ')).length,
     nativeLinesOver56: cues.flatMap((q) => (q.native[nat] ?? '').split('\n')).filter((l) => l.length > 56).length,
   }
 }
@@ -106,6 +113,7 @@ export function printStats(s: Stats, log: (m: string) => void = console.log): vo
   log(`names (${s.names.length}): ${s.names.join(', ')}`)
   log(`unranked non-name lemmas (${s.unrankedLemmas.length}): ${s.unrankedLemmas.slice(0, 80).join(', ')}`)
   log(`warnings (${s.warnings.length}), native cps warnings ${s.nativeCpsWarnings}, native lines > 56: ${s.nativeLinesOver56}`)
+  log(`review before publishing: ${s.rareHighlights} highlights above rank ${RARE_RANK}${s.lang === 'de' ? `, ${s.possibleNames} possible names` : ''}: ${s.highlights.filter((h) => h.rank > RARE_RANK).map((h) => `${h.word}#${h.rank}`).join(', ') || '—'}`)
   for (const w of s.warnings) log(`  ${w}`)
 }
 
@@ -118,6 +126,7 @@ export function compareRows(before: Stats, after: Stats): Array<[string, string,
     row('cps p95 / max', (s) => `${s.cps.p95} / ${s.cps.max}`), row('level', (s) => s.level), row('coverageRank', (s) => s.coverageRank),
     row('highlights', (s) => `${s.highlights.length}: ${s.highlights.map((h) => `${h.lemma}#${h.rank}`).join(' ')}`),
     row('names', (s) => `${s.names.length}: ${s.names.join(' ')}`), row('unranked lemmas', (s) => `${s.unrankedLemmas.length}: ${s.unrankedLemmas.join(' ')}`),
+    row('rare highlights (> 8000) / possible names', (s) => `${s.rareHighlights ?? '-'} / ${s.possibleNames ?? '-'}`),
     row('warnings', (s) => `${s.warnings.length}: ${s.warnings.map((w) => w.slice(0, 60)).join(' | ')}`),
   ]
 }

@@ -66,17 +66,27 @@ const isOrphan = (g: Word[]) => spoken(g) < MIN_S - 1e-9
 const gapBetween = (a: Word[], b: Word[]) => b[0]!.start - lastEndOf(a)
 /** Same speaker, or at least one side unlabelled (docs/decisions/0007). */
 const sameSpeaker = (a: Word[], b: Word[]) => speakerOf(a) === undefined || speakerOf(b) === undefined || speakerOf(a) === speakerOf(b)
-const hasLetter = (t: string) => /\p{L}/u.test(t)
 const CLAUSE = /[,;:]$/
 /** Today's three overflow checks: fits 2 × 42, spoken ≤ 7 s, ≤ 30 cps before timing. */
 const ok = (g: Word[]) => fits2(render(g)) && spoken(g) <= MAX_S && chars(render(g)) / Math.max(spoken(g), 0.01) <= CPS * 1.5
 
 /**
  * Before anything else (docs/decisions/0008 decisions 2 and 5). Pure: changed words are copies.
- * 1. A sentence run (ending at . ! ? …) whose text has no letter ("00.") is removed and reported as 'nonverbal'; digits inside speech stay.
+ * 1. A sentence run (ending at . ! ? …) whose every token is only zeros or has no letter and no digit ("00.") is removed and reported as
+ *    'nonverbal'; a number-only run ("12.") and digits inside speech stay.
  * 2. A trailing single "." is a hesitation, not a sentence end, when the next word (same speaker) starts lowercase, does not itself end a
- *    sentence, and follows within PAUSE_S — or within GLUE_GAP_S when the run ending here is an orphan fragment. ! and ? are kept.
+ *    sentence, and follows within PAUSE_S — or within GLUE_GAP_S when the run ending here is an orphan fragment. ! and ? are kept, and so
+ *    are the dots of digit ordinals (3.), inner-dot abbreviations (z.B.) and listed abbreviations (usw., etc., Dr.).
  */
+/** Short abbreviations whose dot is not a hesitation stop (compared case-insensitively). */
+const ABBREVIATIONS = new Set(['usw.', 'etc.', 'z.b.', 'bzw.', 'dr.', 'nr.', 'ca.', 'vgl.', 'mr.', 'mrs.', 'e.g.', 'i.e.'])
+/** A digit ordinal (3.), a word with an inner dot (z.B., e.g.) or a listed abbreviation: the repair never strips its dot. */
+const isAbbreviation = (t: string) => /^\d+\.$/.test(t) || /\..*\.$/.test(t) || ABBREVIATIONS.has(t.toLowerCase())
+/** A token made only of zeros (Transcribe's "00" for a sound), or with no letter and no digit, after stripping punctuation. */
+const nonverbalToken = (t: string) => { const core = t.replace(/[^\p{L}\p{N}]/gu, ''); return core === '' || /^0+$/.test(core) }
+/** A sentence run is nonverbal when every token is; a number-only run (12.) stays and is listed in gate.json review. */
+const isNonverbal = (run: Word[]) => run.every((w) => nonverbalToken(w.text))
+
 export function repairWords(words: Word[]): { words: Word[]; dropped: Dropped[]; repairedStops: number } {
   const dropped: Dropped[] = []
   const runsOf: Word[][] = []
@@ -85,7 +95,7 @@ export function repairWords(words: Word[]): { words: Word[]; dropped: Dropped[];
   if (cur.length) runsOf.push(cur)
   const kept: Array<{ w: Word; run: Word[] }> = []
   for (const run of runsOf) {
-    if (!hasLetter(joinWords(run))) {
+    if (isNonverbal(run)) {
       const sp = speakerOf(run)
       dropped.push({ startS: round(run[0]!.start), endS: round(lastEndOf(run)), text: joinWords(run), ...(sp ? { speaker: sp } : {}), reason: 'nonverbal' })
       continue
@@ -95,7 +105,7 @@ export function repairWords(words: Word[]): { words: Word[]; dropped: Dropped[];
   let repairedStops = 0
   const out = kept.map(({ w, run }, i) => {
     const n = kept[i + 1]?.w
-    if (!n || !/[^.]\.$/.test(w.text) || /…$/.test(w.text)) return w
+    if (!n || !/[^.]\.$/.test(w.text) || /…$/.test(w.text) || isAbbreviation(w.text)) return w
     if (!/^\p{Ll}/u.test(n.text) || SENTENCE_END.test(n.text) || !sameSpeaker([w], [n])) return w
     const gap = n.start - w.end
     if (!(gap <= PAUSE_S || (isOrphan(run) && gap <= GLUE_GAP_S))) return w

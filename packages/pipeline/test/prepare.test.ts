@@ -91,7 +91,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
       expect(cues.map((c) => Math.round(c.start * 1000))).toEqual(clip.cues.map((c) => c.startMs))
       expect(cues.map((c) => Math.round(c.end * 1000))).toEqual(clip.cues.map((c) => c.endMs))
     }
-    expect(clip.warnings).toEqual([])
+    expect(clip.warnings.filter((w) => !w.startsWith('review: '))).toEqual([]) // review: lines are the 0008 tail guard (advisory)
   })
   it('records the normalize, packager and publish exec calls with the expected argv', () => {
     const argv = deps.calls.map((c) => [c.cmd, ...c.args].map((a) => a.split(workRoot).join('<workRoot>')))
@@ -228,7 +228,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     }
     for (const c of r.clip.cues) expect(c.native[native]!.replace(/\n/g, ' ')).toBe(c.text.replace(/\n/g, ' ').toUpperCase() + ' ab ab ab ab ab')
     // no layout warning; short cues + 15 chars can pass 26 cps, which stays a warning by design (docs/decisions/0007 M4)
-    expect(r.clip.warnings.filter((w) => !/^native \S+ c\d+ cps=/.test(w))).toEqual([])
+    expect(r.clip.warnings.filter((w) => !/^native \S+ c\d+ cps=/.test(w) && !w.startsWith('review: '))).toEqual([])
   })
   it('a native line that cannot be wrapped under 56 is a warning, not a failure', async () => {
     const d = fixtureDeps(lang)
@@ -290,7 +290,7 @@ describe('prepare: overlapping speakers (docs/decisions/0007)', () => {
     expect(clip.cues.flatMap((c) => c.tokens).some((t) => t.word.startsWith('-'))).toBe(false)
     expect(dual[0]!.tokens.find((t) => t.word === 'Aber')!.sentenceInitial).toBe(true)
     expect(clip.warnings.filter((w) => w.startsWith('dropped cue ')).length).toBe(3)
-    expect(clip.warnings.length).toBe(3)
+    expect(clip.warnings.filter((w) => !w.startsWith('review: ')).length).toBe(3)
     for (const f of ['de.vtt', 'native-en.vtt', 'dropped.vtt', 'gate.json']) expect(existsSync(`${r.workDir}/${f}`)).toBe(true)
     const report = JSON.parse(await readFile(`${r.workDir}/gate.json`, 'utf8')) as { findings: unknown[]; dropped: Array<{ text: string; reason: string }> }
     expect(report.findings).toEqual([])

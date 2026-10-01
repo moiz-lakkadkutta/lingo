@@ -1,3 +1,4 @@
+import { simplemmaAvailable } from './helpers/simplemma'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { defaultPython, lemmaKey, pythonHasSimplemma, REPO_VENV_PYTHON, pythonLemmatizer, tableLemmatizer, type LemmaResult } from '../src/lemmatize'
@@ -69,7 +70,7 @@ describe('lemma fixtures', () => {
   })
 })
 
-const hasSimplemma = await pythonHasSimplemma()
+const hasSimplemma = await simplemmaAvailable()
 describe.skipIf(!hasSimplemma)('pythonLemmatizer (skipIf no simplemma)', () => {
   it('matches the committed lemma table for the German fixture', async () => {
     const vocab = fixtureVocabulary(await fixture('de'), 'de')

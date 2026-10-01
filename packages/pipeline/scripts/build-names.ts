@@ -1,8 +1,10 @@
 /**
  * Grows data/names-{de,en}.txt (docs/decisions/0008 decision 8, docs/plans/LING-001-quality.md §5.2). Deterministic and idempotent:
  *   existing file ∪ HAND additions ∪ the Intl seed, one per line, code-point sorted (as the files have always been), header comments kept.
- * Intl seed (no network): every single-token region name (ISO 3166-1 alpha-2 + UN M49 continents) and language name (ISO 639-1) that
- * Node's ICU/CLDR data gives in that language — https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DisplayNames
+ * Intl seed (no network): every single-token region name (ISO 3166-1 alpha-2 + UN M49 continents) that Node's ICU/CLDR data gives in
+ * that language — region and continent names only: language names and demonyms (English, Polish, Englisch, Französisch) are vocabulary,
+ * and build:freq strips names case-insensitively, so seeding them would unrank the lowercase words too. EXCLUDE drops region labels that
+ * are ordinary words (Jersey, Chad, Guinea, …) — https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DisplayNames
  * (CLDR data, Unicode licence). A label is skipped when simplemma knows its lowercase form in that language AND that form ranks below
  * COMMON_RANK in freq-{lang}.txt (such a word can never be highlighted, so it stays ordinary vocabulary: deutsch, english).
  * The Wikidata given-name seed of the plan is a follow-up (not implemented; see the plan §13).
@@ -28,30 +30,32 @@ export const ISO_3166_1 = (
 ).split(' ')
 /** UN M49 continent / sub-continent codes (https://unstats.un.org/unsd/methodology/m49/): Africa, Americas, Asia, Europe, Oceania, Northern America, South America. */
 export const M49_CONTINENTS = ['002', '019', '142', '150', '009', '021', '005']
-/** ISO 639-1 two-letter language codes CLDR names (https://www.loc.gov/standards/iso639-2/php/code_list.php), without the withdrawn aliases in/iw/ji/jw/mo. */
-export const ISO_639_1 = (
-  'aa ab ae af ak am an ar as av ay az ba be bg bh bi bm bn bo br bs ca ce ch co cr cs cu cv cy da de dv dz ee el en eo es et eu fa ff fi ' +
-  'fj fo fr fy ga gd gl gn gu gv ha he hi ho hr ht hu hy hz ia id ie ig ii ik io is it iu ja jv ka kg ki kj kk kl km kn ko kr ks ku kv kw ' +
-  'ky la lb lg li ln lo lt lu lv mg mh mi mk ml mn mr ms mt my na nb nd ne ng nl nn no nr nv ny oc oj om or os pa pi pl ps pt qu rm rn ro ' +
-  'ru rw sa sc sd se sg sh si sk sl sm sn so sq sr ss st su sv sw ta te tg th ti tk tl tn to tr ts tt tw ty ug uk ur uz ve vi vo wa wo xh ' +
-  'yi yo za zh zu'
-).split(' ')
-
 /** Spot-check names from the first real run (docs/decisions/0008 decision 8). */
 export const HAND: Record<Lang, string[]> = {
   de: ['Margot', 'Friedländer', 'Brasilien', 'Shanghai', 'Auschwitz', 'Theresienstadt', 'Leonie', 'Tilo', 'Mathias', 'Bröckers'],
   en: ['Pete', 'Irving', 'Margot'],
 }
 
+/**
+ * Region labels that are also ordinary words, never seeded (en: jersey, chad, guinea, turkey, china, jordan, georgia; Afar and Lao are
+ * language names, listed so they can never come back). de: of the region labels simplemma knows, only Jersey (the fabric) is an ordinary
+ * word; Island (= Iceland), Georgien, Polen, Kuba, Chile, Niger are only names in German. China, Jordan and Georgia were already in
+ * names-en.txt from the 2026-09-18 seed; EXCLUDE only stops the Intl seed and leaves earlier entries alone.
+ */
+export const EXCLUDE: Record<Lang, string[]> = {
+  de: ['Jersey'],
+  en: ['Jersey', 'Chad', 'Guinea', 'Turkey', 'China', 'Jordan', 'Georgia', 'Afar', 'Lao'],
+}
+
 /** One token, starting with an upper-case letter the names files allow (A–Z, Ä, Ö, Ü — the data test's invariant), letters/apostrophes/hyphens after. */
 export const SINGLE_TOKEN = /^[A-ZÄÖÜ][\p{L}'’-]*$/u
 
-/** Every single-token region and language label CLDR gives in `lang`, de-duplicated, code-point sorted. Pure (depends only on the ICU data). */
+/** Every single-token region and continent label CLDR gives in `lang`, minus EXCLUDE, de-duplicated, code-point sorted. Pure (depends only on the ICU data). */
 export function intlLabels(lang: Lang): string[] {
   const region = new Intl.DisplayNames([lang], { type: 'region', fallback: 'none' })
-  const language = new Intl.DisplayNames([lang], { type: 'language', fallback: 'none' })
-  const labels = [...ISO_3166_1, ...M49_CONTINENTS].map((c) => region.of(c)).concat(ISO_639_1.map((c) => language.of(c)))
-  return [...new Set(labels.filter((l): l is string => !!l && SINGLE_TOKEN.test(l)))].sort()
+  const excluded = new Set(EXCLUDE[lang])
+  const labels = [...ISO_3166_1, ...M49_CONTINENTS].map((c) => region.of(c))
+  return [...new Set(labels.filter((l): l is string => !!l && SINGLE_TOKEN.test(l) && !excluded.has(l)))].sort()
 }
 
 /** Drop a label whose lowercase form simplemma knows AND that ranks below COMMON_RANK (it can never be highlighted; it stays vocabulary). Pure. */

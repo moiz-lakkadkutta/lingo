@@ -1461,6 +1461,7 @@ besitz
 unterstützen
 nachmittag
 t
+englisch
 fair
 schuß
 engel
@@ -1502,6 +1503,7 @@ vertrag
 weißer
 trick
 enden
+französisch
 sieg
 wiederholen
 entscheiden
@@ -1832,6 +1834,7 @@ pete
 unterrichten
 milch
 stocken
+russisch
 beruf
 brauen
 dusche
@@ -2204,6 +2207,7 @@ bedauern
 flüstern
 grasen
 gibts
+chinesisch
 mittagessen
 neugierig
 maske
@@ -2269,6 +2273,7 @@ krieger
 c
 kaiser
 dahinter
+spanisch
 tippen
 bewundern
 lucy
@@ -2767,6 +2772,7 @@ sprengen
 checken
 material
 schwachsinn
+italienisch
 daneben
 summe
 klage
@@ -2931,6 +2937,7 @@ marty
 jackie
 palast
 ungern
+japanisch
 zurückgehen
 lebende
 erstens
@@ -4389,11 +4396,13 @@ mangeln
 behilflich
 mitgefühl
 wichtigste
+griechisch
 hope
 spannung
 antik
 höchst
 telegramm
+arabisch
 ingenieur
 zart
 notaufnahme
@@ -5636,6 +5645,7 @@ benommen
 adieu
 wiedergutmachen
 vermieten
+irisch
 och
 oui
 flittchen
@@ -6197,6 +6207,7 @@ christlich
 motto
 herrliche
 roh
+schwedisch
 eintritt
 bh
 misstrauisch
@@ -6436,6 +6447,7 @@ waisenhaus
 bitteschön
 gleis
 klonen
+türkisch
 deb
 quarantäne
 ausweisen
@@ -6812,6 +6824,7 @@ verreist
 sonde
 verbrennung
 wandeln
+polnisch
 pullover
 moon
 spitzel
@@ -7335,6 +7348,7 @@ verwirrung
 where
 mailand
 belassen
+latein
 aufführung
 kategorie
 kamm
@@ -9915,6 +9929,7 @@ update
 faschist
 implantat
 verweis
+dänisch
 verwalter
 banner
 rechter
@@ -10140,6 +10155,7 @@ forrest
 mandel
 fruchtbar
 berufliche
+koreanisch
 initiieren
 item
 zelte
@@ -11292,6 +11308,7 @@ klebrig
 maßstab
 fatal
 legitim
+norwegisch
 choi
 cromwell
 callahan
@@ -11928,6 +11945,7 @@ wertvollste
 gendarm
 rentier
 primär
+ungarisch
 tatwaffe
 mall
 offensive
@@ -11944,6 +11962,7 @@ meinungsverschiedenheit
 ferner
 sowjet
 eduard
+yi
 verhau
 macy
 enterprises
@@ -12496,6 +12515,7 @@ kanns
 denis
 marissa
 baldwin
+hebräisch
 dietrich
 wessex
 auflösung
@@ -13622,6 +13642,7 @@ torus
 monarchie
 wills
 ku
+portugiesisch
 anstellung
 plasma
 davenport
@@ -14112,6 +14133,7 @@ monarch
 beachtlich
 verbleibende
 entsenden
+tschechisch
 abneigung
 emilys
 zufluchtsort
@@ -14544,6 +14566,7 @@ robbe
 gesegnete
 mitreden
 streuen
+persisch
 neustart
 moped
 hinterausgang
@@ -16254,6 +16277,7 @@ umfangreich
 unvergleichlich
 minderwertig
 neurologe
+finnisch
 schwerhörig
 spieluhr
 übereinander
@@ -19786,6 +19810,7 @@ teamarbeit
 grundriß
 nektar
 krankenpfleger
+hindi
 verschossen
 verbrecherin
 zauberwort
@@ -19973,28 +19998,3 @@ versperren
 talentshow
 fummel
 angler
-andys
-brilliant
-cheetah
-unvermeidliche
-obergeschoss
-ähem
-losbinden
-christiane
-hinbiegen
-geisha
-unbeschadet
-imponieren
-pitcher
-yann
-raushängen
-kaori
-gore
-defibrillator
-warpkern
-shelton
-umhin
-harkness
-metropolitan
-allzeit
-blu

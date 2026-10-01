@@ -1,4 +1,5 @@
 import type { Level } from '@lingo/contracts'
+import { rankOf } from './names'
 /**
  * Frequency-aware highlights: 1–2 words per cue whose rank is at or above the floor of the band above the clip level, lowest rank first
  * (no ceiling — the band just above fills first; the app filters per learner, 0007 M5; docs/decisions/0008 decision 9);
@@ -51,8 +52,8 @@ export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, 
   }
   return out
 }
-/** Ranks of the tokens that have one (docs/decisions/0008 decision 10: unranked tokens — ASR errors or words beyond the top 20 000 — are ignored). */
-const rankedOf = (tokens: Token[], rank: (l: string) => number | undefined) => tokens.map((t) => rank(t.lemma)).filter((r): r is number => r !== undefined)
+/** Ranks of the tokens that have one — the token rank of clip.json, rankOf (I'm → i) — (docs/decisions/0008 decision 10: unranked tokens — ASR errors or words beyond the top 20 000 — are ignored). */
+const rankedOf = (tokens: Token[], rank: (l: string) => number | undefined) => tokens.map((t) => rankOf(t.word, t.lemma, rank)).filter((r): r is number => r !== undefined)
 /** Coverage-based level for a clip: the smallest level whose band covers ≥ 95 % of the ranked tokens; none ranked → 'B2'. */
 export function clipLevel(tokens: Token[], rank: (l: string) => number | undefined): Level {
   const ranks = rankedOf(tokens, rank)
@@ -68,6 +69,18 @@ export function coverageRank(tokens: Token[], rank: (l: string) => number | unde
 }
 /** Share of tokens without a rank and their distinct lemmas, sorted (prepare() warns above 5 %). No tokens → share 0. */
 export function unrankedShare(tokens: Token[], rank: (l: string) => number | undefined): { share: number; lemmas: string[] } {
-  const unranked = tokens.filter((t) => rank(t.lemma) === undefined)
+  const unranked = tokens.filter((t) => rankOf(t.word, t.lemma, rank) === undefined)
   return { share: tokens.length ? unranked.length / tokens.length : 0, lemmas: [...new Set(unranked.map((t) => t.lemma))].sort() }
+}
+
+/** Above this rank a highlight is listed for human review (the band has no ceiling, docs/decisions/0008 decision 9). */
+export const RARE_RANK = 8000
+/** de: a capitalised highlight whose lemma is its surface form and whose rank is above this may be a name the lists miss. */
+export const POSSIBLE_NAME_RANK = 12000
+/** `review: …` warnings for the tail of the floor-only band: every highlight above RARE_RANK; for de also possible names. Word included (printed by the CLI). */
+export function reviewHighlights(highlights: Array<{ cueIndex: number; word: string; lemma: string; rank: number }>, lang: string): string[] {
+  const out: string[] = []
+  for (const h of highlights) if (h.rank > RARE_RANK) out.push(`review: rare highlight ${h.rank} ${h.word} (cue ${h.cueIndex})`)
+  if (lang === 'de') for (const h of highlights) if (h.rank > POSSIBLE_NAME_RANK && /^\p{Lu}/u.test(h.word) && h.lemma === h.word) out.push(`review: possible name ${h.rank} ${h.word} (cue ${h.cueIndex}) — add it to data/names-de.txt if it is one`)
+  return out
 }

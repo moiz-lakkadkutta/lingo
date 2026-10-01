@@ -547,6 +547,7 @@ coverage 6574, 14 highlights incl. Margot/Brasilien, 8 names incl. Isolierung/Ma
 ## 13. Later (not this ticket)
 
 - de name fallback with `¬known` (0008 L1) once the app reads `token.name`.
+- Sentence-level translation with context (0008 L2 / decision 11): rejected for now; revisit only if per-cue register or fragment translations stay a visible problem after brevity/formality.
 - Wikidata given-name seed for `build:names` (§5.2 step 2, `--wikidata`): skipped in the P4 implementation; only the `Intl` seed and the hand additions shipped.
 - Use Transcribe's `audio_segments` (already in the fixtures) as a second utterance signal; today unused.
 - Automatic condensing (0007 M2.4) if ≥ 10 % of real cues need the `--cues` path.
