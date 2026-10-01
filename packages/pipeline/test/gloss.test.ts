@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
+import { access, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { ConverseCommandOutput } from '@aws-sdk/client-bedrock-runtime'
+import type { ConverseCommandInput, ConverseCommandOutput } from '@aws-sdk/client-bedrock-runtime'
+import { currentTemperature, resetTemperature, TEMPERATURE, TEMPERATURE_FLOOR } from '../src/ai/call'
+import type { BedrockSend } from '../src/ai/client'
 import { AiSchemaError, createAi } from '../src/ai/index'
 import { GLOSS_PROMPT_VERSION, glossSystemPrompt } from '../src/ai/gloss'
 import { fakeSend, nova, novaList, userTexts } from './novaFake'
@@ -20,8 +22,8 @@ const args = ['warte', 'warten', CUE, 'de', 'en', 'A2'] as const
 let dir: string
 let logs: string[]
 beforeEach(async () => { dir = await mkdtemp(join(tmpdir(), 'lingo-gloss-')); logs = [] })
-afterEach(async () => { await rm(dir, { recursive: true, force: true }) })
-const ai = (send: ReturnType<typeof fakeSend>) => createAi({ send, model: MODEL, cacheDir: dir, log: (m) => logs.push(m), now: () => new Date('2026-10-01T12:00:00Z') })
+afterEach(async () => { resetTemperature(); await rm(dir, { recursive: true, force: true }) })
+const ai = (send: BedrockSend) => createAi({ send, model: MODEL, cacheDir: dir, log: (m) => logs.push(m), now: () => new Date('2026-10-01T12:00:00Z') })
 const cacheFiles = async () => readdir(join(dir, 'gloss')).catch(() => [] as string[])
 
 describe('gloss', () => {
@@ -45,7 +47,7 @@ describe('gloss', () => {
     expect(prompt).toContain('You are a German teacher')
     expect(prompt).toContain('The learner speaks English.')
     expect(prompt).toContain('separable verb: an|rufen')
-    expect(glossSystemPrompt('en', 'de', 'B1', 'gave', 'give')).toContain('phrasal verb: give up')
+    expect(glossSystemPrompt('en', 'de', 'B1', 'gave', 'give')).toContain('Phrasal Verb: give up')
   })
 
   it('returns the toolUse input as a Gloss and records usage in the ledger', async () => {
@@ -120,7 +122,7 @@ describe('gloss', () => {
   it('GLOSS_PROMPT_VERSION must be bumped when the system prompt changes (sha256 snapshot of glossSystemPrompt("de","en","A2","warte","warten"))', () => {
     const sha = createHash('sha256').update(glossSystemPrompt('de', 'en', 'A2', 'warte', 'warten')).digest('hex')
     // If this fails because you edited the prompt: bump GLOSS_PROMPT_VERSION and update both values here.
-    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 1, sha: '89399c1ab361bada103e1bf212ee689db14df2e040e40ccea2ddff8a2fd6fc72' })
+    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 2, sha: '512fdbecae5d215cc2db72c701fb6fd95d2429a83d68d060c0cf85b13b982e75' })
   })
 
   it('never constructs a BedrockRuntimeClient when send is injected', async () => {
@@ -128,5 +130,96 @@ describe('gloss', () => {
     await a.gloss(...args)
     await a.quiz([], 'de', 'en')
     expect(sdk.constructed).toBe(0)
+  })
+
+  it('writes the part-of-speech labels in the learner\'s language and keeps word forms in the target language', () => {
+    const deEn = glossSystemPrompt('de', 'en', 'A2', 'warte', 'warten')
+    expect(deEn).toContain('"noun, die Stunde, pl. Stunden"')
+    expect(deEn).toContain('"separable verb: an|rufen"')
+    expect(deEn).toContain('Write the part-of-speech labels in English; keep the word forms in German.')
+    const enDe = glossSystemPrompt('en', 'de', 'B1', 'gave', 'give')
+    expect(enDe).toContain('"Nomen, Pl. hours"')
+    expect(enDe).toContain('"Verb, wait, waited, waited"')
+    expect(enDe).toContain('"Phrasal Verb: give up"')
+    expect(enDe).toContain('"unregelmäßiges Verb: go, went, gone"')
+    expect(enDe).toContain('"Adjektiv, Komparativ faster"')
+    expect(enDe).not.toContain('"noun,')
+    // natives without a template keep English label examples but are told to translate the labels
+    expect(glossSystemPrompt('de', 'tr', 'A2', 'warte', 'warten')).toContain('Write the part-of-speech labels in Turkish; keep the word forms in German.')
+  })
+
+  it('accepts on the retry when the only issue left is example-must-use-the-word (gibt/geben → "Er gab …") and logs a warning', async () => {
+    const card = (example: string) => ({ ...nova('gloss-ok'), output: { message: { role: 'assistant', content: [{ toolUse: { toolUseId: 't', name: 'explain_word', input: { gloss: 'gives', grammar: 'verb, geben, gab, hat gegeben', example } } }] } } }) as unknown as ConverseCommandOutput
+    const send = fakeSend(card('Er gab mir das Buch.'), card('Er gab mir gestern das Buch.'))
+    const a = ai(send)
+    const g = await a.gloss('gibt', 'geben', 'Sie gibt nie auf.', 'de', 'en', 'A2')
+    expect(g.example).toBe('Er gab mir gestern das Buch.')
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(userTexts(send, 1)[1]).toContain('example must use the word "gibt" or its base form "geben"')
+    expect(logs.some((l) => l.startsWith('WARNING ai gloss geben accepted on retry with a soft issue: example must use the word'))).toBe(true)
+    // the accepted card is cached and served again despite the soft issue
+    expect(await a.gloss('gibt', 'geben', 'Sie gibt nie auf.', 'de', 'en', 'A2')).toEqual(g)
+    expect(send).toHaveBeenCalledTimes(2)
+    // a hard issue on the retry still throws
+    const hard = fakeSend(nova('gloss-ok'))
+    hard.mockResolvedValue(card('Sie gibt nie auf.'))
+    await expect(ai(hard).gloss('gibt', 'geben', 'Sie gibt nie auf!', 'de', 'en', 'B1')).rejects.toBeInstanceOf(AiSchemaError)
+  })
+
+  it('changing level or native is a cache miss', async () => {
+    const send = fakeSend(nova('gloss-ok'))
+    const a = ai(send)
+    await a.gloss(...args)
+    await a.gloss('warte', 'warten', CUE, 'de', 'en', 'B1')
+    await a.gloss('warte', 'warten', CUE, 'de', 'tr', 'A2')
+    await a.gloss(...args)
+    expect(send).toHaveBeenCalledTimes(3)
+    expect(a.cost()).toMatchObject({ calls: 3, cachedCalls: 1 })
+    expect(await cacheFiles()).toHaveLength(3)
+  })
+
+  it('re-validates a cache hit: a stale entry that now fails glossIssues is deleted and asked again', async () => {
+    await ai(fakeSend(nova('gloss-ok'))).gloss(...args)
+    const [file] = await cacheFiles()
+    const path = join(dir, 'gloss', file!)
+    const entry = JSON.parse(await readFile(path, 'utf8'))
+    await writeFile(path, JSON.stringify({ ...entry, output: { ...entry.output, gloss: 'Warten' } }))
+    // the stale entry passes the schema but not glossIssues: deleted before the (failing) call
+    const failing: BedrockSend = vi.fn(async () => { throw Object.assign(new Error('boom'), { name: 'InternalServerException' }) })
+    await expect(ai(failing).gloss(...args)).rejects.toThrow('boom')
+    await expect(access(path)).rejects.toThrow()
+    expect(failing).toHaveBeenCalledTimes(1)
+    // and a working call refills it
+    const send = fakeSend(nova('gloss-ok'))
+    expect((await ai(send).gloss(...args)).gloss).toBe('wait')
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(await readFile(path, 'utf8')).output.gloss).toBe('wait')
+  })
+
+  it('retries once with temperature 0.00001 when Bedrock rejects temperature 0, and keeps it for the rest of the process', async () => {
+    expect(TEMPERATURE).toBe(0)
+    expect(currentTemperature()).toBe(0)
+    const temps: Array<number | undefined> = []
+    const send: BedrockSend = vi.fn(async (input: ConverseCommandInput) => {
+      temps.push(input.inferenceConfig?.temperature)
+      if (input.inferenceConfig?.temperature === 0) throw Object.assign(new Error('1 validation error detected: Value at \'inferenceConfig.temperature\' failed to satisfy constraint: Member must have value greater than or equal to 1.0E-5'), { name: 'ValidationException' })
+      return nova('gloss-ok')
+    })
+    const a = ai(send)
+    expect((await a.gloss(...args)).gloss).toBe('wait')
+    expect(temps).toEqual([0, TEMPERATURE_FLOOR])
+    expect(TEMPERATURE_FLOOR).toBe(0.00001)
+    expect(currentTemperature()).toBe(0.00001)
+    expect(logs.some((l) => l.includes('temperature 0 rejected'))).toBe(true)
+    expect(a.cost().calls).toBe(1)
+    // remembered: a new instance starts at the floor
+    await createAi({ send, model: MODEL, cacheDir: dir, log: () => {} }).gloss('warte', 'warten', 'Warte hier auf mich.', 'de', 'en', 'A2')
+    expect(temps).toEqual([0, 0.00001, 0.00001])
+    // other ValidationExceptions are not retried
+    resetTemperature()
+    const other: BedrockSend = vi.fn(async () => { throw Object.assign(new Error('malformed toolConfig'), { name: 'ValidationException' }) })
+    await expect(ai(other).gloss('warte', 'warten', 'Noch eine Zeile mit warte.', 'de', 'en', 'A2')).rejects.toThrow('malformed toolConfig')
+    expect(other).toHaveBeenCalledTimes(1)
+    expect(currentTemperature()).toBe(0)
   })
 })

@@ -1,4 +1,4 @@
-import { Gloss, glossIssues, LANGUAGE_NAMES, QuizPlan, quizCounts, quizPlanIssues, type QuizHighlight, type QuizPlanItem } from '../src/index'
+import { Gloss, glossIssues, isSoftGlossIssue, LANGUAGE_NAMES, QuizPlan, quizCounts, quizPlanIssues, type QuizHighlight, type QuizPlanItem } from '../src/index'
 
 const card = { gloss: 'wait', grammar: 'verb, warten, wartete, hat gewartet', example: 'Wir warten auf den Bus.' }
 const ctx = { word: 'warte', lemma: 'warten', cue: 'Ich warte seit zwei Stunden auf dich.' }
@@ -39,6 +39,13 @@ describe('Gloss', () => {
     expect(glossIssues({ ...card, example: 'Ich WARTE hier.' }, ctx)).toEqual([])
     const copy = glossIssues({ ...card, example: '  ich warte  seit zwei Stunden auf dich!' }, ctx)
     expect(copy).toEqual(['example must be a new sentence, not the subtitle line'])
+  })
+
+  it('isSoftGlossIssue marks only the example-must-use-the-word issue as soft (irregular forms like gibt/geben → "Er gab …")', () => {
+    const issues = glossIssues({ gloss: 'gives', grammar: 'verb, geben, gab, hat gegeben', example: 'Er gab mir das Buch.' }, { word: 'gibt', lemma: 'geben', cue: 'Sie gibt nie auf.' })
+    expect(issues).toHaveLength(1)
+    expect(isSoftGlossIssue(issues[0]!)).toBe(true)
+    for (const hard of glossIssues({ ...card, gloss: 'warte', example: 'Ich warte seit zwei Stunden auf dich.' }, ctx)) expect(isSoftGlossIssue(hard)).toBe(false)
   })
 })
 

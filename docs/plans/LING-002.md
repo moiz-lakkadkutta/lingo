@@ -465,3 +465,17 @@ Score columns are left blank for the reviewer.
 - Bedrock pricing (Amazon Nova Lite on-demand $0.00006 / 1K input, $0.00024 / 1K output, read 2026-10-01): https://aws.amazon.com/bedrock/pricing/
 - AWS SDK retry behaviour (`standard` mode, `maxAttempts`, backoff + jitter, throttling classification): https://docs.aws.amazon.com/sdkref/latest/guide/feature-retry-behavior.html
 - Bedrock IAM for inference profiles (already in `infra/lib/media-stack.ts`): https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-prereq.html
+
+## 12. Revisions after review (2026-10-01)
+
+- **M1 temperature.** `TEMPERATURE = 0` stays, as the Nova tool-use page recommends. The request-schema page gives a minimum of 0.00001, so if Converse returns a `ValidationException` whose message mentions temperature, that call is repeated once at `TEMPERATURE_FLOOR = 0.00001`. The floor is then kept for the rest of the process (`src/ai/call.ts`).
+- **M2 grammar labels, GLOSS_PROMPT_VERSION 1 → 2.** The v1 `{CONVENTIONS}` gave English part-of-speech labels to every learner, which contradicts "grammar note in {N}". v2 writes the labels in the learner's language and keeps the word forms in the target language.
+  - en and de natives have their own label tables.
+  - Other natives get the English examples plus "Write the part-of-speech labels in {N}; keep the word forms in {T}."
+  - The version bump deliberately invalidates the v1 cache entries.
+- **M3** REJECTED spot-check rows are left out of the quiz input.
+- **M4** "example must use the word" (`glossIssues` in contracts) is now a soft issue (`isSoftGlossIssue`). It still triggers the one retry. If a retry answer's only remaining issues are soft, the answer is accepted and a WARNING line is logged; a cache hit is not discarded for a soft issue either. This covers irregular forms such as gibt/geben → "Er gab …".
+- **L2** When `buildQuizItems`/`clozePrompt` cannot build an item, `makeQuiz` drops that item and logs `quiz: dropped <kind> item "<word>": <reason>` instead of failing the clip.
+- **L4** `spot-check --fixture` writes `spot-check.fixture.json` (and defaults `--out` to `work/spot-check.fixture.md`). It never writes `spot-check.json`.
+- **L5** Gate C runs on the two real clips: `terra-x-friedlaender` and an English clip. This supersedes the fixture clips named in §0.10 and §8.1.
+- **L1** The Nova Lite prices in `cost.ts` and docs/aws.md come from search summaries. They stay marked unverified until checked against the pricing page.

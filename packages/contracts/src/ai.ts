@@ -26,6 +26,16 @@ export interface GlossContext { word: string; lemma: string; cue: string }
 
 const sentenceKey = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[\p{P}\s]+$/u, '')
 
+const EXAMPLE_WORD_ISSUE = 'example must use the word'
+
+/**
+ * Soft issues are a nudge for the one retry, not a reason to reject: an example with an irregular form ("gibt"/"geben" → "Er gab …")
+ * is a good card that a substring check cannot recognise. The pipeline accepts a retry answer whose only issues are soft (and logs a warning).
+ */
+export function isSoftGlossIssue(issue: string): boolean {
+  return issue.startsWith(EXAMPLE_WORD_ISSUE)
+}
+
 /** Context rules a schema cannot express. Returns [] when acceptable. Each string is fed back to the model on retry. */
 export function glossIssues(g: Gloss, ctx: GlossContext): string[] {
   const issues: string[] = []
@@ -33,7 +43,7 @@ export function glossIssues(g: Gloss, ctx: GlossContext): string[] {
   const gloss = g.gloss.trim().replace(/\.+$/, '').trim().toLowerCase()
   if (gloss === word || gloss === lemma) issues.push('gloss must be a translation, not a copy of the word; if the word is the same in both languages add a clarifier in parentheses')
   const example = g.example.toLowerCase()
-  if (!example.includes(word) && !example.includes(lemma)) issues.push(`example must use the word "${ctx.word}" or its base form "${ctx.lemma}"`)
+  if (!example.includes(word) && !example.includes(lemma)) issues.push(`${EXAMPLE_WORD_ISSUE} "${ctx.word}" or its base form "${ctx.lemma}"`)
   if (sentenceKey(g.example) === sentenceKey(ctx.cue)) issues.push('example must be a new sentence, not the subtitle line')
   return issues
 }

@@ -119,11 +119,11 @@ describe('quiz', () => {
   })
 
   it('falls back (not throws) when send rejects with a ValidationException', async () => {
-    const send = vi.fn(async () => { throw Object.assign(new Error('temperature out of range'), { name: 'ValidationException' }) })
+    const send = vi.fn(async () => { throw Object.assign(new Error('malformed input'), { name: 'ValidationException' }) })
     const { items } = await createAi({ send, cacheDir: dir, log: (m) => logs.push(m) }).quiz(QUIZ_CUES, 'de', 'en')
     expect(send).toHaveBeenCalledTimes(1)
     expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(H.length)), H, 'de', 'en'))
-    expect(logs).toContain('quiz: fallback builder used: ValidationException: temperature out of range')
+    expect(logs).toContain('quiz: fallback builder used: ValidationException: malformed input')
   })
 
   it('caches the plan, not the items; a cached plan rebuilds identical items', async () => {
@@ -146,5 +146,17 @@ describe('quiz', () => {
     const sha = createHash('sha256').update(quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 })).digest('hex')
     // If this fails because you edited the prompt: bump QUIZ_PROMPT_VERSION and update both values here.
     expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 1, sha: 'dc3d9a9bf072185a9a56d3a204fdbe0af9d7a14346eecf1d98a397639955ff23' })
+  })
+
+  it('drops an item it cannot build (word not found as a whole word in its cue) instead of failing the clip, and logs why', async () => {
+    const cues = QUIZ_CUES.map((c) => (c.index === 4 ? { ...c, text: 'Der Zug steht am Bahnhofsplatz.' } : c))
+    const send = fakeSend(nova('quiz-ok'))
+    const { items } = await ai(send).quiz(cues, 'de', 'en')
+    expect(items).toHaveLength(9)
+    expect(items.filter((i) => i.kind === 'cloze')).toHaveLength(3)
+    expect(items.some((i) => i.kind === 'meaning' && i.prompt === 'Zug')).toBe(true)
+    expect(logs.some((l) => l.startsWith('quiz: dropped cloze item "Bahnhof": cloze: "Bahnhof" not found'))).toBe(true)
+    // the pure builder still throws when no onDrop is given
+    expect(() => buildQuizItems(okPlan(), flattenHighlights(cues), 'de', 'en')).toThrow(/not found/)
   })
 })

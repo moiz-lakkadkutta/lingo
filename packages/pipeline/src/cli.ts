@@ -41,20 +41,21 @@ program.command('spot-check')
   .description('LING-002 quality check: gloss the clip highlights (widening to --per-clip words) and build its quiz with Nova Lite, then write a rubric sheet with blank score columns. Accepts a --no-ai clip.json.')
   .requiredOption('--clip-json <path>', 'clip.json written by prepare, e.g. work/demo-de/clip.json')
   .option('--per-clip <n>', 'gloss rows for this clip', String(DEFAULT_PER_CLIP))
-  .option('--out <md>', 'markdown rubric sheet', 'work/spot-check.md')
+  .option('--out <md>', 'markdown rubric sheet (default work/spot-check.md; with --fixture work/spot-check.fixture.md)')
   .option('--append', 'append to --out instead of overwriting (second clip)')
-  .option('--fixture', 'offline: stub Nova answers (fixtureSend) and a throwaway cache; no AWS calls, output is not a real spot check')
+  .option('--fixture', 'offline: stub Nova answers (fixtureSend) and a throwaway cache; writes spot-check.fixture.json, never spot-check.json; not a real spot check')
   .addHelpText('after', `
 Examples:
   $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --out work/spot-check.md
   $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-en/clip.json --out work/spot-check.md --append
   $ pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --fixture`)
-  .action(async (o: { clipJson: string; perClip: string; out: string; append?: boolean; fixture?: boolean }) => {
+  .action(async (o: { clipJson: string; perClip: string; out?: string; append?: boolean; fixture?: boolean }) => {
     const perClip = Number(o.perClip)
     if (!Number.isInteger(perClip) || perClip < 1) throw new Error(`--per-clip must be a positive integer, got ${o.perClip}`)
     const log = (m: string) => console.log(m)
     const ai = o.fixture ? createAi({ send: fixtureSend(), cacheDir: await mkdtemp(join(tmpdir(), 'lingo-spot-fixture-')), log }) : undefined
-    const r = await runSpotCheck({ clipJson: o.clipJson, perClip, out: o.out, append: o.append, ai, log })
+    const out = o.out ?? (o.fixture ? 'work/spot-check.fixture.md' : 'work/spot-check.md')
+    const r = await runSpotCheck({ clipJson: o.clipJson, perClip, out, append: o.append, ai, log, jsonFile: o.fixture ? 'spot-check.fixture.json' : undefined })
     console.log(`\n${await readFile(r.files.markdown, 'utf8')}`)
   })
 await program.parseAsync()

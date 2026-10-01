@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import type { ConverseCommandInput } from '@aws-sdk/client-bedrock-runtime'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PreparedClip } from '@lingo/contracts'
@@ -122,5 +123,51 @@ describe('spot check', () => {
     // every clip highlight was glossed (for the quiz), only the first 3 are rows
     const glossCalls = send.mock.calls.filter((c) => c[0].toolConfig?.tools?.[0]?.toolSpec?.name === 'explain_word')
     expect(glossCalls).toHaveLength(Math.max(3, clip.highlights.length))
+  })
+
+  it('after widening the candidates, the quiz still uses only the clip\'s real highlights', async () => {
+    const { send, result } = await spot(15, 'widened')
+    expect(result.glosses).toHaveLength(15)
+    const quizCall = send.mock.calls.find((c) => c[0].toolConfig?.tools?.[0]?.toolSpec?.name === 'plan_quiz')!
+    const words = JSON.parse(quizCall[0].messages![0]!.content![0]!.text!).highlights.map((h: { word: string }) => h.word)
+    expect(words).toEqual(clip.highlights.map((h) => h.word))
+    const widened = result.glosses.slice(clip.highlights.length).map((g) => g.word)
+    for (const w of widened) expect(words).not.toContain(w)
+  })
+
+  it('leaves REJECTED gloss rows out of the quiz input', async () => {
+    const victim = clip.highlights[1]!
+    const base = fixtureSend()
+    const send = vi.fn(async (input: ConverseCommandInput) => {
+      const out = await base(input)
+      const payload = JSON.parse(input.messages![0]!.content![0]!.text!)
+      const block = out.output!.message!.content![0]!
+      if (block.toolUse?.name === 'explain_word' && payload.lemma === victim.lemma) block.toolUse.input = { gloss: victim.lemma, grammar: 'x', example: `Hier steht ${victim.word}.` }
+      return out
+    })
+    const logs: string[] = []
+    const ai = createAi({ send, cacheDir: join(root, 'cache-rejected'), log: (m) => logs.push(m) })
+    const result = await runSpotCheck({ clipJson, perClip: 15, out: join(root, 'rejected.md'), ai, freqList: shifted, log: (m) => logs.push(m) })
+    expect(result.glosses.find((g) => g.lemma === victim.lemma)!.gloss).toMatch(/^REJECTED: /)
+    const quizCall = send.mock.calls.find((c) => c[0].toolConfig?.tools?.[0]?.toolSpec?.name === 'plan_quiz')
+    const expected = clip.highlights.filter((h) => h.lemma !== victim.lemma).map((h) => h.word)
+    if (expected.length >= 4) {
+      const words = JSON.parse(quizCall![0].messages![0]!.content![0]!.text!).highlights.map((h: { word: string }) => h.word)
+      expect(words).toEqual(expected)
+    } else {
+      expect(quizCall).toBeUndefined()
+      expect(result.quiz).toEqual([])
+    }
+    for (const q of result.quiz) expect(q.options.join(' ')).not.toContain('REJECTED')
+  })
+
+  it('a fixture run writes spot-check.fixture.json and never touches spot-check.json', async () => {
+    const real = join(root, 'demo-de', 'spot-check.json')
+    await writeFile(real, '{"keep":true}\n')
+    const ai = createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-fixture'), log: () => {} })
+    const r = await runSpotCheck({ clipJson, out: join(root, 'fixture.md'), ai, freqList: shifted, jsonFile: 'spot-check.fixture.json', log: () => {} })
+    expect(r.files.json).toBe(join(root, 'demo-de', 'spot-check.fixture.json'))
+    await expect(access(r.files.json)).resolves.toBeUndefined()
+    expect(await readFile(real, 'utf8')).toBe('{"keep":true}\n')
   })
 })

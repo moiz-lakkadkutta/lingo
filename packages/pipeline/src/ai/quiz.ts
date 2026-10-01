@@ -72,8 +72,11 @@ export function clozePrompt(cue: string, word: string): string {
   return text.replace(re, '$1____')
 }
 
-/** Pure. Meaning items in plan order, then cloze items; options shuffled with a seed from (lang, native, kind, cueIndex, word). */
-export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, native: string): PreparedQuizItem[] {
+/**
+ * Pure. Meaning items in plan order, then cloze items; options shuffled with a seed from (lang, native, kind, cueIndex, word).
+ * An item that cannot be built (e.g. the word is not a whole word of its cue) throws, or, when `onDrop` is given, is left out and reported.
+ */
+export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, native: string, onDrop?: (item: QuizPlanItem, reason: string) => void): PreparedQuizItem[] {
   const build = (it: QuizPlanItem): PreparedQuizItem => {
     const h = H[it.highlightId]!
     const field = it.kind === 'meaning' ? 'gloss' : 'word'
@@ -81,7 +84,12 @@ export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, n
     const options = seededShuffle([correct, ...it.distractorIds.map((id) => H[id]![field])], fnv1a(`${lang}|${native}|${it.kind}|${h.cueIndex}|${h.word}`))
     return { kind: it.kind, prompt: it.kind === 'meaning' ? h.word : clozePrompt(h.cue, h.word), options, answer: options.indexOf(correct), cueIndex: h.cueIndex }
   }
-  return [...plan.items.filter((i) => i.kind === 'meaning'), ...plan.items.filter((i) => i.kind === 'cloze')].map(build)
+  const out: PreparedQuizItem[] = []
+  for (const it of [...plan.items.filter((i) => i.kind === 'meaning'), ...plan.items.filter((i) => i.kind === 'cloze')]) {
+    if (!onDrop) { out.push(build(it)); continue }
+    try { out.push(build(it)) } catch (e) { onDrop(it, e instanceof Error ? e.message : String(e)) }
+  }
+  return out
 }
 
 /**
@@ -153,6 +161,6 @@ export function makeQuiz(d: QuizDeps): QuizFn {
         d.log(`quiz: fallback builder used: ${reason}`)
       }
     }
-    return { items: buildQuizItems(plan, H, lang, native) }
+    return { items: buildQuizItems(plan, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`)) }
   }
 }

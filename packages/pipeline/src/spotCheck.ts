@@ -56,6 +56,8 @@ export interface SpotCheckOptions {
   /** injected in tests and in --fixture mode; default createAi({ ...aiOptions, log }) = real Bedrock + cache */
   ai?: Ai
   aiOptions?: AiOptions
+  /** file written next to clip.json; default spot-check.json (--fixture uses spot-check.fixture.json so stub output never replaces a real one) */
+  jsonFile?: string
   /** default: data/freq-{lang}.txt */
   freqList?: string[]
   log?: (m: string) => void
@@ -72,6 +74,7 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
 
   // gloss every candidate (all clip highlights are needed for the quiz even when perClip is smaller)
   const glossed: SpotGlossRow[] = []
+  const rejected = new Set<SpotGlossRow>()
   for (const c of candidates) {
     const before = ai.cost().cachedCalls
     let g: { gloss: string; grammar: string; example: string }
@@ -82,11 +85,13 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
       // a twice-rejected answer is a result to score (it fails), not a reason to abort the sheet
       g = { gloss: `REJECTED: ${e.issues.join('; ')}`, grammar: JSON.stringify(e.lastOutput), example: '' }
     }
-    glossed.push({ cueIndex: c.cueIndex, cue: c.cue, word: c.word, lemma: c.lemma, rank: c.rank, ...g, cached: ai.cost().cachedCalls > before })
+    const row = { cueIndex: c.cueIndex, cue: c.cue, word: c.word, lemma: c.lemma, rank: c.rank, ...g, cached: ai.cost().cachedCalls > before }
+    if (g.gloss.startsWith('REJECTED: ')) rejected.add(row)
+    glossed.push(row)
   }
 
-  // quiz over the clip highlights only, as prepare() would build it
-  const fromClip = glossed.slice(0, clip.highlights.length)
+  // quiz over the clip highlights only, as prepare() would build it; a REJECTED row has no gloss to offer as an option
+  const fromClip = glossed.slice(0, clip.highlights.length).filter((g) => !rejected.has(g))
   const quiz = (await ai.quiz(clip.cues.map((cue) => ({
     index: cue.index, text: cue.text, native: cue.native[native] ?? '',
     highlights: fromClip.filter((g) => g.cueIndex === cue.index).map((g) => ({ word: g.word, gloss: g.gloss })),
@@ -95,7 +100,7 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const result: SpotCheckResult = {
     slug: clip.slug, sourceLang: clip.sourceLang, native, level: clip.level, perClip, available: candidates.length,
     glosses: glossed.slice(0, perClip), quiz, cost: ai.cost(),
-    files: { json: join(dirname(o.clipJson), 'spot-check.json'), markdown: o.out ?? join('work', 'spot-check.md') },
+    files: { json: join(dirname(o.clipJson), o.jsonFile ?? 'spot-check.json'), markdown: o.out ?? join('work', 'spot-check.md') },
   }
   const { slug, level, glosses, cost } = result
   await writeFile(result.files.json, JSON.stringify({ slug, sourceLang: clip.sourceLang, native, level, glosses, quiz, cost }, null, 2) + '\n')

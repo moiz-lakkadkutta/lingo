@@ -12,7 +12,11 @@ export function novaLiteModelId(env: Record<string, string | undefined> = proces
   return env.NOVA_LITE_MODEL_ID || NOVA_LITE_MODEL_ID_DEFAULT
 }
 
-/** On-demand, US East (N. Virginia), read 2026-10-01 from https://aws.amazon.com/bedrock/pricing/ (Amazon Nova tab): $0.00006 / 1K input, $0.00024 / 1K output. */
+/**
+ * Nova Lite on demand, US East (N. Virginia): $0.06 per million input tokens, $0.24 per million output tokens.
+ * NOT YET VERIFIED: these figures come from search summaries (2026-10-01), not from the pricing page itself. Check them against
+ * https://aws.amazon.com/bedrock/pricing/ (Amazon Nova tab) and fix them here; until then clip.json.cost is an estimate (see docs/aws.md).
+ */
 export const NOVA_LITE_USD_PER_M = { input: 0.06, output: 0.24 } as const
 
 /** USD per million tokens. */
