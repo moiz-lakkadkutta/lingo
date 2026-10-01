@@ -1,6 +1,7 @@
 import type { Level } from '@lingo/contracts'
 /**
- * Frequency-aware highlights: 1–2 words per cue whose rank lies in the band just above the clip level;
+ * Frequency-aware highlights: 1–2 words per cue whose rank is at or above the floor of the band above the clip level, lowest rank first
+ * (no ceiling — the band just above fills first; the app filters per learner, 0007 M5; docs/decisions/0008 decision 9);
  * never names or numbers (digits or number words); cap 40 % of cues. Ranks come from an open subtitle-frequency list (data/freq-{lang}.txt, one lemma per line, rank = line number).
  * Level ≈ band: A1 < 1000, A2 < 2000, B1 < 4000, B2 < 8000 (approximate CEFR; say so in the UI). `Level` is the contracts enum (one source of truth).
  */
@@ -31,8 +32,11 @@ export function isNumeral(word: string): boolean {
 /** Tokens that count towards clip level / coverage and may be highlighted: not a name, no digits, not a number word. */
 export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.word) && !isNumeral(t.word) }
 
+/** The lowest rank a highlight may have for a clip at `level`: the floor of the band above it. */
+export function highlightFloor(level: Level): number { return BANDS[NEXT[level]][0] }
+
 export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
-  const [lo, hi] = BANDS[NEXT[level]]
+  const lo = highlightFloor(level)
   const out: Array<{ cueIndex: number; word: string; lemma: string; rank: number }> = []
   const seen = new Set<string>()
   const used = new Set<number>()
@@ -41,7 +45,7 @@ export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, 
     if (!used.has(c.index) && used.size >= budget) continue
     const cands = c.tokens
       .filter((t) => isCountable(t) && t.word.length > 2)
-      .map((t) => ({ ...t, r: rank(t.lemma) })).filter((t): t is Token & { r: number } => t.r !== undefined && t.r >= lo && t.r < hi && !seen.has(t.lemma))
+      .map((t) => ({ ...t, r: rank(t.lemma) })).filter((t): t is Token & { r: number } => t.r !== undefined && t.r >= lo && !seen.has(t.lemma))
       .sort((a, b) => a.r - b.r).slice(0, 2)
     for (const t of cands) { seen.add(t.lemma); used.add(c.index); out.push({ cueIndex: c.index, word: t.word, lemma: t.lemma, rank: t.r }) }
   }

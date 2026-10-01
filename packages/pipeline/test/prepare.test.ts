@@ -61,12 +61,12 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
       expect(nat[i]!.text).toBe(clip.cues[i]!.native[native])
     }
   })
-  it('highlights cover ≤ 40 % of cues, ≤ 2 per cue, none are names or contain digits, all ranks lie in the band above the clip level', () => {
-    const [lo, hi] = BANDS[NEXT[clip.level]]
+  it('highlights cover ≤ 40 % of cues, ≤ 2 per cue, none are names or contain digits, all ranks are at or above the floor of the band above the clip level', () => {
+    const [lo] = BANDS[NEXT[clip.level]]
     const perCue = new Map<number, number>()
     for (const h of clip.highlights) {
       perCue.set(h.cueIndex, (perCue.get(h.cueIndex) ?? 0) + 1)
-      expect(h.rank).toBeGreaterThanOrEqual(lo); expect(h.rank).toBeLessThan(hi)
+      expect(h.rank).toBeGreaterThanOrEqual(lo)
       expect(h.word).not.toMatch(/\d/)
       const tok = clip.cues[h.cueIndex]!.tokens.find((t) => t.word === h.word)!
       expect(tok.name).toBe(false)

@@ -169,4 +169,5 @@ Condensed from the spike's friction list. These concern content sources, not Ama
 - BY-SA rows: add the licence and attribution as a `NOTE` at the top of every derived VTT and in the manifest (see Attribution notes).
 - Upload the cut to S3, then run `pnpm pipeline prepare --clip <slug> --source <s3uri> --lang <de|en>` (add `--native <codes>` to override the default native-language list).
 - If an existing transcript is listed in the table, keep it next to the pipeline output and diff it against the Transcribe result before publishing.
+- After the first run read `clip.json.warnings` (also printed as `warning: …`): `no highlights` means the clip teaches nothing above its level — reject it and pick a reserve row; `unranked tokens` lists ASR errors or rare words to spot-check; a person or place shown as a highlight goes into `packages/pipeline/data/names-<lang>.txt` (then `build:freq`). A lecture or news clip that addresses the viewer runs with `--formality FORMAL` (default `INFORMAL`).
 - Set `status` from `draft` to published only after the attributions screen shows the row.
