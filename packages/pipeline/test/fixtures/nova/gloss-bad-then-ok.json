@@ -1,0 +1,14 @@
+[
+  {
+    "output": { "message": { "role": "assistant", "content": [ { "toolUse": { "toolUseId": "t1", "name": "explain_word", "input": { "gloss": "warten", "grammar": "verb, warten, wartete, hat gewartet", "example": "Wir warten auf den Bus." } } } ] } },
+    "stopReason": "tool_use",
+    "usage": { "inputTokens": 287, "outputTokens": 58, "totalTokens": 345 },
+    "metrics": { "latencyMs": 790 }
+  },
+  {
+    "output": { "message": { "role": "assistant", "content": [ { "toolUse": { "toolUseId": "t2", "name": "explain_word", "input": { "gloss": "wait", "grammar": "verb, warten, wartete, hat gewartet; takes auf + accusative", "example": "Wir warten auf den Bus." } } } ] } },
+    "stopReason": "tool_use",
+    "usage": { "inputTokens": 402, "outputTokens": 61, "totalTokens": 463 },
+    "metrics": { "latencyMs": 805 }
+  }
+]

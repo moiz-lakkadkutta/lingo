@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PreparedClip } from '@lingo/contracts'
+import type { PreparedClip, PreparedCost } from '@lingo/contracts'
 import type { Lemmatizer } from './lemmatize'
 import type { glossWord, quizForClip } from './prompts'
 
@@ -59,6 +59,8 @@ export interface PrepareDeps {
   /** from ./prompts (LING-002 owns the body) */
   gloss: typeof glossWord
   quiz: typeof quizForClip
+  /** Bedrock spend so far (LING-002); written to clip.json.cost when present. fixtureDeps() has none. */
+  cost?(): PreparedCost
   now(): Date
   log(msg: string): void
 }

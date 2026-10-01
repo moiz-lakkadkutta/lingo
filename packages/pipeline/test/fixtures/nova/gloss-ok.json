@@ -1,0 +1,6 @@
+{
+  "output": { "message": { "role": "assistant", "content": [ { "toolUse": { "toolUseId": "t1", "name": "explain_word", "input": { "gloss": "wait", "grammar": "verb, warten, wartete, hat gewartet; takes auf + accusative", "example": "Wir warten auf den Bus." } } } ] } },
+  "stopReason": "tool_use",
+  "usage": { "inputTokens": 287, "outputTokens": 61, "totalTokens": 348 },
+  "metrics": { "latencyMs": 812 }
+}

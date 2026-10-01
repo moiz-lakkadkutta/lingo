@@ -10,7 +10,7 @@ import { isName, loadNames } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
 import { tokenizeWords } from './tokenize'
 import { checkVtt, cuesToVtt } from './vtt'
-import { glossWord, quizForClip } from './prompts'
+import { createAi } from './ai/index'
 import { normalize } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
@@ -22,6 +22,8 @@ export { BANDS, NEXT, type Level }
 export const PIPELINE_VERSION = 'lingo-pipeline@0.1.0'
 
 export function defaultDeps(): PrepareDeps {
+  const log = (m: string) => console.log(m)
+  const ai = createAi({ log })
   return {
     exec: async (cmd, args, opts) => { const r = await execa(cmd, args, { cwd: opts?.cwd, stdio: ['ignore', 'pipe', 'inherit'] }); return { stdout: r.stdout } },
     transcribe: transcribeWithAws,
@@ -29,10 +31,11 @@ export function defaultDeps(): PrepareDeps {
     lemmatizer: pythonLemmatizer(),
     freqList: (lang) => loadFreqList(lang),
     names: (lang) => loadNames(resolve(DATA_DIR, `names-${lang}.txt`)),
-    gloss: glossWord,
-    quiz: quizForClip,
+    gloss: ai.gloss,
+    quiz: ai.quiz,
+    cost: ai.cost,
     now: () => new Date(),
-    log: (m) => console.log(m),
+    log,
   }
 }
 
@@ -108,17 +111,19 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   // 8. package (+ publish)
   const manifest = await pack({ work, lang, natives }, deps)
   // 9. clip.json (written before publish so the publish step can upload it)
+  const cost = deps.cost?.()
   const cues: PreparedCue[] = segs.map((s) => ({ index: s.index, startMs: Math.round(s.startS * 1000), endMs: Math.round(s.endS * 1000), text: s.text, native: native[s.index]!, tokens: tokensByCue[s.index]! }))
   const clipBase = {
     version: 1 as const, slug, sourceLang: lang, natives, level, coverageRank: coverage, durationS, cues, highlights, ...(quiz ? { quiz } : {}),
     tracks: { manifest: 'master.m3u8', vtt: Object.fromEntries([lang, ...natives].map((c) => [c, `vtt/${c}.vtt`])) },
     source: { uri: source, transcribeJob }, generated: { at: deps.now().toISOString(), pipeline: PIPELINE_VERSION, lemmatizer: deps.lemmatizer.name, ai: doAi }, warnings,
+    ...(cost ? { cost } : {}),
   }
   const clipJson = `${work}/clip.json`
   const write = (clip: PreparedClip) => writeFile(clipJson, JSON.stringify(clip, null, 2) + '\n')
   let clip = PreparedClip.parse({ ...clipBase, publishedBase: null })
   await write(clip)
   if (doPublish) { clip = PreparedClip.parse({ ...clipBase, publishedBase: await publish({ work, slug, lang, natives, bucket: bucket!, cloudfrontDomain: cloudfrontDomain! }, deps) }); await write(clip) }
-  deps.log(`prepared ${slug}: level ${level} (coverage rank ${coverage}), ${cues.length} cues, ${highlights.length} highlights, ${quiz ? `${quiz.length} quiz items` : 'no glosses or quiz (--no-ai)'}, ${warnings.length} warnings, ${durationS.toFixed(1)} s, lemmatizer ${deps.lemmatizer.name} → ${clip.publishedBase ?? 'not published'} (${work})`)
+  deps.log(`prepared ${slug}: level ${level} (coverage rank ${coverage}), ${cues.length} cues, ${highlights.length} highlights, ${quiz ? `${quiz.length} quiz items` : 'no glosses or quiz (--no-ai)'}, ${warnings.length} warnings, ${durationS.toFixed(1)} s, lemmatizer ${deps.lemmatizer.name} → ${clip.publishedBase ?? 'not published'} (${work})${cost ? `, cost $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached)` : ''}`)
   return { clip, workDir: work, files: { clipJson, vtt: vttFiles, manifest } }
 }
