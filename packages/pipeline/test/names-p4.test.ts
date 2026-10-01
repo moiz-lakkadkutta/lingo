@@ -83,5 +83,5 @@ describe.skipIf(!(await simplemmaAvailable()))('build:names is a no-op on the co
       const text = await readFile(resolve(DATA_DIR, `names-${lang}.txt`), 'utf8')
       expect(mergeNamesFile(text, [...HAND[lang], ...seed]).added).toEqual([])
     }
-  })
+  }, 30_000) // ~2 s alone; two Python lemmatizer runs exceed the 5 s default under a parallel `pnpm test`
 })

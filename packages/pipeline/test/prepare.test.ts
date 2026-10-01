@@ -268,6 +268,19 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(parsed.cues.length).toBe(clip.cues.length); expect(parsed.level).toBe(clip.level); expect(parsed.coverageRank).toBe(clip.coverageRank)
     expect(await readFile(r.files.vtt[lang]!, 'utf8')).toBe(await readFile(result.files.vtt[lang]!, 'utf8'))
   })
+  it('attaches deps.cost() as clip.cost when the deps provide it, and omits cost otherwise', async () => {
+    const logs: string[] = []
+    const cost = { calls: 17, cachedCalls: 3, inputTokens: 17000, outputTokens: 2700, usd: 0.001668 }
+    const r = await prepare({ slug: `cost-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, { ...fixtureDeps(lang), cost: () => cost, log: (m: string) => logs.push(m) })
+    expect(r.clip.cost).toEqual(cost)
+    expect(JSON.parse(await readFile(r.files.clipJson, 'utf8')).cost).toEqual(cost)
+    expect(logs.at(-1)).toMatch(/, cost \$0\.0017 \(17 calls, 3 cached\)$/)
+    expect(clip).not.toHaveProperty('cost')
+    expect(JSON.parse(await readFile(result.files.clipJson, 'utf8'))).not.toHaveProperty('cost')
+    const plain: string[] = []
+    await prepare({ slug: `nocost-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, { ...fixtureDeps(lang), log: (m: string) => plain.push(m) })
+    expect(plain.at(-1)).not.toContain('cost $')
+  })
 })
 
 describe('prepare: overlapping speakers (docs/decisions/0007)', () => {

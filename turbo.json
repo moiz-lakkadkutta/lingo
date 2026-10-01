@@ -14,7 +14,8 @@
     "RVS_SECRET",
     "PHONE_URL",
     "LOG_LEVEL",
-    "LINGO_PYTHON"
+    "LINGO_PYTHON",
+    "LINGO_AI_CACHE_DIR"
   ],
   "tasks": {
     "build": {

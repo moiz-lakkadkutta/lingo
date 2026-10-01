@@ -12,8 +12,35 @@ import { tableLemmatizer, type LemmaResult } from './lemmatize'
 import { DATA_DIR, loadFreqList } from './freq'
 import { loadNames } from './names'
 import { TranscribeJson, type Lang, type PrepareDeps } from './types'
+import { quizCounts, type QuizHighlight } from '@lingo/contracts'
+import type { BedrockSend } from './ai/client'
+import { GLOSS_TOOL } from './ai/gloss'
+import { fallbackPlan, QUIZ_TOOL } from './ai/quiz'
 
 export interface RecordedExec { cmd: string; args: string[] }
+
+/**
+ * Offline stand-in for Bedrock Converse (LING-002): answers explain_word with a stub card built from the request and plan_quiz with
+ * fallbackPlan() over the requested highlights. Used by `cli spot-check --fixture` (with a throwaway cache) and by tests; never real Nova output.
+ */
+export function fixtureSend(): BedrockSend {
+  return async (input) => {
+    const tool = input.toolConfig?.toolChoice && 'tool' in input.toolConfig.toolChoice ? input.toolConfig.toolChoice.tool?.name : undefined
+    const payload = JSON.parse(input.messages?.[0]?.content?.[0]?.text ?? '{}') as Record<string, unknown>
+    let toolInput: Record<string, unknown>
+    if (tool === GLOSS_TOOL) {
+      const { word, lemma } = payload as { word: string; lemma: string }
+      toolInput = { gloss: `stub meaning of ${lemma}`, grammar: 'stub grammar note', example: `Hier steht ${word} noch einmal.` }
+    } else if (tool === QUIZ_TOOL) {
+      const H = (payload.highlights as Array<Omit<QuizHighlight, 'cueIndex'>>).map((h) => ({ ...h, cueIndex: 0 }))
+      toolInput = fallbackPlan(H, quizCounts(H.length))
+    } else throw new Error(`fixtureSend: unknown tool ${String(tool)}`)
+    return {
+      $metadata: {}, stopReason: 'tool_use', usage: { inputTokens: 300, outputTokens: 60, totalTokens: 360 }, metrics: { latencyMs: 0 },
+      output: { message: { role: 'assistant', content: [{ toolUse: { toolUseId: 'fixture', name: tool, input: toolInput as never } }] } },
+    }
+  }
+}
 const FIXTURES = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'test', 'fixtures')
 
 /** A fixture name may carry a directory (`real/friedlaender` → test/fixtures/real/transcribe-friedlaender-{lang}.json). */
