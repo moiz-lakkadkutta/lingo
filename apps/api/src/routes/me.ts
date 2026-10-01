@@ -1,6 +1,7 @@
 import { Router } from 'express'
-import { LearnerSettingsPatch, ReviewPost, SaveWord, WordSavedPayload } from '@lingo/contracts'
+import { FREE_SAVES_PER_DAY, LearnerSettingsPatch, ReviewPost, SaveWord, WordSavedPayload } from '@lingo/contracts'
 import { db } from '../lib/db'
+import { entitled } from '../lib/entitlement'
 import { ok, validate } from '../lib/http'
 import { sm2 } from '../lib/sm2'
 import { getIo } from '../lib/io'
@@ -8,7 +9,7 @@ import { logger } from '../lib/logger'
 export const me: Router = Router()
 const learner = async (h: unknown) => db.learner.upsert({ where: { deviceId: String(h ?? 'anon') }, create: { deviceId: String(h ?? 'anon') }, update: { lastActive: new Date() } })
 
-me.get('/', async (req, res, next) => { try { ok(res, await learner(req.header('x-device-id'))) } catch (e) { next(e) } })
+me.get('/', async (req, res, next) => { try { const l = await learner(req.header('x-device-id')); ok(res, { ...l, plus: await entitled(l.id) }) } catch (e) { next(e) } })
 /** Settings only (LearnerSettingsPatch): plus, level, streak and knownRank are never client-writable here. */
 me.put('/', validate(LearnerSettingsPatch, (r) => r.body), async (req, res, next) => { try { const l = await learner(req.header('x-device-id')); ok(res, await db.learner.update({ where: { id: l.id }, data: (req as never as { valid: object }).valid })) } catch (e) { next(e) } })
 
@@ -17,10 +18,10 @@ me.post('/words', validate(SaveWord, (r) => r.body), async (req, res, next) => {
   try {
     const l = await learner(req.header('x-device-id'))
     const { highlightId, sessionCode } = (req as never as { valid: { highlightId: string; sessionCode?: string } }).valid
-    if (!l.plus) {
+    if (!(await entitled(l.id))) {
       const today = new Date(); today.setHours(0, 0, 0, 0)
       const n = await db.savedWord.count({ where: { learnerId: l.id, createdAt: { gte: today } } })
-      if (n >= 20) return ok(res, { limit: true, saved: null })
+      if (n >= FREE_SAVES_PER_DAY) return ok(res, { limit: true, saved: null })
     }
     const saved = await db.savedWord.upsert({ where: { learnerId_highlightId: { learnerId: l.id, highlightId } }, create: { learnerId: l.id, highlightId }, update: {}, include: { highlight: { include: { cue: { include: { clip: true } } } } } })
     if (sessionCode) {
