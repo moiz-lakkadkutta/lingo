@@ -12,17 +12,25 @@ import { patchLearnerOptimistic } from './lib/learnerPatch'
 import { useSession } from './session/useSession'
 import type { SessionTransport } from './session/types'
 import { noRemote, type RemoteSource } from './remote/types'
+import type { PlusStore } from './plus/types'
+import type { LaunchSource } from './platform/launch'
 export { tokens } from './theme/tokens'
 export * from './components'
 export { createSocketTransport } from './session/socketTransport'
 export type { SessionTransport, SessionState } from './session/types'
 export { createRemoteBus, noRemote } from './remote/types'
 export type { RemoteSource, RawRemoteEvent } from './remote/types'
+export type { PlusStore, StoreProduct, StoreReceipt, PurchaseOutcome } from './plus/types'
+export { noStore } from './plus/types'
+export { createLaunchBus, noLaunches, parseLaunchUri, launchUri } from './platform/launch'
+export type { LaunchSource } from './platform/launch'
+export { mapFireOsPurchase, mapFireOsError, mapVegaPurchase, mapVegaUpdates, isPlusReceipt } from './plus/amazon'
+export type { VegaCode, FireOsPurchaseLike } from './plus/amazon'
 
 type Route = { name: 'home' } | { name: 'player'; slug: string; challenge: boolean } | { name: 'summary' } | { name: 'quiz' } | { name: 'pair' } | { name: 'settings' } | { name: 'words' }
 const defaultLearner: LearnerDto = { learning: 'de', native: 'en', level: 'A2', plus: false, streak: 0, firstRunDone: false, nativeLine: 'always', autoPause: false, cueScale: 1 }
 
-export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource }
+export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource; /** Amazon IAP store from the platform entry (LING-007); defaults to noStore. Wired into Root by the LING-007 integration hunk. */ plusStore?: PlusStore; /** Deep links / Content Launcher intents from the platform entry (LING-007); defaults to noLaunches. */ launches?: LaunchSource }
 
 export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport, remote = noRemote }: RootProps) {
   const [route, setRoute] = useState<Route>({ name: 'home' })

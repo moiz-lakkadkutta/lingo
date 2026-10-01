@@ -7,6 +7,7 @@ import { DualCue } from '../components'
 import { caps as platformCaps, type Caps } from '../platformCaps'
 import type { RemoteSource } from '../remote/types'
 import { useRemoteKeys } from '../remote/useRemoteKeys'
+import { usePlatformMedia } from '../platform/usePlatformMedia'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
@@ -93,7 +94,7 @@ export function Player(props: PlayerProps) {
     }
     dispatch({ type: 'key', key: ev.key, longPress: ev.longPress, repeat: ev.repeat, now: Date.now() })
   }, [dispatch])
-  useRemoteKeys(remote, onKey, true)
+  const onKeySeen = usePlatformMedia({ clip, state, onKey }); useRemoteKeys(remote, onKeySeen, true)
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { dispatch({ type: 'back', now: Date.now() }); return true })
