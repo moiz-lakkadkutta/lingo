@@ -26,7 +26,7 @@ export const PreparedClip = z.object({
   sourceLang: Lang,
   natives: z.array(z.string().min(2).max(5)).min(1),
   level: Level,
-  coverageRank: z.number().int().positive(), // smallest rank r with ≥ 95 % of tokens ranked ≤ r (unknown = 99999)
+  coverageRank: z.number().int().positive(), // smallest rank r with ≥ 95 % of the ranked tokens ranked ≤ r (over ranked tokens; 99999 when none is ranked)
   durationS: z.number().positive(),
   cues: z.array(PreparedCue).min(1),
   highlights: z.array(PreparedHighlight),

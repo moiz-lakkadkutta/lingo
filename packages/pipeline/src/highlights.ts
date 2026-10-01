@@ -9,7 +9,8 @@ export const BANDS: Record<Level, [number, number]> = { A1: [0, 1000], A2: [1000
 export const NEXT: Record<Level, Level> = { A1: 'A2', A2: 'B1', B1: 'B2', B2: 'B2' }
 /** `name` is computed by names.ts (undefined = not a name); the caller passes a case-insensitive rank fn. */
 export interface Token { word: string; lemma: string; name?: boolean }
-const UNKNOWN_RANK = 99999
+/** coverageRank when no token is ranked. */
+export const UNKNOWN_RANK = 99999
 
 /** Number words (both languages, matched case-insensitively on the surface form): cardinals to twelve, tens, hundred/thousand, ordinals to tenth, multiplicatives. */
 const NUMERAL_WORDS = new Set([
@@ -46,15 +47,23 @@ export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, 
   }
   return out
 }
-/** Coverage-based level for a clip: the smallest level whose band covers ≥ 95 % of running tokens. */
+/** Ranks of the tokens that have one (docs/decisions/0008 decision 10: unranked tokens — ASR errors or words beyond the top 20 000 — are ignored). */
+const rankedOf = (tokens: Token[], rank: (l: string) => number | undefined) => tokens.map((t) => rank(t.lemma)).filter((r): r is number => r !== undefined)
+/** Coverage-based level for a clip: the smallest level whose band covers ≥ 95 % of the ranked tokens; none ranked → 'B2'. */
 export function clipLevel(tokens: Token[], rank: (l: string) => number | undefined): Level {
-  const ranks = tokens.map((t) => rank(t.lemma) ?? UNKNOWN_RANK)
+  const ranks = rankedOf(tokens, rank)
+  if (!ranks.length) return 'B2'
   for (const lvl of ['A1', 'A2', 'B1', 'B2'] as Level[]) { const hi = BANDS[lvl][1]; if (ranks.filter((r) => r < hi).length / ranks.length >= 0.95) return lvl }
   return 'B2'
 }
-/** Smallest rank r such that ≥ 95 % of tokens have rank ≤ r (unknown = 99999). */
+/** Smallest rank r such that ≥ 95 % of the ranked tokens have rank ≤ r; UNKNOWN_RANK (99999) when none is ranked. */
 export function coverageRank(tokens: Token[], rank: (l: string) => number | undefined): number {
-  if (!tokens.length) return UNKNOWN_RANK
-  const ranks = tokens.map((t) => rank(t.lemma) ?? UNKNOWN_RANK).sort((a, b) => a - b)
+  const ranks = rankedOf(tokens, rank).sort((a, b) => a - b)
+  if (!ranks.length) return UNKNOWN_RANK
   return ranks[Math.ceil(0.95 * ranks.length) - 1]!
+}
+/** Share of tokens without a rank and their distinct lemmas, sorted (prepare() warns above 5 %). No tokens → share 0. */
+export function unrankedShare(tokens: Token[], rank: (l: string) => number | undefined): { share: number; lemmas: string[] } {
+  const unranked = tokens.filter((t) => rank(t.lemma) === undefined)
+  return { share: tokens.length ? unranked.length / tokens.length : 0, lemmas: [...new Set(unranked.map((t) => t.lemma))].sort() }
 }

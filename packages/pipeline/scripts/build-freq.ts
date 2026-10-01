@@ -16,7 +16,7 @@ import type { Lang } from '../src/types'
 
 const SOURCE = (lang: Lang) => `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/${lang}/${lang}_50k.txt`
 const TOP = 20000, BATCH = 5000
-const SANITY: Record<Lang, string[]> = { de: ['warten', 'stunde', 'anrufen', 'abnehmen', 'haus', 'tisch', 'hausen', 'anna'], en: ['wait', 'hour', 'call', 'answer', 'sarah'] }
+export const SANITY: Record<Lang, string[]> = { de: ['warten', 'stunde', 'anrufen', 'abnehmen', 'haus', 'tisch', 'hausen', 'anna', 'sich'], en: ['wait', 'hour', 'call', 'answer', 'sarah'] }
 const cap = (w: string) => w[0]!.toUpperCase() + w.slice(1)
 
 /** Minimum independent support (share of the form's own count) for the lowercase lemma of an ambiguous German form. */
@@ -28,11 +28,15 @@ export interface FormRow { word: string; count: number; low: LemmaResult; capped
  * the count goes to BOTH (noun and verb — preferring the noun would send hat → Hat), except that the lowercase lemma must be attested by the
  * list's other, unambiguous forms: their counts must reach VERB_SUPPORT of the form's own count (bitten 3.9 % and danken 3.9 % pass; hausen
  * 0.3 %, tagen 0.2 % and zimmern 0 % do not — the corpus has ~no "haust"/"tagt"/"zimmert"). A form whose lowercase lookup learned nothing
- * (stunden → stunden) credits the capitalised lemma only (Stunde). Pure; `capped` is only set for de.
+ * (stunden → stunden) credits the capitalised lemma only (Stunde). A capitalised lookup whose lemma carries simplemma's `|` ambiguity marker
+ * (Sich → er|es|sie) is treated as absent, so sich keeps its own count. Pure; `capped` is only set for de.
  */
+/** False for simplemma's ambiguity marker (`Sich → er|es|sie`): such a lemma is never credited (docs/decisions/0008 decision 10). */
+export function isUsableLemma(lemma: string): boolean { return !lemma.includes('|') }
+
 export function creditLemmas(rows: FormRow[]): Array<{ word: string; count: number; lemma: string }> {
   const split = rows.map((r) => {
-    const noun = r.capped?.known && r.capped.lemma.toLowerCase() !== r.low.lemma.toLowerCase() ? r.capped.lemma : undefined
+    const noun = r.capped?.known && isUsableLemma(r.capped.lemma) && r.capped.lemma.toLowerCase() !== r.low.lemma.toLowerCase() ? r.capped.lemma : undefined
     if (!noun) return { ...r, sure: r.low.lemma, gated: undefined }
     return { ...r, sure: noun, gated: r.low.lemma === r.word ? undefined : r.low.lemma }
   })

@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { PreparedClip, type PreparedCue, type PreparedHighlight, type PreparedQuizItem, type PreparedToken } from '@lingo/contracts'
 import { segmentWithReport, wrap2, type Dropped, type Seg } from './segment'
 import { assertGate, gateReport } from './gate'
-import { BANDS, clipLevel, coverageRank, isCountable, NEXT, pickHighlights, type Level } from './highlights'
+import { BANDS, clipLevel, coverageRank, isCountable, NEXT, pickHighlights, unrankedShare, type Level } from './highlights'
 import { DATA_DIR, loadFreqList, rankFn } from './freq'
 import { isName, loadNames, rankOf } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
@@ -120,6 +120,8 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const rankable = tokensByCue.flat().filter(isCountable)
   const level = clipLevel(rankable, rank)
   const coverage = coverageRank(rankable, rank)
+  const unranked = unrankedShare(rankable, rank)
+  if (unranked.share > 0.05) warnings.push(`unranked tokens: ${Math.round(unranked.share * 100)} % of countable tokens have no frequency rank (${unranked.lemmas.slice(0, 12).join(', ')}${unranked.lemmas.length > 12 ? ', …' : ''}) — ASR errors or rare words; the level ignores them`)
   const picked = pickHighlights(segs.map((s) => ({ index: s.index, tokens: tokensByCue[s.index]! })), rank, level)
   const highlights: PreparedHighlight[] = []
   let quiz: PreparedQuizItem[] | undefined
