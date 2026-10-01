@@ -25,7 +25,8 @@
         {
           "fonts": []
         }
-      ]
+      ],
+      "@react-native-tvos/config-tv"
     ]
   }
 }

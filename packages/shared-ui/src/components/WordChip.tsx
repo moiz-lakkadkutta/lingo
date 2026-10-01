@@ -1,6 +1,5 @@
 import React, { useRef } from 'react'
 import { Animated, Pressable, Text, View } from 'react-native'
-import '../tvProps'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 import { Check } from './Check'

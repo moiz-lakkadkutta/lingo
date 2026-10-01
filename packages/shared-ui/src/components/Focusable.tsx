@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Animated, Pressable, StyleSheet, type View, type ViewStyle } from 'react-native'
-import '../tvProps'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 

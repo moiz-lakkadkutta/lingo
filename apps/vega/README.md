@@ -12,5 +12,5 @@ pnpm add @amazon-devices/react-native-svg   # system-distributed, RN 0.72 row: ~
 vega virtual-device start && npm run build:app && vega run-app build/aarch64-release/lingo_aarch64.vpkg
 ```
 
-Only this entry file is Vega-specific. All screens live in `packages/shared-ui`. The realtime link (socket.io-client, websocket only)
+Only this entry file is Vega-specific. Its `RemoteBridge` is the only place `@amazon-devices/react-native-kepler` is imported: `useTVEventHandler` feeds shared-ui's `RemoteSource` ([Vega TVEventHandler](https://developer.amazon.com/docs/react-native-vega/0.72/using_tveventhandler.html)). All screens live in `packages/shared-ui`. The realtime link (socket.io-client, websocket only)
 also lives in shared-ui; Amazon lists Socket.io 4.7.5 as tested on Vega. `Root` accepts an optional `transport` prop if a relay is needed.
