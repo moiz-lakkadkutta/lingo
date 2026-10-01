@@ -44,6 +44,8 @@ describe('createPressTracker', () => {
     const t = createPressTracker(500)
     t.down('left', 0)
     expect(t.up('left', 800)).toEqual({ key: 'left', longPress: true, repeat: false })
+    t.down('left', 0)
+    expect(t.up('left', 500)).toEqual({ key: 'left', longPress: true, repeat: false }) // boundary: exactly longPressMs is long
   })
   it('keys are tracked independently', () => {
     const t = createPressTracker(500)

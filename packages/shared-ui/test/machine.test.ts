@@ -138,6 +138,10 @@ describe('player machine', () => {
     const [still, fx2] = reduce(s, { type: 'position', s: 3.2, now: NOW }, c)
     expect(still).toBe(s)
     expect(fx2).toEqual([])
+    // boundary: a position exactly at the cue's endS holds
+    const [edge, fxEdge] = reduce(s0, { type: 'position', s: 3.0, now: NOW }, c)
+    expect(edge.phase).toBe('holding')
+    expect(fxEdge).toEqual([{ kind: 'pause' }, { kind: 'startHold', ms: 2000 }])
     const [noAuto] = reduce(s0, { type: 'position', s: 3.1, now: NOW }, ctx)
     expect(noAuto.phase).toBe('playing')
     expect(noAuto.cueIndex).toBeNull()
@@ -163,7 +167,11 @@ describe('player machine', () => {
     expect(ex.phase).toBe('explain')
     expect(ex.wordIdx).toBe(0)
     expect(fx1).toEqual([{ kind: 'cancelHold' }])
-    expect(reduce(held, key('playPause'), c)[0].phase).toBe('explain')
+    for (const k of ['playPause', 'pause'] as RemoteKey[]) {
+      const [pp, fxp] = reduce(held, key(k), c)
+      expect(pp.phase).toBe('explain')
+      expect(fxp).toEqual([{ kind: 'cancelHold' }])
+    }
 
     const [pl, fx2] = reduce(held, key('left'), c)
     expect(pl.phase).toBe('playing')
@@ -282,5 +290,65 @@ describe('player machine', () => {
     expect(fx).toEqual([{ kind: 'rate', r: 0.75 }])
     expect(reduce(sheet, slower, { ...ctx, plus: false })).toEqual([sheet, []])
     expect(reduce(sheet, { type: 'action', action: 'replay', now: NOW }, ctx)).toEqual([sheet, []])
+  })
+
+  it('► with autoPause does not hold the cue that was skipped', () => {
+    const c = { ...ctx, autoPause: true }
+    const s0 = at(4.5, {}, c)
+    expect(s0.cueIndex).toBe(1)
+    const [s1, fx1] = reduce(s0, key('right'), c)
+    expect(fx1).toEqual([{ kind: 'seek', s: 6.5 }])
+    expect(s1.positionS).toBe(6.5)
+    expect(s1.cueIndex).toBe(2)
+    expect(s1.heldCue).toBeNull()
+    const [s2, fx2] = reduce(s1, { type: 'position', s: 6.5, now: NOW }, c)
+    expect(s2.phase).toBe('playing')
+    expect(fx2).toEqual([])
+    // ◄ back across a cue end does not hold the cue being left either
+    const [s3] = reduce(at(5.5, {}, c), key('left'), c)
+    expect(s3.positionS).toBe(4)
+    expect(s3.cueIndex).toBe(1)
+  })
+
+  it('replay after a hold auto-pauses again at the line end', () => {
+    const c = { ...ctx, autoPause: true }
+    const held = reduce(at(2.8, {}, c), { type: 'position', s: 3.1, now: NOW }, c)[0]
+    expect(held.heldCue).toBe(0)
+    const holdsAgain = (s: PlayerState) => {
+      let [n] = reduce(s, { type: 'position', s: 2, now: NOW }, c)
+      expect(n.phase).toBe('playing')
+      const [h, fx] = reduce(n, { type: 'position', s: 3.05, now: NOW }, c)
+      n = h
+      expect(n.phase).toBe('holding')
+      expect(n.heldCue).toBe(0)
+      expect(fx).toEqual([{ kind: 'pause' }, { kind: 'startHold', ms: 2000 }])
+    }
+    // long ◄ from the hold
+    const [viaKey, fxKey] = reduce(held, key('left', { longPress: true }), c)
+    expect(fxKey).toEqual([{ kind: 'cancelHold' }, { kind: 'seek', s: 1 }, { kind: 'play' }])
+    expect(viaKey).toMatchObject({ phase: 'playing', positionS: 1, cueIndex: 0, heldCue: null })
+    holdsAgain(viaKey)
+    // Replay from the card
+    const ex = reduce(held, { type: 'stageSelect', now: NOW }, c)[0]
+    const [viaCard, fxCard] = reduce(ex, { type: 'action', action: 'replay', now: NOW }, c)
+    expect(fxCard).toEqual([{ kind: 'seek', s: 1 }, { kind: 'play' }])
+    expect(viaCard).toMatchObject({ phase: 'playing', positionS: 1, cueIndex: 0, heldCue: null })
+    holdsAgain(viaCard)
+  })
+
+  it('a held ► is ignored', () => {
+    const s0 = at(4.5)
+    const [s, fx] = reduce(s0, key('right', { longPress: true }), ctx)
+    expect(s).toBe(s0)
+    expect(fx).toEqual([])
+  })
+
+  it('with autoPause the sheet stays open across a cue end and nothing pauses', () => {
+    const c = { ...ctx, autoPause: true }
+    const sheet = at(2.8, { phase: 'sheet' }, c)
+    expect(sheet.cueIndex).toBe(0)
+    const [s, fx] = reduce(sheet, { type: 'position', s: 3.1, now: NOW }, c)
+    expect(s.phase).toBe('sheet')
+    expect(fx).toEqual([])
   })
 })

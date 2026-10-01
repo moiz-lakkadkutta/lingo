@@ -16,6 +16,7 @@ describe('seek', () => {
   })
   it('prev within the grace second goes to the previous cue start', () => {
     expect(seekTarget(cues, 4.5, 'prev', 1)).toBe(1)
+    // 7.5 sits exactly 1.0 s after cue 2's start (6.5) on purpose: "more than graceS ago" is strict, so this is still within grace.
     expect(seekTarget(cues, 7.5, 'prev', 1)).toBe(4)
   })
   it('prev after the grace second goes to the current cue start', () => {

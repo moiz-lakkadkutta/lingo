@@ -180,14 +180,15 @@ export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: strin
 ## State machine (`machine.ts`)
 
 `reduce` is pure and total: unknown (state, event) pairs return `[s, []]`. `chrome(s, now) = { ...s, chromeUntil: now + ctx.chromeMs }` is applied by every key, stageSelect, action and phase change. `cueAt`/`seekTarget` from `seek.ts`.
+**Every row that emits `seek(t)` also sets `positionS = t`, `cueIndex = cueAt(cues, t)`, `heldCue = null`** (◄/► short and long, Rewind/Fast-forward, Replay, and seeks out of holding). Otherwise the next position report is read against the cue being left: ► from cue 1 to 6.5 would hold cue 1, the line just skipped; and a replayed line would never auto-pause again. (Review fix, approved by the orchestrator.)
 
 | Phase | Event | Next | Effects |
 |---|---|---|---|
-| playing | position(s) | positionS = s; cueIndex = cueAt(s); if cueIndex ≠ old and revealedCue ≠ cueIndex → revealedCue = null. If `ctx.autoPause` and old cueIndex `c` is not null and `s ≥ cues[c].endS` and `heldCue ≠ c` → phase holding, heldCue = c, cueIndex = c (the held line stays on screen) | holding case: `pause`, `startHold(holdMs)` |
-| playing | key left (short) | chrome | `seek(seekTarget(s,'prev'))` |
-| playing | key left (longPress, !repeat) | chrome | `seek(seekTarget(s,'replay'))`, `play` |
+| playing | position(s) | positionS = s; cueIndex = cueAt(s); if cueIndex ≠ old and revealedCue ≠ cueIndex → revealedCue = null. If `ctx.autoPause` and old cueIndex `c` is not null and `s ≥ cues[c].endS` and `heldCue ≠ c` → phase holding, heldCue = c, cueIndex = c (the held line stays on screen). `old` is the cue the last seek or position put the state in, never a cue a seek has left | holding case: `pause`, `startHold(holdMs)` |
+| playing | key left (short) | chrome; seek state (see above) | `seek(seekTarget(s,'prev'))` |
+| playing | key left (longPress, !repeat) | chrome; seek state | `seek(seekTarget(s,'replay'))`, `play` |
 | playing | key *, longPress && repeat | — | — |
-| playing | key right (short) | chrome | `seek(t)` if `t = seekTarget(s,'next')` not null; else none |
+| playing | key right (short) | chrome; seek state when t is not null | `seek(t)` if `t = seekTarget(s,'next')` not null; else none |
 | playing | key rewind / fastForward | as left / right short | |
 | playing | key playPause or pause | phase explain, wordIdx 0, chrome | `pause` |
 | playing | stageSelect | phase explain, wordIdx 0, chrome | `pause` |
@@ -206,7 +207,7 @@ export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: strin
 | holding | playerState playing | phase playing | `cancelHold` |
 | holding | position | — | — |
 | explain | focusWord(i) | wordIdx = i | — |
-| explain | action replay | phase playing, stageKey + 1, chrome | `seek(seekTarget(s,'replay'))`, `play` |
+| explain | action replay | phase playing, stageKey + 1, chrome; seek state | `seek(seekTarget(s,'replay'))`, `play` |
 | explain | action slower | if `ctx.caps.rate && ctx.plus` → rate = (rate === 1 ? 0.75 : 1) | `rate(r)` in that case; otherwise nothing (the card shows the upsell line itself) |
 | explain | action resume / key playPause / back / sheetClose | phase playing, stageKey + 1, chrome | `play` |
 | explain | key menu | revealedCue toggle as in playing | — |
@@ -389,7 +390,7 @@ Question: (a) does `useTVEventHandler` from `@amazon-devices/react-native-kepler
 ## Open questions (answer from PLAN.md or ask once; defaults chosen so implementation is not blocked)
 
 1. Example line on the card: the cue itself (§7.3, chosen) or LING-002's second example sentence (`HighlightDto.example`)? Default: the cue; the phone shows `example`.
-2. Replay from the card resumes playback (chosen) rather than re-pausing at the line's end; with auto-pause on, the hold does that. Confirm.
+2. Replay from the card resumes playback (confirmed by the orchestrator) rather than re-pausing at the line's end; with auto-pause on, the hold does that: the seek clears `heldCue`, so a replayed line auto-pauses again at its end (as does long ◄ after a hold).
 3. In Challenge mode a cue with no highlights shows its native line inside the Explain card (the learner asked). Confirm this one-button reveal is acceptable for a Plus feature.
 4. Free-tier Slower shows "Slower · Plus" and a one-line upsell on the card; `onPlus` navigation is used only for the 20/day limit. Confirm.
 5. The react-native-tvos switch for `apps/expo` is app-level (no kit interface change) but is a native rebuild; confirm the human is fine running the prebuild before the Oct 15 freeze.

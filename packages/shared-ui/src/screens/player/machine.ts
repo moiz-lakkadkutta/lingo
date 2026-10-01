@@ -61,15 +61,33 @@ function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: b
   return [next, effects]
 }
 
+/**
+ * Every row that emits seek(t) also moves the state to t: positionS = t, cueIndex = cueAt(t), heldCue = null. Without this the
+ * next position report is read against the cue being left (► would hold the skipped line) and a replayed line would never hold again.
+ */
+function seekTo(s: PlayerState, t: number, ctx: PlayerCtx): [PlayerState, Effect] {
+  const cueIndex = cueAt(ctx.cues, t)
+  const revealedCue = cueIndex !== s.cueIndex && s.revealedCue !== cueIndex ? null : s.revealedCue
+  return [{ ...s, positionS: t, cueIndex, heldCue: null, revealedCue }, { kind: 'seek', s: t }]
+}
+
 /** Seek keys in the playing phase. Returns null when the key is not a seek key or the press is ignored (► held). */
 function seekKey(s: PlayerState, e: KeyEvent, ctx: PlayerCtx): Result | null {
   const c = chrome(s, e.now, ctx)
-  if (e.key === 'left' && e.longPress) return [c, [{ kind: 'seek', s: seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0 }, { kind: 'play' }]]
-  if (e.key === 'left' || e.key === 'rewind') return [c, [{ kind: 'seek', s: seekTarget(ctx.cues, s.positionS, 'prev', ctx.graceS) ?? 0 }]]
-  if (e.key === 'right' && e.longPress) return null
+  if (e.key === 'left' && e.longPress) {
+    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, ctx)
+    return [n, [fx, { kind: 'play' }]]
+  }
+  if (e.key === 'left' || e.key === 'rewind') {
+    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'prev', ctx.graceS) ?? 0, ctx)
+    return [n, [fx]]
+  }
+  if (e.key === 'right' && e.longPress) return null // ► held is ignored
   if (e.key === 'right' || e.key === 'fastForward') {
     const t = seekTarget(ctx.cues, s.positionS, 'next', ctx.graceS)
-    return [c, t === null ? [] : [{ kind: 'seek', s: t }]]
+    if (t === null) return [c, []]
+    const [n, fx] = seekTo(c, t, ctx)
+    return [n, [fx]]
   }
   return null
 }
@@ -93,6 +111,7 @@ function playing(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
     case 'key': {
       const seek = seekKey(s, e, ctx)
       if (seek) return seek
+      // pause only ever pauses; play only resumes, and only from explain (it is ignored here and while holding).
       if (e.key === 'playPause' || e.key === 'pause') return [toExplain(s, e.now, ctx), [{ kind: 'pause' }]]
       if (e.key === 'up') return [chrome({ ...s, phase: 'sheet' }, e.now, ctx), []]
       if (e.key === 'menu') return [toggleReveal(s, e.now, ctx), []]
@@ -129,7 +148,10 @@ function explain(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   switch (e.type) {
     case 'focusWord': return [{ ...s, wordIdx: e.idx }, []]
     case 'action':
-      if (e.action === 'replay') return [backToStage(s, e.now, ctx), [{ kind: 'seek', s: seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0 }, { kind: 'play' }]]
+      if (e.action === 'replay') {
+        const [n, fx] = seekTo(backToStage(s, e.now, ctx), seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, ctx)
+        return [n, [fx, { kind: 'play' }]]
+      }
       if (e.action === 'resume') return [backToStage(s, e.now, ctx), [{ kind: 'play' }]]
       return slower(s, e.now, ctx)
     case 'back':
@@ -139,6 +161,7 @@ function explain(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
       if (e.s === 'ended') return ended(s)
       return [s, []]
     case 'key':
+      // play resumes only from here; pause in the card is ignored (already paused).
       if (e.key === 'playPause' || e.key === 'play') return [backToStage(s, e.now, ctx), [{ kind: 'play' }]]
       if (e.key === 'menu') return [toggleReveal(s, e.now, ctx), []]
       return [s, []] // native focus owns the card
@@ -164,8 +187,9 @@ function sheet(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
 }
 
 export function reduce(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
-  // Select arrives through the stage Pressable's onPress; key events named select are dropped. Held-key repeats never act.
-  if (e.type === 'key' && (e.key === 'select' || e.repeat)) return [s, []]
+  // Held-key repeats never act. Key events named select fall through to [s, []] in every phase:
+  // Select arrives through the stage Pressable's onPress instead.
+  if (e.type === 'key' && e.repeat) return [s, []]
   switch (s.phase) {
     case 'playing': return playing(s, e, ctx)
     case 'holding': return holding(s, e, ctx)
