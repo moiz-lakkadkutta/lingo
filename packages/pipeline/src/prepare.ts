@@ -1,35 +1,124 @@
 import { execa } from 'execa'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { TranslateClient, TranslateTextCommand } from '@aws-sdk/client-translate'
-import { serializeVtt } from '@moizp/vega-media-kit/core'
-import { segment, wrap2, type Word } from './segment'
-import { pickHighlights, clipLevel } from './highlights'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { PreparedClip, type PreparedCue, type PreparedHighlight, type PreparedQuizItem, type PreparedToken } from '@lingo/contracts'
+import { segment, wrap2 } from './segment'
+import { assertGate } from './gate'
+import { BANDS, clipLevel, coverageRank, isCountable, NEXT, pickHighlights, type Level } from './highlights'
+import { DATA_DIR, loadFreqList, rankFn } from './freq'
+import { isName, loadNames } from './names'
+import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
+import { tokenizeWords } from './tokenize'
+import { checkVtt, cuesToVtt } from './vtt'
 import { glossWord, quizForClip } from './prompts'
+import { normalize } from './steps/normalize'
+import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
+import { alignNative, translateWithAws } from './steps/translate'
+import { pack } from './steps/package'
+import { publish } from './steps/publish'
+import type { PrepareDeps, PrepareInput, PrepareResult } from './types'
+export { BANDS, NEXT, type Level }
 
-/** Whole prepare pipeline. Transcribe call mirrors described's 03-speech (copy the helper in LING-001). Lemmatizer: simplemma via a tiny Python bridge or a JS port — LING-001 decides. */
-export async function prepare(input: { slug: string; source: string; lang: 'de' | 'en'; natives: string[] }) {
-  const work = `work/${input.slug}`; await mkdir(work, { recursive: true })
-  await execa('aws', ['s3', 'cp', input.source, `${work}/source.mp4`], { stdio: 'inherit' })
-  // 1. transcribe → words.json (word timestamps)  [LING-001]
-  const words = JSON.parse(await readFile(`${work}/words.json`, 'utf8')) as Word[]
-  // 2. segment
+export const PIPELINE_VERSION = 'lingo-pipeline@0.1.0'
+
+export function defaultDeps(): PrepareDeps {
+  return {
+    exec: async (cmd, args, opts) => { const r = await execa(cmd, args, { cwd: opts?.cwd, stdio: ['ignore', 'pipe', 'inherit'] }); return { stdout: r.stdout } },
+    transcribe: transcribeWithAws,
+    translate: translateWithAws,
+    lemmatizer: pythonLemmatizer(),
+    freqList: (lang) => loadFreqList(lang),
+    names: (lang) => loadNames(resolve(DATA_DIR, `names-${lang}.txt`)),
+    gloss: glossWord,
+    quiz: quizForClip,
+    now: () => new Date(),
+    log: (m) => console.log(m),
+  }
+}
+
+/** Steps 1–10 of PLAN §4: normalise → transcribe → segment → translate → lemmatize/rank/highlight → gloss/quiz (skipped when input.ai === false) → VTT → package → publish → clip.json. */
+export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDeps()): Promise<PrepareResult> {
+  const { slug, source, lang } = input
+  const natives = [...new Set(input.natives.filter((n) => n !== lang))]
+  if (!natives.length) throw new Error('natives must include at least one language other than the target')
+  const doPublish = input.publish !== false
+  const doAi = input.ai !== false
+  const bucket = input.bucket ?? process.env.S3_BUCKET_MEDIA
+  const cloudfrontDomain = input.cloudfrontDomain ?? process.env.CLOUDFRONT_DOMAIN
+  if (doPublish && (!bucket || !cloudfrontDomain)) throw new Error('publish needs S3_BUCKET_MEDIA and CLOUDFRONT_DOMAIN (or --no-publish)')
+  const warnings: string[] = []
+  const work = resolve(input.workRoot ?? 'work', slug)
+  await mkdir(work, { recursive: true })
+
+  // 1. download + probe + normalise
+  const { durationS } = await normalize(work, source, deps)
+  // 2. transcribe → transcript.json, words.json
+  const transcribeJob = transcribeJobName(slug, deps.now())
+  const transcript = await deps.transcribe(source, lang, transcribeJob)
+  await writeFile(`${work}/transcript.json`, JSON.stringify(transcript, null, 2))
+  const words = wordsFromTranscribe(transcript)
+  if (!words.length) throw new Error(`no speech in ${slug}`)
+  await writeFile(`${work}/words.json`, JSON.stringify(words))
+  // 3. segment + quality gate
   const segs = segment(words).map((s) => ({ ...s, text: wrap2(s.text) }))
-  // 3. translate cue-by-cue so timestamps align 1:1
-  const tr = new TranslateClient({ region: process.env.AWS_REGION ?? 'eu-central-1' })
-  const native: Record<number, Record<string, string>> = {}
-  for (const s of segs) { native[s.index] = {}; for (const n of input.natives) { if (n === input.lang) continue; const r = await tr.send(new TranslateTextCommand({ Text: s.text.replace('\n', ' '), SourceLanguageCode: input.lang, TargetLanguageCode: n })); native[s.index]![n] = r.TranslatedText ?? '' } }
-  // 4. lemmatize + rank + highlights
-  const freq = (await readFile(`data/freq-${input.lang}.txt`, 'utf8')).split('\n').map((l) => l.trim()).filter(Boolean)
-  const rank = (lemma: string) => { const i = freq.indexOf(lemma.toLowerCase()); return i < 0 ? undefined : i + 1 }
-  const tokensOf = (t: string) => t.replace(/\n/g, ' ').split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}-]/gu, '')).filter(Boolean).map((w) => ({ word: w, lemma: w.toLowerCase() /* TODO(LING-001): real lemmatizer */ }))
-  const level = clipLevel(segs.flatMap((s) => tokensOf(s.text)), rank)
-  const hl = pickHighlights(segs.map((s) => ({ index: s.index, tokens: tokensOf(s.text) })), rank, level)
-  // 5. glosses (cached by lemma) + quiz
-  const glosses = [] as Array<(typeof hl)[number] & { gloss: string; grammar: string; example: string }>
-  for (const h of hl) { const seg = segs[h.cueIndex]!; glosses.push({ ...h, ...(await glossWord(h.word, h.lemma, seg.text, input.lang, input.natives[0]!, level)) }) }
-  const quiz = await quizForClip(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![input.natives[0]!] ?? '', highlights: glosses.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), input.lang, input.natives[0]!)
-  await writeFile(`${work}/clip.json`, JSON.stringify({ slug: input.slug, level, segs, native, highlights: glosses, quiz: quiz.items }, null, 2))
-  await writeFile(`${work}/${input.lang}.vtt`, serializeVtt(segs.map((s) => ({ trackId: input.lang, id: `c${s.index}`, start: s.startS, end: s.endS, text: s.text }))))
-  // 6. package + publish: same Shaka Packager/S3 sync as described (09/10) — LING-001 copies them.
-  console.log(`prepared ${input.slug}: level ${level}, ${segs.length} cues, ${hl.length} highlights, ${quiz.items.length} quiz items`)
+  assertGate(segs)
+  // 4. native lines, aligned 1:1 by cue
+  const native = await alignNative(segs, lang, natives, deps.translate)
+  // 5. tokens → lemma → rank → name
+  const raw = tokenizeWords(words)
+  const cueOf = new Map<number, number>()
+  for (let k = 0, t = 0; t < raw.length; t++) { const w = words[raw[t]!.wordIndex]!; while (k + 1 < segs.length && w.start >= segs[k + 1]!.startS - 1e-6) k++; cueOf.set(t, k) }
+  const unique = new Map<string, { word: string; sentenceInitial: boolean }>()
+  for (const t of raw) unique.set(lemmaKey(t.word, t.sentenceInitial), { word: t.word, sentenceInitial: t.sentenceInitial })
+  const keys = [...unique.keys()]
+  const lemmaOf = new Map<string, LemmaResult>()
+  ;(await deps.lemmatizer.lemmatizeAll(keys.map((k) => unique.get(k)!), lang)).forEach((r, i) => lemmaOf.set(keys[i]!, r))
+  const rank = rankFn(await deps.freqList(lang))
+  const nameCtx = { lang, rank, list: await deps.names(lang) }
+  const tokensByCue: PreparedToken[][] = segs.map(() => [])
+  raw.forEach((t, i) => {
+    const { lemma, known } = lemmaOf.get(lemmaKey(t.word, t.sentenceInitial))!
+    const name = isName({ word: t.word, lemma, known, sentenceInitial: t.sentenceInitial }, nameCtx)
+    tokensByCue[cueOf.get(i)!]!.push({ word: t.word, lemma, rank: rank(lemma) ?? null, name, sentenceInitial: t.sentenceInitial })
+  })
+  // 6. level, coverage, highlights, glosses, quiz (names, digits and number words do not count, as in pickHighlights)
+  const rankable = tokensByCue.flat().filter(isCountable)
+  const level = clipLevel(rankable, rank)
+  const coverage = coverageRank(rankable, rank)
+  const picked = pickHighlights(segs.map((s) => ({ index: s.index, tokens: tokensByCue[s.index]! })), rank, level)
+  const highlights: PreparedHighlight[] = []
+  let quiz: PreparedQuizItem[] | undefined
+  if (doAi) {
+    const glossed: Array<PreparedHighlight & { gloss: string }> = []
+    for (const h of picked) glossed.push({ ...h, ...(await deps.gloss(h.word, h.lemma, segs[h.cueIndex]!.text, lang, natives[0]!, level)) })
+    highlights.push(...glossed)
+    quiz = (await deps.quiz(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '', highlights: glossed.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), lang, natives[0]!)).items
+  } else highlights.push(...picked)
+  // 7. VTT files: target findings fail the clip, native findings are warnings (translations can run long)
+  const vttFiles: Record<string, string> = {}
+  const targetVtt = cuesToVtt(segs, lang)
+  const targetCheck = checkVtt(targetVtt, lang)
+  if (targetCheck.findings.length) throw new Error(`target VTT lint: ${targetCheck.findings.map((f) => `${f.id} ${f.problem}=${f.value}`).join('; ')}`)
+  await writeFile(`${work}/${lang}.vtt`, targetVtt); vttFiles[lang] = `${work}/${lang}.vtt`
+  for (const n of natives) {
+    const vtt = cuesToVtt(segs.map((s) => ({ ...s, text: native[s.index]![n] || ' ' })), n)
+    for (const f of checkVtt(vtt, n).findings) warnings.push(`native ${n} ${f.id} ${f.problem}=${f.value}`)
+    await writeFile(`${work}/native-${n}.vtt`, vtt); vttFiles[n] = `${work}/native-${n}.vtt`
+  }
+  // 8. package (+ publish)
+  const manifest = await pack({ work, lang, natives }, deps)
+  // 9. clip.json (written before publish so the publish step can upload it)
+  const cues: PreparedCue[] = segs.map((s) => ({ index: s.index, startMs: Math.round(s.startS * 1000), endMs: Math.round(s.endS * 1000), text: s.text, native: native[s.index]!, tokens: tokensByCue[s.index]! }))
+  const clipBase = {
+    version: 1 as const, slug, sourceLang: lang, natives, level, coverageRank: coverage, durationS, cues, highlights, ...(quiz ? { quiz } : {}),
+    tracks: { manifest: 'master.m3u8', vtt: Object.fromEntries([lang, ...natives].map((c) => [c, `vtt/${c}.vtt`])) },
+    source: { uri: source, transcribeJob }, generated: { at: deps.now().toISOString(), pipeline: PIPELINE_VERSION, lemmatizer: deps.lemmatizer.name, ai: doAi }, warnings,
+  }
+  const clipJson = `${work}/clip.json`
+  const write = (clip: PreparedClip) => writeFile(clipJson, JSON.stringify(clip, null, 2) + '\n')
+  let clip = PreparedClip.parse({ ...clipBase, publishedBase: null })
+  await write(clip)
+  if (doPublish) { clip = PreparedClip.parse({ ...clipBase, publishedBase: await publish({ work, slug, lang, natives, bucket: bucket!, cloudfrontDomain: cloudfrontDomain! }, deps) }); await write(clip) }
+  deps.log(`prepared ${slug}: level ${level} (coverage rank ${coverage}), ${cues.length} cues, ${highlights.length} highlights, ${quiz ? `${quiz.length} quiz items` : 'no glosses or quiz (--no-ai)'}, ${warnings.length} warnings, ${durationS.toFixed(1)} s, lemmatizer ${deps.lemmatizer.name} → ${clip.publishedBase ?? 'not published'} (${work})`)
+  return { clip, workDir: work, files: { clipJson, vtt: vttFiles, manifest } }
 }

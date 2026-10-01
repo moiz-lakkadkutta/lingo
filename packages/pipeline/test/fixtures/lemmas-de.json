@@ -1,0 +1,486 @@
+{
+  "8": {
+    "lemma": "8",
+    "known": false
+  },
+  "Aber|si": {
+    "lemma": "aber",
+    "known": true
+  },
+  "Akku": {
+    "lemma": "Akku",
+    "known": true
+  },
+  "Also|si": {
+    "lemma": "also",
+    "known": true
+  },
+  "Anna": {
+    "lemma": "Anna",
+    "known": true
+  },
+  "Berlin": {
+    "lemma": "Berlin",
+    "known": true
+  },
+  "Bus": {
+    "lemma": "Bus",
+    "known": true
+  },
+  "Dann|si": {
+    "lemma": "dann",
+    "known": true
+  },
+  "Das|si": {
+    "lemma": "der",
+    "known": true
+  },
+  "Der|si": {
+    "lemma": "der",
+    "known": true
+  },
+  "Dieses|si": {
+    "lemma": "dieser",
+    "known": true
+  },
+  "Doch|si": {
+    "lemma": "doch",
+    "known": true
+  },
+  "Du|si": {
+    "lemma": "du",
+    "known": true
+  },
+  "Egal|si": {
+    "lemma": "egal",
+    "known": true
+  },
+  "Es|si": {
+    "lemma": "es",
+    "known": true
+  },
+  "Freundin": {
+    "lemma": "Freundin",
+    "known": true
+  },
+  "Fuß": {
+    "lemma": "Fuß",
+    "known": true
+  },
+  "Gut|si": {
+    "lemma": "gut",
+    "known": true
+  },
+  "Handy": {
+    "lemma": "Handy",
+    "known": true
+  },
+  "Hast|si": {
+    "lemma": "haben",
+    "known": true
+  },
+  "Ich|si": {
+    "lemma": "ich",
+    "known": true
+  },
+  "Im|si": {
+    "lemma": "im",
+    "known": true
+  },
+  "Jahr": {
+    "lemma": "Jahr",
+    "known": true
+  },
+  "Ja|si": {
+    "lemma": "ja",
+    "known": true
+  },
+  "Kaffee": {
+    "lemma": "Kaffee",
+    "known": true
+  },
+  "Mal": {
+    "lemma": "Mal",
+    "known": true
+  },
+  "Meine|si": {
+    "lemma": "mein",
+    "known": true
+  },
+  "Natürlich|si": {
+    "lemma": "natürlich",
+    "known": true
+  },
+  "Nein|si": {
+    "lemma": "nein",
+    "known": true
+  },
+  "Ohh|si": {
+    "lemma": "Ohh",
+    "known": false
+  },
+  "Regen": {
+    "lemma": "Regen",
+    "known": true
+  },
+  "Sag|si": {
+    "lemma": "sagen",
+    "known": true
+  },
+  "Schlüssel": {
+    "lemma": "Schlüssel",
+    "known": true
+  },
+  "Sie|si": {
+    "lemma": "sie",
+    "known": true
+  },
+  "Stopp|si": {
+    "lemma": "stoppen",
+    "known": true
+  },
+  "Stunden": {
+    "lemma": "Stunde",
+    "known": true
+  },
+  "Und|si": {
+    "lemma": "und",
+    "known": true
+  },
+  "Warte|si": {
+    "lemma": "warten",
+    "known": true
+  },
+  "Wir|si": {
+    "lemma": "wir",
+    "known": true
+  },
+  "Wo|si": {
+    "lemma": "wo",
+    "known": true
+  },
+  "Zeit": {
+    "lemma": "Zeit",
+    "known": true
+  },
+  "Zug": {
+    "lemma": "Zug",
+    "known": true
+  },
+  "abgenommen": {
+    "lemma": "abnehmen",
+    "known": true
+  },
+  "also": {
+    "lemma": "also",
+    "known": true
+  },
+  "an": {
+    "lemma": "an",
+    "known": true
+  },
+  "angerufen": {
+    "lemma": "anrufen",
+    "known": true
+  },
+  "auf": {
+    "lemma": "auf",
+    "known": true
+  },
+  "ausgefallen": {
+    "lemma": "ausfallen",
+    "known": true
+  },
+  "beeilen": {
+    "lemma": "beeilen",
+    "known": true
+  },
+  "besuchen": {
+    "lemma": "besuchen",
+    "known": true
+  },
+  "bin": {
+    "lemma": "sein",
+    "known": true
+  },
+  "bist": {
+    "lemma": "sein",
+    "known": true
+  },
+  "dann": {
+    "lemma": "dann",
+    "known": true
+  },
+  "dass": {
+    "lemma": "dass",
+    "known": true
+  },
+  "denn": {
+    "lemma": "denn",
+    "known": true
+  },
+  "der": {
+    "lemma": "der",
+    "known": true
+  },
+  "dich": {
+    "lemma": "du",
+    "known": true
+  },
+  "die": {
+    "lemma": "der",
+    "known": true
+  },
+  "dreimal": {
+    "lemma": "dreimal",
+    "known": true
+  },
+  "du": {
+    "lemma": "du",
+    "known": true
+  },
+  "einem": {
+    "lemma": "ein",
+    "known": true
+  },
+  "einen": {
+    "lemma": "ein",
+    "known": true
+  },
+  "einfach": {
+    "lemma": "einfach",
+    "known": true
+  },
+  "es": {
+    "lemma": "es",
+    "known": true
+  },
+  "ganze": {
+    "lemma": "ganz",
+    "known": true
+  },
+  "gekommen": {
+    "lemma": "kommen",
+    "known": true
+  },
+  "gelaufen": {
+    "lemma": "laufen",
+    "known": true
+  },
+  "geschafft": {
+    "lemma": "schaffen",
+    "known": true
+  },
+  "habe": {
+    "lemma": "haben",
+    "known": true
+  },
+  "haben": {
+    "lemma": "haben",
+    "known": true
+  },
+  "hat": {
+    "lemma": "haben",
+    "known": true
+  },
+  "heute": {
+    "lemma": "heute",
+    "known": true
+  },
+  "hier": {
+    "lemma": "hier",
+    "known": true
+  },
+  "hierher": {
+    "lemma": "hierher",
+    "known": true
+  },
+  "ich": {
+    "lemma": "ich",
+    "known": true
+  },
+  "ihr": {
+    "lemma": "ihr",
+    "known": true
+  },
+  "immer": {
+    "lemma": "immer",
+    "known": true
+  },
+  "in": {
+    "lemma": "in",
+    "known": true
+  },
+  "ist": {
+    "lemma": "sein",
+    "known": true
+  },
+  "ja": {
+    "lemma": "ja",
+    "known": true
+  },
+  "jetzt": {
+    "lemma": "jetzt",
+    "known": true
+  },
+  "kaufe": {
+    "lemma": "kaufen",
+    "known": true
+  },
+  "kennt": {
+    "lemma": "kennen",
+    "known": true
+  },
+  "kommt": {
+    "lemma": "kommen",
+    "known": true
+  },
+  "kurz": {
+    "lemma": "kurz",
+    "known": true
+  },
+  "lange": {
+    "lemma": "lange",
+    "known": true
+  },
+  "leer": {
+    "lemma": "leer",
+    "known": true
+  },
+  "leid": {
+    "lemma": "leid",
+    "known": true
+  },
+  "los": {
+    "lemma": "los",
+    "known": true
+  },
+  "mein": {
+    "lemma": "mein",
+    "known": true
+  },
+  "mich": {
+    "lemma": "ich",
+    "known": true
+  },
+  "mir": {
+    "lemma": "ich",
+    "known": true
+  },
+  "müssen": {
+    "lemma": "müssen",
+    "known": true
+  },
+  "nie": {
+    "lemma": "nie",
+    "known": true
+  },
+  "niemand": {
+    "lemma": "niemand",
+    "known": true
+  },
+  "nur": {
+    "lemma": "nur",
+    "known": true
+  },
+  "nächste": {
+    "lemma": "nah",
+    "known": true
+  },
+  "rufst": {
+    "lemma": "rufen",
+    "known": true
+  },
+  "schnell": {
+    "lemma": "schnell",
+    "known": true
+  },
+  "seit": {
+    "lemma": "seit",
+    "known": true
+  },
+  "sie": {
+    "lemma": "sie",
+    "known": true
+  },
+  "so": {
+    "lemma": "so",
+    "known": true
+  },
+  "sowieso": {
+    "lemma": "sowieso",
+    "known": true
+  },
+  "tut": {
+    "lemma": "tun",
+    "known": true
+  },
+  "um": {
+    "lemma": "um",
+    "known": true
+  },
+  "und": {
+    "lemma": "und",
+    "known": true
+  },
+  "uns": {
+    "lemma": "wir",
+    "known": true
+  },
+  "vergessen": {
+    "lemma": "vergessen",
+    "known": true
+  },
+  "verrückt": {
+    "lemma": "verrückt",
+    "known": true
+  },
+  "verspätet": {
+    "lemma": "verspäten",
+    "known": true
+  },
+  "war": {
+    "lemma": "sein",
+    "known": true
+  },
+  "warst": {
+    "lemma": "sein",
+    "known": true
+  },
+  "warte": {
+    "lemma": "warten",
+    "known": true
+  },
+  "wartet": {
+    "lemma": "warten",
+    "known": true
+  },
+  "weiß": {
+    "lemma": "wissen",
+    "known": true
+  },
+  "wir": {
+    "lemma": "wir",
+    "known": true
+  },
+  "wirklich": {
+    "lemma": "wirklich",
+    "known": true
+  },
+  "wohnt": {
+    "lemma": "wohnen",
+    "known": true
+  },
+  "wollten": {
+    "lemma": "wollen",
+    "known": true
+  },
+  "zu": {
+    "lemma": "zu",
+    "known": true
+  },
+  "zwei": {
+    "lemma": "zwei",
+    "known": true
+  }
+}

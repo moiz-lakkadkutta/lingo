@@ -10,3 +10,6 @@ coverage
 .DS_Store
 .turbo
 apps/vega/build
+packages/pipeline/work/
+packages/pipeline/data/.cache/
+.venv-lemma/

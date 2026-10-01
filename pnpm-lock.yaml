@@ -219,6 +219,9 @@ importers:
       '@aws-sdk/client-translate':
         specifier: ^3.700.0
         version: 3.1131.0
+      '@lingo/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@moizp/vega-media-kit':
         specifier: link:../../../vega-media-kit
         version: link:../../../vega-media-kit

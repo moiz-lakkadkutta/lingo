@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`packagerArgs > de clip with native en yields video + one audio + exactly two text tracks 1`] = `
+[
+  "in=work/demo-de/mezz.mp4,stream=video,segment_template=work/demo-de/hls/video/$Number$.m4s,init_segment=work/demo-de/hls/video/init.mp4,playlist_name=video.m3u8",
+  "in=work/demo-de/mezz.mp4,stream=audio,segment_template=work/demo-de/hls/audio/$Number$.m4s,init_segment=work/demo-de/hls/audio/init.mp4,playlist_name=audio.m3u8,hls_group_id=audio,hls_name=Original,language=de",
+  "in=work/demo-de/de.vtt,stream=text,segment_template=work/demo-de/hls/text_de/$Number$.vtt,playlist_name=text_de.m3u8,hls_group_id=text,hls_name=German,language=de",
+  "in=work/demo-de/native-en.vtt,stream=text,segment_template=work/demo-de/hls/text_en/$Number$.vtt,playlist_name=text_en.m3u8,hls_group_id=text,hls_name=English,language=en",
+  "--segment_duration",
+  "4",
+  "--default_language",
+  "de",
+  "--hls_master_playlist_output",
+  "work/demo-de/hls/master.m3u8",
+]
+`;

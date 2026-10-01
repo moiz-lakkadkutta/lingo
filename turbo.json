@@ -13,7 +13,8 @@
     "RVS_BASE",
     "RVS_SECRET",
     "PHONE_URL",
-    "LOG_LEVEL"
+    "LOG_LEVEL",
+    "LINGO_PYTHON"
   ],
   "tasks": {
     "build": {

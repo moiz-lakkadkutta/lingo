@@ -5,13 +5,17 @@
   "scripts": {
     "cli": "tsx src/cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:freq": "tsx scripts/build-freq.ts",
+    "gen:fixtures": "tsx scripts/gen-fixtures.ts",
+    "lemma:smoke": "tsx scripts/lemma-smoke.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",
+    "@aws-sdk/client-polly": "^3.700.0",
     "@aws-sdk/client-transcribe": "^3.700.0",
     "@aws-sdk/client-translate": "^3.700.0",
-    "@aws-sdk/client-polly": "^3.700.0",
+    "@lingo/contracts": "workspace:*",
     "@moizp/vega-media-kit": "^0.1.0-alpha.0",
     "commander": "^12.1.0",
     "execa": "^9.5.0",

@@ -1,31 +1,60 @@
+import type { Level } from '@lingo/contracts'
 /**
  * Frequency-aware highlights: 1–2 words per cue whose rank lies in the band just above the clip level;
- * never names or numbers; cap 40 % of cues. Ranks come from an open subtitle-frequency list (data/freq-{lang}.txt, one lemma per line, rank = line number).
- * Level ≈ band: A1 < 1000, A2 < 2000, B1 < 4000, B2 < 8000 (approximate CEFR; say so in the UI).
+ * never names or numbers (digits or number words); cap 40 % of cues. Ranks come from an open subtitle-frequency list (data/freq-{lang}.txt, one lemma per line, rank = line number).
+ * Level ≈ band: A1 < 1000, A2 < 2000, B1 < 4000, B2 < 8000 (approximate CEFR; say so in the UI). `Level` is the contracts enum (one source of truth).
  */
-export type Level = 'A1' | 'A2' | 'B1' | 'B2'
+export type { Level }
 export const BANDS: Record<Level, [number, number]> = { A1: [0, 1000], A2: [1000, 2000], B1: [2000, 4000], B2: [4000, 8000] }
 export const NEXT: Record<Level, Level> = { A1: 'A2', A2: 'B1', B1: 'B2', B2: 'B2' }
-export interface Token { word: string; lemma: string }
+/** `name` is computed by names.ts (undefined = not a name); the caller passes a case-insensitive rank fn. */
+export interface Token { word: string; lemma: string; name?: boolean }
+const UNKNOWN_RANK = 99999
+
+/** Number words (both languages, matched case-insensitively on the surface form): cardinals to twelve, tens, hundred/thousand, ordinals to tenth, multiplicatives. */
+const NUMERAL_WORDS = new Set([
+  ...'null eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert tausend'.split(' '),
+  ...'erste zweite dritte vierte fünfte sechste siebte achte neunte zehnte'.split(' '),
+  ...'zero one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty seventy eighty ninety hundred thousand'.split(' '),
+  ...'first second third fourth fifth sixth seventh eighth ninth tenth once twice thrice'.split(' '),
+])
+/** German cardinal stems + optional suffix (dreimal, vierfach, neunzehn, zwanzigste) and inflected ordinals (ersten, dritter, siebtes); English -fold/-th/-ties (twofold, thirtieth, twenties). */
+const NUMERAL_DE = /^(?:(?:ein|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|zwanzig|dreißig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig|hundert|tausend)(?:zehn|mal|fach|ste[rsn]?|sten)?|(?:erst|zweit|dritt|viert|fünft|sechst|siebt|acht|neunt|zehnt)e[rsn]?)$/i
+const NUMERAL_EN = /^(?:two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)(?:fold|th|ieth|ties|s)?$/i
+/** True for a number word (never highlighted, like digits); ordinary words that merely start with a numeral stem (einsam, eintreten, achtung) are not, nor is the article ein. */
+export function isNumeral(word: string): boolean {
+  const w = word.toLowerCase()
+  return w !== 'ein' && (NUMERAL_WORDS.has(w) || NUMERAL_DE.test(w) || NUMERAL_EN.test(w))
+}
+
+/** Tokens that count towards clip level / coverage and may be highlighted: not a name, no digits, not a number word. */
+export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.word) && !isNumeral(t.word) }
+
 export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
   const [lo, hi] = BANDS[NEXT[level]]
   const out: Array<{ cueIndex: number; word: string; lemma: string; rank: number }> = []
   const seen = new Set<string>()
+  const used = new Set<number>()
   const budget = Math.floor(cues.length * maxShare)
   for (const c of cues) {
-    if (out.filter((o) => o.cueIndex !== c.index).length >= budget && !out.some((o) => o.cueIndex === c.index)) { if (new Set(out.map((o) => o.cueIndex)).size >= budget) continue }
+    if (!used.has(c.index) && used.size >= budget) continue
     const cands = c.tokens
-      .filter((t) => !/^[A-ZÄÖÜ]/.test(t.word) || t.lemma === t.word.toLowerCase()) // crude proper-noun filter (German nouns are capitalised → keep if lemma matches lowercase)
-      .filter((t) => !/\d/.test(t.word) && t.word.length > 2)
+      .filter((t) => isCountable(t) && t.word.length > 2)
       .map((t) => ({ ...t, r: rank(t.lemma) })).filter((t): t is Token & { r: number } => t.r !== undefined && t.r >= lo && t.r < hi && !seen.has(t.lemma))
       .sort((a, b) => a.r - b.r).slice(0, 2)
-    for (const t of cands) { seen.add(t.lemma); out.push({ cueIndex: c.index, word: t.word, lemma: t.lemma, rank: t.r }) }
+    for (const t of cands) { seen.add(t.lemma); used.add(c.index); out.push({ cueIndex: c.index, word: t.word, lemma: t.lemma, rank: t.r }) }
   }
   return out
 }
 /** Coverage-based level for a clip: the smallest level whose band covers ≥ 95 % of running tokens. */
 export function clipLevel(tokens: Token[], rank: (l: string) => number | undefined): Level {
-  const ranks = tokens.map((t) => rank(t.lemma) ?? 99999)
+  const ranks = tokens.map((t) => rank(t.lemma) ?? UNKNOWN_RANK)
   for (const lvl of ['A1', 'A2', 'B1', 'B2'] as Level[]) { const hi = BANDS[lvl][1]; if (ranks.filter((r) => r < hi).length / ranks.length >= 0.95) return lvl }
   return 'B2'
+}
+/** Smallest rank r such that ≥ 95 % of tokens have rank ≤ r (unknown = 99999). */
+export function coverageRank(tokens: Token[], rank: (l: string) => number | undefined): number {
+  if (!tokens.length) return UNKNOWN_RANK
+  const ranks = tokens.map((t) => rank(t.lemma) ?? UNKNOWN_RANK).sort((a, b) => a - b)
+  return ranks[Math.ceil(0.95 * ranks.length) - 1]!
 }
