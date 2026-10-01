@@ -87,7 +87,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
     const r = segmentWithReport(words)
     segs = r.cues.map((s) => ({ ...s, text: wrap2(s.text) }))
     dropped = r.dropped
-    mark(`segmented: ${segs.length} cues, ${dropped.length} dropped`)
+    mark(`segmented: ${segs.length} cues, ${dropped.length} dropped, ${r.repairedStops} hesitation stops repaired`)
   }
   for (const d of dropped) warnings.push(`dropped cue ${d.startS.toFixed(3)}–${d.endS.toFixed(3)} ${JSON.stringify(d.text)} (${d.reason})`)
   // write before the gate so a human can correct what the segmenter produced

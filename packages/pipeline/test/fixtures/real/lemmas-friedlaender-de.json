@@ -583,10 +583,6 @@
     "lemma": "immer",
     "known": true
   },
-  "im|si": {
-    "lemma": "im",
-    "known": true
-  },
   "in": {
     "lemma": "in",
     "known": true
@@ -636,10 +632,6 @@
     "known": true
   },
   "man": {
-    "lemma": "man",
-    "known": true
-  },
-  "man|si": {
     "lemma": "man",
     "known": true
   },
