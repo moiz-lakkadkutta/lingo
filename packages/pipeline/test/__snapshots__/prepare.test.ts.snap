@@ -21,6 +21,10 @@ exports[`prepare de → en > records the normalize, packager and publish exec ca
   ],
   [
     "ffmpeg",
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
     "-y",
     "-i",
     "<workRoot>/demo-de/source.mp4",
@@ -52,6 +56,7 @@ exports[`prepare de → en > records the normalize, packager and publish exec ca
     "de",
     "--hls_master_playlist_output",
     "<workRoot>/demo-de/hls/master.m3u8",
+    "--quiet",
   ],
   [
     "aws",
@@ -131,6 +136,10 @@ exports[`prepare en → de > records the normalize, packager and publish exec ca
   ],
   [
     "ffmpeg",
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
     "-y",
     "-i",
     "<workRoot>/demo-en/source.mp4",
@@ -162,6 +171,7 @@ exports[`prepare en → de > records the normalize, packager and publish exec ca
     "en",
     "--hls_master_playlist_output",
     "<workRoot>/demo-en/hls/master.m3u8",
+    "--quiet",
   ],
   [
     "aws",

@@ -61,12 +61,12 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
       expect(nat[i]!.text).toBe(clip.cues[i]!.native[native])
     }
   })
-  it('highlights cover ≤ 40 % of cues, ≤ 2 per cue, none are names or contain digits, all ranks lie in the band above the clip level', () => {
-    const [lo, hi] = BANDS[NEXT[clip.level]]
+  it('highlights cover ≤ 40 % of cues, ≤ 2 per cue, none are names or contain digits, all ranks are at or above the floor of the band above the clip level', () => {
+    const [lo] = BANDS[NEXT[clip.level]]
     const perCue = new Map<number, number>()
     for (const h of clip.highlights) {
       perCue.set(h.cueIndex, (perCue.get(h.cueIndex) ?? 0) + 1)
-      expect(h.rank).toBeGreaterThanOrEqual(lo); expect(h.rank).toBeLessThan(hi)
+      expect(h.rank).toBeGreaterThanOrEqual(lo)
       expect(h.word).not.toMatch(/\d/)
       const tok = clip.cues[h.cueIndex]!.tokens.find((t) => t.word === h.word)!
       expect(tok.name).toBe(false)
@@ -91,7 +91,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
       expect(cues.map((c) => Math.round(c.start * 1000))).toEqual(clip.cues.map((c) => c.startMs))
       expect(cues.map((c) => Math.round(c.end * 1000))).toEqual(clip.cues.map((c) => c.endMs))
     }
-    expect(clip.warnings).toEqual([])
+    expect(clip.warnings.filter((w) => !w.startsWith('review: '))).toEqual([]) // review: lines are the 0008 tail guard (advisory)
   })
   it('records the normalize, packager and publish exec calls with the expected argv', () => {
     const argv = deps.calls.map((c) => [c.cmd, ...c.args].map((a) => a.split(workRoot).join('<workRoot>')))
@@ -185,6 +185,38 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(r.clip.source.transcribeJob).toBeNull() // no transcript.json in this work dir
     expect(r.clip.cues.map((c) => c.text)).toEqual(clip.cues.map((c) => c.text))
   })
+  it('with reuse: takes transcript.json and mezz.mp4 from the work dir and calls neither transcribe, aws s3 cp nor ffmpeg', async () => {
+    const slug = `rerun-${lang}`
+    const first = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, fixtureDeps(lang))
+    await writeFile(`${workRoot}/${slug}/mezz.mp4`, '') // the fixture exec double does not write the mezzanine
+    const d = fixtureDeps(lang)
+    const transcribe = vi.fn(d.transcribe); d.transcribe = transcribe
+    const log = vi.fn(); d.log = log
+    const r = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false, reuse: true }, d)
+    expect(transcribe).not.toHaveBeenCalled()
+    expect(d.calls.map((c) => c.cmd)).toEqual(['ffprobe', 'packager'])
+    expect(r.clip.source.transcribeJob).toBe(first.clip.source.transcribeJob)
+    expect(r.clip.cues).toEqual(first.clip.cues)
+    expect(log.mock.calls.some(([m]) => /transcript reused/.test(m))).toBe(true)
+  })
+  it('logs a timing line per step', async () => {
+    const d = fixtureDeps(lang)
+    const log = vi.fn(); d.log = log
+    await prepare({ slug: `timed-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    const timed = log.mock.calls.map(([m]) => m as string).filter((m) => /^\[\d+\.\d s\] /.test(m))
+    expect(timed.length).toBeGreaterThanOrEqual(6)
+    for (const step of ['media', 'transcribed', 'segmented', 'translated', 'lemmatized', 'highlights', 'packaged']) expect(timed.some((m) => m.includes(step)), step).toBe(true)
+  })
+  it('prints every warning through deps.log', async () => {
+    const d = fixtureDeps(lang)
+    d.translate = async (t) => t.toUpperCase() + ' ' + 'x'.repeat(60)
+    const log = vi.fn(); d.log = log
+    const r = await prepare({ slug: `warned-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    const lines = log.mock.calls.map(([m]) => m as string)
+    expect(r.clip.warnings.length).toBeGreaterThan(0)
+    for (const w of r.clip.warnings) expect(lines).toContain(`warning: ${w}`)
+    expect(lines.some((m) => /^warning: native /.test(m))).toBe(true)
+  })
   it('native lines are wrapped at 56 and a 15-char-longer translation produces no layout warning', async () => {
     const d = fixtureDeps(lang)
     d.translate = async (t) => t.toUpperCase() + ' ab ab ab ab ab'
@@ -196,7 +228,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     }
     for (const c of r.clip.cues) expect(c.native[native]!.replace(/\n/g, ' ')).toBe(c.text.replace(/\n/g, ' ').toUpperCase() + ' ab ab ab ab ab')
     // no layout warning; short cues + 15 chars can pass 26 cps, which stays a warning by design (docs/decisions/0007 M4)
-    expect(r.clip.warnings.filter((w) => !/^native \S+ c\d+ cps=/.test(w))).toEqual([])
+    expect(r.clip.warnings.filter((w) => !/^native \S+ c\d+ cps=/.test(w) && !w.startsWith('review: '))).toEqual([])
   })
   it('a native line that cannot be wrapped under 56 is a warning, not a failure', async () => {
     const d = fixtureDeps(lang)
@@ -258,7 +290,7 @@ describe('prepare: overlapping speakers (docs/decisions/0007)', () => {
     expect(clip.cues.flatMap((c) => c.tokens).some((t) => t.word.startsWith('-'))).toBe(false)
     expect(dual[0]!.tokens.find((t) => t.word === 'Aber')!.sentenceInitial).toBe(true)
     expect(clip.warnings.filter((w) => w.startsWith('dropped cue ')).length).toBe(3)
-    expect(clip.warnings.length).toBe(3)
+    expect(clip.warnings.filter((w) => !w.startsWith('review: ')).length).toBe(3)
     for (const f of ['de.vtt', 'native-en.vtt', 'dropped.vtt', 'gate.json']) expect(existsSync(`${r.workDir}/${f}`)).toBe(true)
     const report = JSON.parse(await readFile(`${r.workDir}/gate.json`, 'utf8')) as { findings: unknown[]; dropped: Array<{ text: string; reason: string }> }
     expect(report.findings).toEqual([])

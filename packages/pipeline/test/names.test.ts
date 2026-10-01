@@ -1,16 +1,36 @@
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { isName, loadNames } from '../src/names'
+import { COMMON_RANK, isName, loadNames, rankOf } from '../src/names'
 import { DATA_DIR, loadFreqList, rankFn } from '../src/freq'
 
-const en = { lang: 'en' as const, rank: () => undefined, list: new Set<string>() }
+const EN_RANKS: Record<string, number | undefined> = { wait: 300, london: undefined, pete: 1617, listen: 186, let: 500, i: 10, xanthippe: undefined }
+const en = { lang: 'en' as const, rank: (l: string) => EN_RANKS[l.toLowerCase()], list: new Set<string>() }
 const de = (rank: (l: string) => number | undefined = () => undefined) => ({ lang: 'de' as const, rank, list: new Set(['Anna', 'Berlin']) })
 
 describe('isName', () => {
   it('en: capitalised mid-sentence word is a name', () => { expect(isName({ word: 'London', lemma: 'London', known: true, sentenceInitial: false }, en)).toBe(true) })
   it('en: sentence-initial known word is not a name', () => { expect(isName({ word: 'Wait', lemma: 'wait', known: true, sentenceInitial: true }, en)).toBe(false) })
-  it('en: sentence-initial unknown capitalised word is a name', () => { expect(isName({ word: 'Xanthippe', lemma: 'Xanthippe', known: false, sentenceInitial: true }, en)).toBe(true) })
+  it('en: sentence-initial unranked capitalised word is a name', () => { expect(isName({ word: 'Xanthippe', lemma: 'Xanthippe', known: false, sentenceInitial: true }, en)).toBe(true) })
+  it('en: a capitalised A1 word mid-sentence is vocabulary, not a name', () => {
+    expect(COMMON_RANK).toBe(1000)
+    expect(isName({ word: 'Listen', lemma: 'listen', known: true, sentenceInitial: false }, en)).toBe(false)
+    expect(isName({ word: 'Pete', lemma: 'Pete', known: true, sentenceInitial: false }, en)).toBe(true) // rank 1617 ≥ 1000
+    expect(isName({ word: 'Pete', lemma: 'Pete', known: true, sentenceInitial: true }, en)).toBe(false) // ranked and sentence-initial
+    expect(isName({ word: 'Pete', lemma: 'Pete', known: true, sentenceInitial: true }, { ...en, list: new Set(['Pete']) })).toBe(true) // unless listed
+  })
+  it('en: contractions rank by their stem and are never names', () => {
+    expect(isName({ word: "I'm", lemma: "I'm", known: false, sentenceInitial: false }, en)).toBe(false)
+    expect(isName({ word: "Let's", lemma: "Let's", known: false, sentenceInitial: true }, en)).toBe(false)
+    expect(rankOf("I'm", "I'm", en.rank)).toBe(10)
+    expect(rankOf("Let's", 'let', en.rank)).toBe(500)
+    expect(rankOf('Xanthippe', 'Xanthippe', en.rank)).toBeUndefined()
+  })
+  it('single letters and I are never names in either language', () => {
+    for (const ctx of [en, de()]) for (const word of ['A', 'N', "N's", 'I', "I'm"]) for (const sentenceInitial of [true, false]) {
+      expect(isName({ word, lemma: word, known: false, sentenceInitial }, ctx), `${ctx.lang} ${word}`).toBe(false)
+    }
+  })
   it('en: sentence-initial known word that is in the list is a name', () => {
     const ctx = { ...en, list: new Set(['Sarah']) }
     expect(isName({ word: 'Sarah', lemma: 'Sarah', known: true, sentenceInitial: true }, ctx)).toBe(true)

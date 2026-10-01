@@ -94,8 +94,11 @@ Facts the decisions rest on:
    names. The German rule is unchanged; `known` is no longer consulted.
 8. **Names list growth is runtime-only, with a mechanical seed.** The spot-check names from this run are added by hand
    (Margot, Friedländer, Brasilien, Shanghai, Auschwitz, Theresienstadt; Pete, Irving). `scripts/build-names.ts` appends two
-   mechanical seeds: every single-token region and language name from `Intl.DisplayNames` (de and en), and Wikidata given
-   names whose lowercase form simplemma does not know in that language (so `Bill`, `Rose`, `August`, `Halle` stay vocabulary).
+   mechanical seeds: every single-token **region and continent** name from `Intl.DisplayNames` (de and en) — never language
+   names or demonyms (English, Polish, Englisch, Französisch are vocabulary, and the case-insensitive strip in build:freq would
+   unrank `polish` too) and never a region label on the hand `EXCLUDE` list of ordinary words (en Jersey, Chad, Guinea, Turkey,
+   China, Jordan, Georgia; de Jersey) — and Wikidata given names whose lowercase form simplemma does not know in that language
+   (so `Bill`, `Rose`, `August`, `Halle` stay vocabulary; follow-up, not shipped in LING-001).
    `names.ts` checks the list before any rank, so the freq lists do not have to be rebuilt for a name to stop being
    highlighted; they are rebuilt once in this ticket anyway (decision 10), which also strips the new names.
 9. **Zero highlights is a verdict, not a fallback.** The band is a floor only: `pickHighlights` takes every countable token

@@ -27,13 +27,16 @@ export function qualityGate(segs: Seg[]): GateFinding[] {
   return out
 }
 
-/** gate.json (docs/decisions/0007): every finding joined with its cue's time span and text, plus what the segmenter dropped. */
-export interface GateReport { findings: Array<GateFinding & { startS: number; endS: number; text: string }>; dropped: Dropped[] }
+/** gate.json (docs/decisions/0007): every finding joined with its cue's time span and text, what the segmenter dropped, and cues to review. */
+/** A cue a human should look at before publishing although it passes the gate: 'number-only' = no letter (12.), kept since 0008 M3. */
+export interface GateReview { cueIndex: number; startS: number; endS: number; text: string; reason: 'number-only' }
+export interface GateReport { findings: Array<GateFinding & { startS: number; endS: number; text: string }>; dropped: Dropped[]; review: GateReview[] }
 export function gateReport(segs: Seg[], dropped: Dropped[]): GateReport {
   const byIndex = new Map(segs.map((s) => [s.index, s]))
   return {
     findings: qualityGate(segs).map((f) => { const s = byIndex.get(f.cueIndex)!; return { ...f, startS: s.startS, endS: s.endS, text: s.text } }),
     dropped,
+    review: segs.filter((s) => !/\p{L}/u.test(s.text)).map((s) => ({ cueIndex: s.index, startS: s.startS, endS: s.endS, text: s.text, reason: 'number-only' as const })),
   }
 }
 

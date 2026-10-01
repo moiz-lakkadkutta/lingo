@@ -163,3 +163,19 @@ describe('transcribeWithAws polling', () => {
     } finally { fetchSpy.mockRestore() }
   })
 })
+
+describe('real fixtures (docs/decisions/0008 decision 13)', () => {
+  it('the real fixtures parse, carry no accountId, and have 428 / 244 items', async () => {
+    for (const [f, items, speakers, segments] of [['real/transcribe-friedlaender-de.json', 428, 2, 19], ['real/transcribe-voa01-en.json', 244, 4, 43]] as const) {
+      const raw = await read(f)
+      expect(raw).not.toContain('accountId')
+      expect(raw.endsWith('}\n')).toBe(true)
+      const t = TranscribeJson.parse(JSON.parse(raw))
+      expect(t.results.items.length).toBe(items)
+      const r = t.results as unknown as { speaker_labels: { speakers: number }; audio_segments: unknown[] }
+      expect(r.speaker_labels.speakers).toBe(speakers)
+      expect(r.audio_segments.length).toBe(segments)
+      expect(t.jobName).toMatch(/^(terra-x-friedlaender|voa-lets-learn-english-01)-20261001-/)
+    }
+  })
+})

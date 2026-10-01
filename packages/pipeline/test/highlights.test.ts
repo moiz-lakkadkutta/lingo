@@ -2,9 +2,9 @@ import { pickHighlights, clipLevel, coverageRank, isCountable, isNumeral } from 
 
 describe('highlights', () => {
   const rank = (l: string) => ({ ich: 1, warte: 1500, seit: 300, zwei: 200, stunden: 900, auf: 40, dich: 120, angerufen: 2500, abgenommen: 3800, berlin: undefined })[l]
-  it('picks words in the band above the level, skipping names and numbers, ≤ 2 per cue', () => {
+  it('picks words at or above the floor of the band above the level (no ceiling), skipping names and numbers, ≤ 2 per cue', () => {
     const hl = pickHighlights([{ index: 0, tokens: 'Ich warte seit zwei Stunden auf dich'.split(' ').map((w) => ({ word: w, lemma: w.toLowerCase() })) }, { index: 1, tokens: 'Berlin 1989 angerufen abgenommen'.split(' ').map((w) => ({ word: w, lemma: w.toLowerCase(), name: w === 'Berlin' })) }], rank, 'A1', 1)
-    expect(hl.map((h) => h.lemma)).toEqual(['warte'])
+    expect(hl.map((h) => h.lemma)).toEqual(['warte', 'angerufen', 'abgenommen']) // floor-only band (docs/decisions/0008 decision 9)
     const b1 = pickHighlights([{ index: 1, tokens: 'Berlin angerufen abgenommen'.split(' ').map((w) => ({ word: w, lemma: w.toLowerCase(), name: w === 'Berlin' })) }], rank, 'A2', 1)
     expect(b1.map((h) => h.lemma)).toEqual(['angerufen', 'abgenommen'])
   })

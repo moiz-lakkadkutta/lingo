@@ -58,8 +58,8 @@ describe('assertGate', () => {
   it('gateReport joins findings with their cue and carries the dropped list', () => {
     const dropped: Dropped[] = [{ startS: 0.1, endS: 0.3, text: 'Mhm.', speaker: 'spk_1', reason: 'interjection' }]
     const r = gateReport([{ index: 0, startS: 0, endS: 2, text: 'a'.repeat(42) }, { index: 1, startS: 2.5, endS: 4, text: 'Gut.' }], dropped)
-    expect(r).toEqual({ findings: [{ cueIndex: 0, problem: 'cps', value: 21, startS: 0, endS: 2, text: 'a'.repeat(42) }], dropped })
-    expect(gateReport([{ index: 0, startS: 0, endS: 2, text: 'Ja.' }], [])).toEqual({ findings: [], dropped: [] })
+    expect(r).toEqual({ findings: [{ cueIndex: 0, problem: 'cps', value: 21, startS: 0, endS: 2, text: 'a'.repeat(42) }], dropped, review: [] })
+    expect(gateReport([{ index: 0, startS: 0, endS: 2, text: 'Ja.' }], [])).toEqual({ findings: [], dropped: [], review: [] })
   })
 })
 

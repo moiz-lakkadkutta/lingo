@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { PreparedClip } from '@lingo/contracts'
 import type { Lemmatizer } from './lemmatize'
 import type { glossWord, quizForClip } from './prompts'
+import type { Formality } from './steps/translate'
 
 export type Lang = 'de' | 'en'
 
@@ -46,13 +47,18 @@ export interface PrepareInput {
   cloudfrontDomain?: string
   /** path of a corrected WebVTT for the target track; skips Transcribe + segmentation (docs/decisions/0007) */
   cues?: string
+  /** reuse work/<slug>/{mezz.mp4,transcript.json} when present: no download, ffmpeg or Transcribe (re-measure after a pipeline change, docs/decisions/0008) */
+  reuse?: boolean
+  /** register of the native tracks where Translate supports it (Settings.Formality, docs/decisions/0008 decision 11); default 'INFORMAL' — 'FORMAL' for lectures/news that address the viewer */
+  formality?: Formality
 }
 
 /** Every side effect of prepare() goes through this seam; tests use fixtureDeps(), the CLI uses defaultDeps(). */
 export interface PrepareDeps {
   exec(cmd: string, args: string[], opts?: { cwd?: string }): Promise<ExecResult>
   transcribe(sourceUri: string, lang: Lang, jobName: string): Promise<TranscribeJson>
-  translate(text: string, from: Lang, to: string): Promise<string>
+  /** opts.formality is bound per clip by prepare(); the fixture double ignores it */
+  translate(text: string, from: Lang, to: string, opts?: { formality?: Formality }): Promise<string>
   lemmatizer: Lemmatizer
   /** lemmas, most frequent first */
   freqList(lang: Lang): Promise<string[]>

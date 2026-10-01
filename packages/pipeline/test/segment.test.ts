@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { segment, segmentWithReport, cps, wrap2, fits2, isDualText, MIN_GAP_S } from '../src/segment'
+import { segment, segmentWithReport, repairWords, cps, wrap2, fits2, isDualText, MIN_GAP_S, PAUSE_S, GLUE_GAP_S } from '../src/segment'
 import { qualityGate } from '../src/gate'
 import { wordsFromTranscribe } from '../src/steps/transcribe'
 import { TranscribeJson } from '../src/types'
@@ -261,5 +261,109 @@ describe('segment: speakers (docs/decisions/0007)', () => {
     expect(fits2('-a\n-b\n-c')).toBe(false)
     expect(fits2('-' + 'a'.repeat(42) + '\n-b')).toBe(false)
     expect(fits2('a'.repeat(50), 56)).toBe(true)
+  })
+})
+
+// docs/decisions/0008 — pauses, hesitation stops, orphans, balanced splits, non-verbal items (docs/plans/LING-001-quality.md §3, §10.2)
+describe('segment: pauses and orphans (docs/decisions/0008)', () => {
+  const texts = (ws: W[]) => segment(ws).map((c) => c.text)
+  /** words of `s` starting at t0; returns the words and the end of the last one */
+  const at = (s: string, t0: number, per = 0.35, dur = 0.3) => mk(s, t0, per, dur)
+  it('splits an utterance at a word gap above PAUSE_S', () => {
+    expect(PAUSE_S).toBe(1); expect(GLUE_GAP_S).toBe(2)
+    const a = at('Ich warte hier schon', 0)
+    expect(texts([...a, ...at('seit einer Stunde auf dich.', endOf(a) + 1.2)])).toEqual(['Ich warte hier schon', 'seit einer Stunde auf dich.'])
+    expect(texts([...a, ...at('seit einer Stunde auf dich.', endOf(a) + 0.9)])).toEqual(['Ich warte hier schon seit einer Stunde auf dich.'])
+  })
+  it('glues an orphan without a sentence end to the utterance that follows, across up to GLUE_GAP_S', () => {
+    const lead = at('Er war sehr deutsch.', 0)
+    const hat: W[] = [{ start: endOf(lead) + 2.5, end: endOf(lead) + 2.8, text: 'hat' }] // isolated from the left (stop kept, no glue backwards)
+    const rest = (gap: number) => at('im Ersten Weltkrieg einen Bruder verloren.', endOf(hat) + gap)
+    expect(texts([...lead, ...hat, ...rest(1.5)])).toEqual(['Er war sehr deutsch.', 'hat im Ersten Weltkrieg einen Bruder verloren.'])
+    expect(texts([...lead, ...hat, ...rest(2.1)])).toEqual(['Er war sehr deutsch.', 'hat', 'im Ersten Weltkrieg einen Bruder verloren.'])
+  })
+  it('glues an orphan with a sentence end to the neighbour across the smaller gap', () => {
+    const q = at('Kommst du heute Abend mit?', 0)
+    const ja: W[] = [{ start: endOf(q) + 0.2, end: endOf(q) + 0.5, text: 'Ja.' }]
+    const next = at('Ich hole dich um acht ab.', endOf(ja) + 0.9)
+    expect(texts([...q, ...ja, ...next])).toEqual(['Kommst du heute Abend mit? Ja.', 'Ich hole dich um acht ab.'])
+    const ja2: W[] = [{ start: endOf(q) + 0.9, end: endOf(q) + 1.2, text: 'Ja.' }]
+    expect(texts([...q, ...ja2, ...at('Ich hole dich um acht ab.', endOf(ja2) + 0.2)])).toEqual(['Kommst du heute Abend mit?', 'Ja. Ich hole dich um acht ab.'])
+  })
+  it('never glues across a speaker change', () => {
+    const q = say('spk_0', 'Kommst du heute Abend mit?', 0)
+    const ja = say('spk_1', 'Ja, sehr gerne.', endOf(q) + 0.2, 0.25, 0.2) // 0.7 s: an orphan, but not tiny (3 words)
+    const next = say('spk_0', 'Dann hole ich dich um acht ab.', endOf(ja) + 0.15)
+    const { cues, dropped } = segmentWithReport([...q, ...ja, ...next])
+    expect(dropped).toEqual([])
+    expect(cues.map((c) => c.text)).toEqual(['Kommst du heute Abend mit?', '-Ja, sehr gerne.\n-Dann hole ich dich um acht ab.'])
+    expect(cues[1]!.text.split('\n').length).toBe(2)
+    expect(cues.some((c) => c.text.includes('mit? Ja'))).toBe(false)
+  })
+  it('bisects an overflowing sentence in balance instead of leaving one word', () => {
+    const s = 'Gesagt Was willst du mit zwei Kindern in Schai verhungern kannst du auch in Berlin.' // 82 chars, 15 words
+    const ws = at(s, 0, 0.52, 0.32)
+    expect(r3(endOf(ws) - ws[0]!.start)).toBe(7.6)
+    const out = texts(ws)
+    expect(out.length).toBe(2)
+    expect(out[1]!.endsWith('Berlin.')).toBe(true)
+    expect(out[1]!.split(' ').length).toBeGreaterThanOrEqual(3)
+    expect(out.join(' ')).toBe(s)
+    expect(Math.abs(out[0]!.length - out[1]!.length)).toBeLessThanOrEqual(10)
+  })
+  it('keeps the clause rule unless the remainder would be an orphan', () => {
+    const head = 'Wir haben das Projekt im letzten Jahr geplant,' // 46 chars
+    expect(texts(at(`${head} sagt er.`, 0))).toEqual([`${head} sagt er.`]) // 2-word 0.65 s tail: an orphan, no split
+    expect(texts(at(`${head} sagt er ganz ruhig zu mir.`, 0))).toEqual([head, 'sagt er ganz ruhig zu mir.'])
+  })
+  it('repairs a hesitation stop before a lowercase word within a pause, or across up to GLUE_GAP_S for an orphan fragment', () => {
+    const a = at('Ich weiß nicht, was er hat.', 0)
+    const man = at('man sagt es nicht.', endOf(a) + 0.7)
+    const r1 = repairWords([...a, ...man])
+    expect(r1.repairedStops).toBe(1)
+    expect(r1.words.map((w) => w.text).join(' ')).toBe('Ich weiß nicht, was er hat man sagt es nicht.')
+    expect(a.at(-1)!.text).toBe('hat.') // input not mutated
+    const lead = at('Er war sehr deutsch.', 0)
+    const hat: W[] = [{ start: endOf(lead) + 0.5, end: endOf(lead) + 0.8, text: 'hat.' }]
+    const im = at('im Ersten Weltkrieg gekämpft.', endOf(hat) + 1.5)
+    const r2 = repairWords([...lead, ...hat, ...im])
+    expect(r2.repairedStops).toBe(1)
+    expect(r2.words.map((w) => w.text).join(' ')).toBe('Er war sehr deutsch. hat im Ersten Weltkrieg gekämpft.')
+    expect(segment([...lead, ...hat, ...im]).map((c) => c.text)).toEqual(['Er war sehr deutsch.', 'hat im Ersten Weltkrieg gekämpft.'])
+    const full = at('Wir hatten nur noch ein paar Kartoffeln.', 0, 0.55, 0.45) // a 4 s sentence, not an orphan
+    const r3w = repairWords([...full, ...at('verfaulte oder was?', endOf(full) + 1.2)])
+    expect(r3w.repairedStops).toBe(0)
+    expect(r3w.words.map((w) => w.text)).toContain('Kartoffeln.')
+  })
+  it('keeps a stop before a one-word sentence, before a capitalised word, across a speaker change, and never touches ! or ?', () => {
+    const cases: W[][] = [
+      [...at('Er war sehr deutsch.', 0), { start: 1.8, end: 2.1, text: 'hat.' }],
+      [...at('Ich war da, aber.', 0), ...at('Man hat gelebt.', 1.6)],
+      [...say('spk_0', 'Ich war da, aber.', 0), ...say('spk_1', 'und dann kam er.', 1.6)],
+      [...at('Das war toll!', 0), ...at('und dann gingen wir.', 1.2)],
+      [...at('War das toll?', 0), ...at('und dann gingen wir.', 1.2)],
+    ]
+    for (const ws of cases) {
+      const r = repairWords(ws)
+      expect(r.repairedStops).toBe(0)
+      expect(r.words.map((w) => w.text)).toEqual(ws.map((w) => w.text))
+    }
+  })
+  it('drops a sentence without letters as nonverbal and keeps digits inside speech', () => {
+    const a = at('Mein Vater hat bis 38 immer geglaubt.', 0)
+    const zero: W[] = [{ start: endOf(a) + 1, end: endOf(a) + 1.3, text: '00.', speaker: 'spk_0' }]
+    const b = at('Es wird sich nicht halten.', endOf(zero) + 1)
+    const { cues, dropped } = segmentWithReport([...a, ...zero, ...b])
+    expect(dropped).toEqual([{ startS: r3(zero[0]!.start), endS: r3(zero[0]!.end), text: '00.', speaker: 'spk_0', reason: 'nonverbal' }])
+    expect(cues.map((c) => c.text)).toEqual(['Mein Vater hat bis 38 immer geglaubt.', 'Es wird sich nicht halten.'])
+  })
+  it('60-second fixtures: no pause split, no drop; the en fixture glues its two padded cues', async () => {
+    for (const lang of ['de', 'en'] as const) {
+      const words = await fixtureWords(lang)
+      for (let k = 1; k < words.length; k++) expect(words[k]!.start - words[k - 1]!.end).toBeLessThanOrEqual(PAUSE_S)
+      const r = segmentWithReport(words)
+      expect(r.dropped).toEqual([]); expect(r.repairedStops).toBe(0)
+      if (lang === 'en') expect(r.cues.filter((c) => Math.abs(c.endS - c.startS - 1) < 1e-3)).toEqual([])
+    }
   })
 })
