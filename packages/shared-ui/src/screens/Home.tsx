@@ -9,7 +9,7 @@ const LEVELS = ['A1', 'A2', 'B1', 'B2'] as const
 export function Home({ catalog, learner, onOpen, onWatch }: { catalog: Catalog | null; learner: LearnerDto; onOpen: (slug: string) => void; onWatch: (slug: string) => void }) {
   const hero = catalog?.justRight[0]
   const up = LEVELS[Math.min(LEVELS.indexOf(learner.level) + 1, 3)]!
-  const card = (c: Catalog['justRight'][number]) => <Card key={c.slug} title={c.title} imageUrl={c.posterUrl ?? undefined} badge={c.level} meta={`${Math.round(c.durationS / 60)} min`} label={`Open ${c.title}, level ${c.level}`} onPress={() => onOpen(c.slug)} />
+  const card = (c: Catalog['justRight'][number]) => <Card key={c.slug} title={c.title} imageUrl={c.posterUrl ?? undefined} level={c.level} durationS={c.durationS} label={`Open ${c.title}, level ${c.level}`} onPress={() => onOpen(c.slug)} />
   return (
     <ScrollView>
       {hero ? (

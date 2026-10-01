@@ -4,6 +4,7 @@ import type { LearnerDto } from '@lingo/contracts'
 import { Focusable } from '../../components/Focusable'
 import { T } from '../../components/Text'
 import type { Caps } from '../../platformCaps'
+import { LINES, SIZES, step } from '../../settings/options'
 import { strings } from '../../strings'
 import { tokens } from '../../theme/tokens'
 import { px } from '../../theme/scale'
@@ -17,9 +18,6 @@ export interface SettingsSheetHandle { cycle(dir: -1 | 1): void }
 
 type RowKey = 'speed' | 'nativeLine' | 'size'
 const RATES = [1, 0.75] as const
-const LINES: ReadonlyArray<LearnerDto['nativeLine']> = ['always', 'onPause', 'never']
-const SIZES = [1, 1.25, 1.5] as const
-const step = <V,>(list: readonly V[], cur: V, dir: -1 | 1): V => list[(Math.max(0, list.indexOf(cur)) + dir + list.length) % list.length]!
 
 /** ▲ sheet, top-right in the safe zone: Speed (only where caps.rate) · Native line · Subtitle size. Video keeps playing. */
 export const SettingsSheet = forwardRef<SettingsSheetHandle, SettingsSheetProps>(function SettingsSheet({ caps, plus, rate, nativeLine, cueScale, onRate, onLearnerChange }, ref) {

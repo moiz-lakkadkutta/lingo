@@ -33,6 +33,13 @@ vi.mock('react-native', () => {
     Pressable: host('Pressable'),
     Animated: { View: host('Animated.View'), Text: host('Animated.Text'), Value, timing: anim, spring: anim, parallel: anim, sequence: anim },
     BackHandler: { addEventListener: () => ({ remove: () => {} }) },
+    AccessibilityInfo: { announceForAccessibility: vi.fn(), isScreenReaderEnabled: async () => false },
     findNodeHandle: (r: unknown) => (r ? 1 : null),
   }
+})
+
+// react-native-svg imports react-native's Flow source; QrCode only needs host stand-ins (Pair, First run render tests).
+vi.mock('react-native-svg', () => {
+  const host = (name: string) => { const C = (props: Record<string, unknown>) => React.createElement(name, props); C.displayName = name; return C }
+  return { default: host('Svg'), Svg: host('Svg'), Path: host('Path'), Rect: host('Rect') }
 })

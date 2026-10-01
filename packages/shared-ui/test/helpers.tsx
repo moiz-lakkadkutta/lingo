@@ -1,0 +1,24 @@
+import React from 'react'
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
+
+export type Style = Record<string, unknown>
+export const is = (n: ReactTestInstance, host: string) => (n.type as unknown) === host
+export const flat = (s: unknown): Style => (Array.isArray(s) ? Object.assign({}, ...s.map(flat)) : s && typeof s === 'object' ? (s as Style) : {})
+export const render = (el: React.ReactElement): ReactTestRenderer => {
+  let r: ReactTestRenderer | undefined
+  act(() => { r = create(el, { createNodeMock: () => ({}) }) })
+  return r!
+}
+export const rerender = (r: ReactTestRenderer, el: React.ReactElement) => { act(() => { r.update(el) }) }
+export const textOf = (n: ReactTestInstance): string => [n.props.children].flat(Infinity).filter((c) => typeof c === 'string' || typeof c === 'number').join('')
+export const texts = (r: ReactTestRenderer | ReactTestInstance) => ('root' in r ? r.root : r).findAll((n) => is(n, 'Text')).map(textOf)
+export const pressables = (r: ReactTestRenderer) => r.root.findAll((n) => is(n, 'Pressable'))
+export const labels = (r: ReactTestRenderer) => pressables(r).map((p) => p.props['aria-label'] as string)
+export const preferred = (r: ReactTestRenderer) => pressables(r).filter((p) => p.props.hasTVPreferredFocus)
+export const byLabel = (r: ReactTestRenderer, label: string) => r.root.find((n) => is(n, 'Pressable') && n.props['aria-label'] === label)
+export const press = async (n: ReactTestInstance) => { await act(async () => { await n.props.onPress?.() }) }
+export const focus = (n: ReactTestInstance) => { act(() => { n.props.onFocus?.() }) }
+export const blur = (n: ReactTestInstance) => { act(() => { n.props.onBlur?.() }) }
+/** The Animated.View inside a Focusable (its visual box). */
+export const box = (p: ReactTestInstance): Style => flat(p.findByType('Animated.View' as never).props.style)
+export const flush = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)) }) }
