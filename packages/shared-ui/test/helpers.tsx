@@ -4,9 +4,13 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 export type Style = Record<string, unknown>
 export const is = (n: ReactTestInstance, host: string) => (n.type as unknown) === host
 export const flat = (s: unknown): Style => (Array.isArray(s) ? Object.assign({}, ...s.map(flat)) : s && typeof s === 'object' ? (s as Style) : {})
+const mounted: ReactTestRenderer[] = []
+/** Unmount everything a test rendered, so effects (BackHandler listeners, timers) never leak into the next test. */
+afterEach(() => { act(() => { for (const r of mounted.splice(0)) { try { r.unmount() } catch { /* already unmounted */ } } }) })
 export const render = (el: React.ReactElement): ReactTestRenderer => {
   let r: ReactTestRenderer | undefined
   act(() => { r = create(el, { createNodeMock: () => ({}) }) })
+  mounted.push(r!)
   return r!
 }
 export const rerender = (r: ReactTestRenderer, el: React.ReactElement) => { act(() => { r.update(el) }) }
@@ -31,3 +35,5 @@ export const pressBack = (): boolean => {
   return handled
 }
 export const backListeners = () => (BackHandler as unknown as { __listeners: unknown[] }).__listeners.length
+/** Identity of a mounted Focusable: its Animated.Value lives in a ref, so it changes only on a remount (focus would be lost). */
+export const mountId = (p: ReactTestInstance): unknown => (box(p).transform as Array<{ scale: unknown }>)[0]!.scale
