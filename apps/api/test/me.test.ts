@@ -22,7 +22,8 @@ describe('PUT /me', () => {
   it('rejects streak, knownRank and level', async () => {
     for (const body of [{ streak: 99 }, { knownRank: 9000 }, { level: 'C1' }]) expect((await put(body)).status).toBe(400)
     const l = await row()
-    expect([l.streak, l.knownRank, l.level]).toEqual([0, 1000, 'A2'])
+    expect([l.streak, l.level]).toEqual([0, 'A2'])
+    expect(l).not.toHaveProperty('knownRank') // dropped in LING-005 (derivable from level × BANDS)
   })
   it('rejects a forbidden field even next to allowed ones', async () => {
     expect((await put({ cueScale: 1.25, plus: true })).status).toBe(400)

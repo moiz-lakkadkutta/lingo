@@ -7,6 +7,7 @@ import cors from 'cors'
         import { logger } from './lib/logger'
         import { catalog } from './routes/catalog'
 import { clips } from './routes/clips'
+import { learning } from './routes/learning'
 import { me } from './routes/me'
 import { sessions } from './routes/sessions'
 import { iap } from './routes/iap'
@@ -20,6 +21,7 @@ import { iap } from './routes/iap'
           app.get('/health', (_req, res) => ok(res, { ok: true, service: 'lingo-api' }))
           app.use('/catalog', catalog)
   app.use('/clips', clips)
+  app.use('/me', learning)
   app.use('/me', me)
   app.use('/sessions', sessions)
   app.use('/iap', iap)
