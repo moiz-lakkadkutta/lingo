@@ -1,4 +1,4 @@
-# voa learning english hides 1080p mp4
+# VOA Learning English hides the 1080p MP4 in the player configuration
 
 Task attempted: Download the 1080p source MP4 of "Let's Learn English – Lesson 1: Welcome!" (VOA Learning English, public
 domain) for the pipeline clip `voa-lets-learn-english-01`.
@@ -15,7 +15,7 @@ Workaround: Take the canonical lesson link from the index page https://learninge
 player JSON for the lesson's own video, pick the 1080p rendition, and confirm duration before ingest. Recorded in
 `docs/content.md`.
 Suggestion: VOA could expose a per-video download menu or direct links for every embedded video, labelled by title.
-Environment: macOS 26.2, desktop browser and curl, 2026-10-01.
+Environment: Platform: content source (VOA Learning English). macOS 26.2, desktop browser and curl, 2026-10-01.
 Links:
   - Lesson page: https://learningenglish.voanews.com/a/lets-learn-english-lesson-one/3111026.html
   - Lesson index: https://learningenglish.voanews.com/p/5644.html

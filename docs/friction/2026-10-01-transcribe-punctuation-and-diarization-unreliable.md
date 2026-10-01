@@ -1,4 +1,4 @@
-# transcribe punctuation and diarization unreliable
+# Amazon Transcribe: punctuation and speaker labels are unreliable for subtitle cues
 
 Task attempted: Build subtitle cues for two real clips from Amazon Transcribe batch output, using its punctuation as
 sentence ends and its speaker labels as speaker changes (LING-001 segmenter, decisions 0007 and 0008).
@@ -27,7 +27,7 @@ gap over 1.0 s always ends an utterance; sentences without letters are dropped a
 mid-clause is not treated as a speaker change. A manual `--cues` VTT path exists for corrections.
 Suggestion: Expose a per-item "punctuation confidence" or a pause/hesitation marker, so clients can tell a sentence end from
 a disfluency; offer an option to suppress non-speech tokens; apply a minimum segment length to speaker turns.
-Environment: Amazon Transcribe batch (StartTranscriptionJob), de-DE and en-US, eu-central-1, 2026-10-01; macOS 26.2,
+Environment: Platform: AWS (Amazon Transcribe). Amazon Transcribe batch (StartTranscriptionJob), de-DE and en-US, eu-central-1, 2026-10-01; macOS 26.2,
 Node 22.19.0.
 Links:
   - Speaker diarization: https://docs.aws.amazon.com/transcribe/latest/dg/diarization.html

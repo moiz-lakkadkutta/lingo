@@ -1,4 +1,4 @@
-# infra deploy script deploys both stacks
+# CDK: a bare `cdk deploy --require-approval never` deploys both stacks
 
 Task attempted: Deploy only the media stack (`lingo-media-dev`, eu-central-1) for LING-001, without touching the Bedrock
 stack that LING-002 owns.
@@ -18,7 +18,7 @@ Workaround: Deploy with the explicit stack name and `--exclusively`. Feature fla
 Suggestion: Project: split the script into `deploy:media` and `deploy:nova` with explicit stack names. CDK: require a stack
 selector (or `--all`) when an app has more than one stack and `--require-approval never` is set; group the feature-flag
 warning by impact so a new app knows which of the 83 to set.
-Environment: macOS 26.2, Node 22.19.0, pnpm 9.15.9, aws-cdk CLI 2.1141.0, aws-cdk-lib 2.269.0.
+Environment: Platform: AWS (CDK). macOS 26.2, Node 22.19.0, pnpm 9.15.9, aws-cdk CLI 2.1141.0, aws-cdk-lib 2.269.0.
 Links:
   - `cdk deploy` options (stack selection, `--exclusively`, `--all`): https://docs.aws.amazon.com/cdk/v2/guide/ref-cli-cmd-deploy.html
   - CDK feature flags: https://docs.aws.amazon.com/cdk/v2/guide/featureflags.html

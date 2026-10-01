@@ -1,4 +1,4 @@
-# translate per cue register and spelled letters
+# Amazon Translate: register drifts between cues, and spelled letters are translated as words
 
 Task attempted: Produce the native-language subtitle track by translating each cue with Amazon Translate `TranslateText`
 (en → de for the VOA lesson, de → en for the German clip), keeping one translation per cue so the two tracks stay aligned.
@@ -21,7 +21,7 @@ directions, since en↔de is a supported pair). A cue made only of spelled lette
 native track instead of being translated.
 Suggestion: A context field (previous/next segments that are not translated) or a batch-with-alignment mode for subtitle
 use; a "do not translate" pattern for single-letter tokens. Mention per-segment register drift in the formality docs.
-Environment: Amazon Translate `TranslateText`, en-US ↔ de, 2026-10-01; Node 22.19.0, AWS SDK for JavaScript v3.
+Environment: Platform: AWS (Amazon Translate). Amazon Translate `TranslateText`, en-US ↔ de, 2026-10-01; Node 22.19.0, AWS SDK for JavaScript v3.
 Links:
   - Formality: https://docs.aws.amazon.com/translate/latest/dg/customizing-translations-formality.html
   - Brevity: https://docs.aws.amazon.com/translate/latest/dg/customizing-translations-brevity.html
