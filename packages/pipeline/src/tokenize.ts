@@ -1,4 +1,5 @@
 import type { Word } from './types'
+import { UTTERANCE_GAP_S } from './segment'
 
 export interface RawToken { word: string; sentenceInitial: boolean; cueIndex: number }
 export interface WordToken { word: string; sentenceInitial: boolean; wordIndex: number }
@@ -26,13 +27,17 @@ export function tokenizeWords(words: Word[]): WordToken[] {
 /**
  * Tokens from the final cue text (segmenter output or a corrected VTT), so tokens always match what the learner reads.
  * A line starting with `-` is a speaker line of a two-speaker cue: the hyphen is stripped and its first token is sentence-initial.
- * Otherwise a cue's first token is sentence-initial for the first cue or when the previous cue (last line) ends with . ! ? … ;
- * inside a cue, a token is sentence-initial when the previous raw token ends with . ! ? … .
+ * Otherwise a cue's first token is sentence-initial for the first cue, when the previous cue (last line) ends with . ! ? … , or — with
+ * timestamps — when the cue starts ≥ UTTERANCE_GAP_S after the previous cue ends and that cue does not end in , ; : (Transcribe starts a
+ * capitalised utterance after a pause without a full stop; docs/decisions/0008 decision 6). Inside a cue, a token is sentence-initial when
+ * the previous raw token ends with . ! ? … .
  */
-export function tokenizeCues(cues: Array<{ index: number; text: string }>): RawToken[] {
+export function tokenizeCues(cues: Array<{ index: number; text: string; startS?: number; endS?: number }>): RawToken[] {
   const out: RawToken[] = []
   cues.forEach((cue, pos) => {
-    const prevText = pos > 0 ? cues[pos - 1]!.text.split('\n').at(-1)!.trimEnd() : ''
+    const prev = pos > 0 ? cues[pos - 1]! : undefined
+    const prevText = prev ? prev.text.split('\n').at(-1)!.trimEnd() : ''
+    const afterPause = !!prev && prev.endS !== undefined && cue.startS !== undefined && cue.startS - prev.endS >= UTTERANCE_GAP_S - 1e-9 && !/[,;:]$/.test(prevText)
     let prevRaw: string | undefined
     cue.text.split('\n').forEach((line, li) => {
       const speakerLine = line.startsWith('-')
@@ -40,7 +45,7 @@ export function tokenizeCues(cues: Array<{ index: number; text: string }>): RawT
       raws.forEach((raw, ri) => {
         const first = ri === 0
         const initial = first && speakerLine ? true
-          : first && li === 0 ? pos === 0 || SENTENCE_END.test(prevText)
+          : first && li === 0 ? pos === 0 || SENTENCE_END.test(prevText) || afterPause
           : prevRaw !== undefined && SENTENCE_END.test(prevRaw)
         prevRaw = raw
         const word = strip(raw)

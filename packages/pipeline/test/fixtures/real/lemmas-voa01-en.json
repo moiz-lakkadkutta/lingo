@@ -7,10 +7,6 @@
     "lemma": "A",
     "known": true
   },
-  "An": {
-    "lemma": "a",
-    "known": true
-  },
   "Ana": {
     "lemma": "Ana",
     "known": true
@@ -27,6 +23,10 @@
     "lemma": "anna",
     "known": true
   },
+  "An|si": {
+    "lemma": "a",
+    "known": true
+  },
   "Apartment": {
     "lemma": "apartment",
     "known": true
@@ -37,6 +37,10 @@
   },
   "Are|si": {
     "lemma": "be",
+    "known": true
+  },
+  "A|si": {
+    "lemma": "a",
     "known": true
   },
   "English": {
@@ -55,10 +59,6 @@
     "lemma": "hi",
     "known": true
   },
-  "I": {
-    "lemma": "I",
-    "known": true
-  },
   "I'm": {
     "lemma": "I'm",
     "known": true
@@ -75,17 +75,9 @@
     "lemma": "I",
     "known": true
   },
-  "Let's": {
-    "lemma": "let",
-    "known": false
-  },
   "Let's|si": {
     "lemma": "let",
     "known": false
-  },
-  "Listen": {
-    "lemma": "listen",
-    "known": true
   },
   "Listen|si": {
     "lemma": "listen",
@@ -99,15 +91,11 @@
     "lemma": "n",
     "known": true
   },
-  "Nice": {
-    "lemma": "Nice",
-    "known": true
-  },
   "Nice|si": {
     "lemma": "nice",
     "known": true
   },
-  "Now": {
+  "Now|si": {
     "lemma": "now",
     "known": true
   },
@@ -119,7 +107,7 @@
     "lemma": "Pete",
     "known": true
   },
-  "Record": {
+  "Record|si": {
     "lemma": "record",
     "known": true
   },
@@ -129,10 +117,6 @@
   },
   "Slow|si": {
     "lemma": "slow",
-    "known": true
-  },
-  "Speak": {
-    "lemma": "speak",
     "known": true
   },
   "Speak|si": {

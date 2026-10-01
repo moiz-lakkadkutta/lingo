@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { tokenizeCues, tokenizeWords } from '../src/tokenize'
-import { segment, wrap2 } from '../src/segment'
+import { segment, wrap2, UTTERANCE_GAP_S } from '../src/segment'
 import { wordsFromTranscribe } from '../src/steps/transcribe'
 import { TranscribeJson } from '../src/types'
 import { FIXTURES } from '../scripts/gen-fixtures'
@@ -31,6 +31,23 @@ describe('tokenizeCues', () => {
       expect(fromCues.length).toBeGreaterThan(100)
       expect(fromCues).toEqual(tokenizeWords(words).map((x) => [x.word, x.sentenceInitial]))
     }
+  })
+})
+
+describe('tokenizeCues with timestamps (docs/decisions/0008 decision 6)', () => {
+  it('tokenizeCues marks a cue sentence-initial after a gap ≥ UTTERANCE_GAP_S unless the previous cue ends in a clause mark', () => {
+    expect(UTTERANCE_GAP_S).toBe(0.5)
+    const nice = tokenizeCues([{ index: 0, text: 'Listen', startS: 0, endS: 1.0 }, { index: 1, text: 'Nice to meet you', startS: 1.6, endS: 3 }])
+    expect(nice.find((x) => x.word === 'Nice')!.sentenceInitial).toBe(true)
+    const close = tokenizeCues([{ index: 0, text: 'Listen', startS: 0, endS: 1.0 }, { index: 1, text: 'Nice to meet you', startS: 1.3, endS: 3 }])
+    expect(close.find((x) => x.word === 'Nice')!.sentenceInitial).toBe(false)
+    const und = tokenizeCues([{ index: 0, text: 'Ich warte,', startS: 0, endS: 1.2 }, { index: 1, text: 'und du', startS: 2.0, endS: 3 }])
+    expect(und.find((x) => x.word === 'und')!.sentenceInitial).toBe(false)
+  })
+  it('tokenizeCues without timestamps behaves as before', () => {
+    expect(tokenizeCues(cuesOf(['Listen', 'Nice to meet you'])).find((x) => x.word === 'Nice')!.sentenceInitial).toBe(false)
+    expect(tokenizeCues(cuesOf(['Ja.', 'Und du?'])).find((x) => x.word === 'Und')!.sentenceInitial).toBe(true)
+    expect(tokenizeCues(cuesOf(['Ich warte,', 'und du?'])).find((x) => x.word === 'und')!.sentenceInitial).toBe(false)
   })
 })
 

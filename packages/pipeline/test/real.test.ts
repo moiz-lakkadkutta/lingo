@@ -102,3 +102,25 @@ describe('voa01 en — segmentation', () => {
   })
   it('passes the quality gate', () => { expect(qualityGate(cues)).toEqual([]) })
 })
+
+describe('voa01 en — clip', () => {
+  let clip: Awaited<ReturnType<typeof realClip>>['clip']
+  beforeAll(async () => { ({ clip } = await realClip('voa01', 'en', 'de')) })
+  const tokens = () => clip.cues.flatMap((c) => c.tokens)
+  it('names-en has none of the lesson\'s UI words or contractions', () => {
+    const names = new Set(tokens().filter((t) => t.name).map((t) => t.word))
+    for (const w of ['Listen', 'Speak', 'Say', 'Now', 'Nice', 'Fast', 'A', 'An', 'N', "N's", "Let's", "Here's", "I'm", 'Apartment', 'Record', 'Street']) expect(names.has(w), w).toBe(false)
+  })
+  it('names-en has Pete, Anna, Ana, Irving', () => {
+    for (const w of ['Pete', 'Anna', 'Ana', 'Irving']) {
+      const occ = tokens().filter((t) => t.word === w)
+      expect(occ.length, w).toBeGreaterThan(0)
+      for (const t of occ) expect(t.name, `${w} sentenceInitial=${t.sentenceInitial}`).toBe(true)
+    }
+  })
+  it('I\'m carries the rank of "i"', () => {
+    const ims = tokens().filter((t) => t.word === "I'm")
+    expect(ims.length).toBeGreaterThan(0)
+    for (const t of ims) { expect(t.rank).not.toBeNull(); expect(t.rank!).toBeLessThan(100) }
+  })
+})

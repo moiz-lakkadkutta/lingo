@@ -7,7 +7,7 @@ import { segmentWithReport, wrap2, type Dropped, type Seg } from './segment'
 import { assertGate, gateReport } from './gate'
 import { BANDS, clipLevel, coverageRank, isCountable, NEXT, pickHighlights, type Level } from './highlights'
 import { DATA_DIR, loadFreqList, rankFn } from './freq'
-import { isName, loadNames } from './names'
+import { isName, loadNames, rankOf } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
 import { tokenizeCues } from './tokenize'
 import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
@@ -114,7 +114,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   raw.forEach((t, i) => {
     const { lemma, known } = lemmaOf.get(lemmaKey(t.word, t.sentenceInitial))!
     const name = isName({ word: t.word, lemma, known, sentenceInitial: t.sentenceInitial }, nameCtx)
-    tokensByCue[t.cueIndex]!.push({ word: t.word, lemma, rank: rank(lemma) ?? null, name, sentenceInitial: t.sentenceInitial })
+    tokensByCue[t.cueIndex]!.push({ word: t.word, lemma, rank: rankOf(t.word, lemma, rank) ?? null, name, sentenceInitial: t.sentenceInitial })
   })
   // 6. level, coverage, highlights, glosses, quiz (names, digits and number words do not count, as in pickHighlights)
   const rankable = tokensByCue.flat().filter(isCountable)
