@@ -3,6 +3,7 @@ import { Lang, Level } from './base'
 export { Lang, Level } from './base'
 export * from './prepared'
 export * from './ai'
+export * from './review'
 export const ClipCard = z.object({ slug: z.string(), title: z.string(), level: Level, durationS: z.number(), posterUrl: z.string().url().nullable(), resumeS: z.number().nullable() })
 export const Catalog = z.object({ continue: z.array(ClipCard), justRight: z.array(ClipCard), harder: z.array(ClipCard), fresh: z.array(ClipCard) })
 export const HighlightDto = z.object({ id: z.string(), word: z.string(), lemma: z.string(), rank: z.number().int(), gloss: z.string(), grammar: z.string(), example: z.string(), level: Level })
@@ -17,7 +18,13 @@ export const LearnerDto = z.object({ learning: Lang, native: z.string(), level: 
  *  plus is set only by /iap/verify, level only by PUT /me/level (LING-005), streak and knownRank only server-side. */
 export const LearnerSettingsPatch = z.object({ learning: Lang, native: z.string().min(1), firstRunDone: z.boolean(), nativeLine: NativeLine, autoPause: z.boolean(), cueScale: CueScale }).partial().strict()
 export const ReviewPost = z.object({ savedWordId: z.string(), grade: z.enum(['again', 'hard', 'good', 'easy']) })
-export const DueWord = z.object({ savedWordId: z.string(), word: z.string(), gloss: z.string(), example: z.string(), due: z.string(), reps: z.number().int() })
+export const DueWord = z.object({
+  savedWordId: z.string(), highlightId: z.string(),
+  word: z.string(), lemma: z.string(), gloss: z.string(), example: z.string(), level: Level,
+  due: z.string(), reps: z.number().int(), lapses: z.number().int(), intervalD: z.number().int(),
+  clipSlug: z.string(), clipTitle: z.string(),
+  cueIndex: z.number().int(), cueText: z.string(), cueNative: z.string().nullable(),
+})
 // --- Session / realtime -------------------------------------------------------
 /** Session codes mirror the API's newCode() alphabet: six characters, no 0/O/1/I. */
 export const SESSION_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/

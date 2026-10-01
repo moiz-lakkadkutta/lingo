@@ -40,16 +40,20 @@ export function registerSockets(io: LingoIo): void {
       }
     })())
 
+    // Quiz events go to everyone else in the room (socket.to excludes the sender: https://socket.io/docs/v4/emit-cheatsheet/),
+    // and only from a socket that joined that room. A phone quiz:result is an SM-2 review tally, never a clip quiz score (it must not feed PUT /me/level).
     socket.on('quiz:start', (p) => guard(() => {
       const r = QuizStartPayload.safeParse(p)
       if (!r.success) return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
-      io.to(r.data.code).emit('quiz:start', r.data)
+      if (socket.data.code !== r.data.code) return fail({ code: 'VALIDATION', message: 'Join the session first' })
+      socket.to(r.data.code).emit('quiz:start', r.data)
     })())
 
     socket.on('quiz:result', (p) => guard(() => {
       const r = QuizResultPayload.safeParse(p)
       if (!r.success) return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
-      io.to(r.data.code).emit('quiz:result', r.data)
+      if (socket.data.code !== r.data.code) return fail({ code: 'VALIDATION', message: 'Join the session first' })
+      socket.to(r.data.code).emit('quiz:result', r.data)
     })())
 
     // Rooms are still known here (unlike 'disconnect'): https://socket.io/docs/v4/server-socket-instance/#disconnecting
