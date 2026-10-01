@@ -104,6 +104,25 @@ model Learner {
   words SavedWord[]
   progress Progress[]
   sessions Session[]
+  purchases Purchase[]
+}
+/// Amazon IAP receipt verified with RVS (LING-007, decision 0009). One receipt maps to one learner: the newest poster wins.
+model Purchase {
+  id              String    @id @default(cuid())
+  learnerId       String
+  learner         Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  store           String    // 'amazon-fireos' | 'amazon-vega'
+  receiptId       String    @unique
+  amazonUserId    String
+  productId       String
+  termSku         String?
+  purchaseDate    DateTime
+  cancelDate      DateTime?
+  renewalDate     DateTime?
+  testTransaction Boolean
+  verifiedAt      DateTime
+  raw             Json
+  @@index([learnerId])
 }
 model SavedWord {
   id String @id @default(cuid() )
