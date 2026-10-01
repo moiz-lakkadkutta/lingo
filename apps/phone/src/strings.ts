@@ -1,4 +1,4 @@
-/** All phone copy. Wording rules: docs/decisions/0002-wording.md (pnpm lint:words). No "wrong", no "failed", a missed day says "Welcome back". */
+/** All phone copy. Wording rules: docs/decisions/0002-wording.md, enforced by pnpm lint:words. A missed day says Welcome back. */
 export const strings = {
   join: { title: 'Enter the code on your TV', box: (i: number) => `Code character ${i + 1} of 6`, join: 'Join', scan: "Scan the TV's code",
     scanTitle: 'Point at the code on the TV', scanLabel: "Camera, looking for the TV's QR code", typeInstead: 'Type it instead', review: 'Review words',
