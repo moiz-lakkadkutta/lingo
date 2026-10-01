@@ -1,39 +1,128 @@
-import React, { useState } from 'react'
-import { View } from 'react-native'
-import type { CueDto } from '@lingo/contracts'
-import { Focusable, T } from '../components'
+import React, { useLayoutEffect, useRef, useState } from 'react'
+import { findNodeHandle, View } from 'react-native'
+import type { CueDto, HighlightDto } from '@lingo/contracts'
+import { Check } from '../components/Check'
+import { Focusable } from '../components/Focusable'
+import { T } from '../components/Text'
+import { WordChip } from '../components/WordChip'
+import type { Caps } from '../platformCaps'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 
-/** Fixed anatomy, 880×420, bottom-centred over the dimmed picture: word · lemma · rank chip / gloss 44 / grammar 32 / example / three actions. */
-export function Explain({ cue, wordIdx, onWord, onSave, onReplay, onSlower, onContinue, sessionCode }: {
-  cue: CueDto; wordIdx: number | null; onWord: (i: number) => void; onSave: (highlightId: string) => Promise<'saved' | 'limit'>; onReplay: () => void; onSlower: () => void; onContinue: () => void; sessionCode?: string
-}) {
-  const h = cue.highlights[wordIdx ?? 0] ?? cue.highlights[0]
+export interface ExplainProps {
+  cue: CueDto; highlight: HighlightDto | null; alignmentOk: boolean; wordFocus: 'cue' | 'card'
+  focusedIdx: number; onFocusWord(idx: number): void
+  savedIds: ReadonlySet<string>; savedCount: number; plus: boolean; caps: Caps; rate: 1 | 0.75
+  onSave(highlightId: string): Promise<'saved' | 'limit' | 'error'>; onReplay(): void; onSlower(): void; onPlus(): void
+  chipRefs: React.RefObject<Array<View | null>>; saveRef: React.RefObject<View | null>
+  /** px from the screen bottom to the card's bottom edge: above the cue block (the Player measures it). */
+  bottom: number
+}
+
+const action = { paddingHorizontal: px(28), paddingVertical: px(16) }
+
+/**
+ * Fixed anatomy, 880 px wide, centred above the cue block (the Player draws the scrim below the cue, so the line stays readable) (LING-003 §Explain): optional word row (card mode) /
+ * word · lemma · rank chip / gloss / grammar / the cue as the example / at most three actions / status line.
+ * Not an RN Modal: Vega publishes no Back events behind a Modal (decision 0006 §2). Back resumes (the Player handles it).
+ */
+export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, savedIds, savedCount, plus, caps, rate, onSave, onReplay, onSlower, onPlus, chipRefs, saveRef, bottom }: ExplainProps) {
   const [status, setStatus] = useState<string | null>(null)
-  void onWord; void sessionCode
+  const [limit, setLimit] = useState(false)
+  const [justSaved, setJustSaved] = useState<ReadonlySet<string>>(new Set())
+  const replayRef = useRef<View>(null)
+  const [upHandle, setUpHandle] = useState<number | undefined>(undefined)
+  const [downHandle, setDownHandle] = useState<number | undefined>(undefined)
+
+  // Focus neighbours need mounted refs: resolve node handles after layout, never during render.
+  useLayoutEffect(() => {
+    const chip = chipRefs.current[focusedIdx] ?? chipRefs.current.find(Boolean) ?? null
+    setUpHandle(chip ? findNodeHandle(chip) ?? undefined : undefined)
+    const down = saveRef.current ?? replayRef.current
+    setDownHandle(down ? findNodeHandle(down) ?? undefined : undefined)
+  }, [focusedIdx, wordFocus, cue.index, chipRefs, saveRef])
+
+  const isSaved = (h: HighlightDto) => savedIds.has(h.id) || justSaved.has(h.id)
+  const saved = highlight ? isSaved(highlight) : false
+
+  const save = async () => {
+    if (!highlight || saved) return
+    if (limit) { onPlus(); return }
+    const r = await onSave(highlight.id)
+    if (r === 'saved') { setJustSaved((s) => new Set(s).add(highlight.id)); setStatus(strings.explain.saved(savedCount + 1)) }
+    else if (r === 'limit') { setLimit(true); setStatus(strings.explain.limit) }
+    else setStatus(strings.explain.saveError)
+  }
+
+  const saveText = limit ? strings.explain.plusCta : saved ? strings.explain.savedState : strings.explain.save
+  const saveLabel = highlight ? (limit ? strings.explain.plusCta : saved ? strings.explain.savedLabel(highlight.word) : strings.explain.saveLabel(highlight.word)) : ''
+
   return (
-    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(15,21,27,0.4)', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: px(tokens.layout.safeY + 60) }} accessibilityViewIsModal>
+    <View pointerEvents="box-none" accessibilityViewIsModal style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center' }}>
       <View style={{ width: px(tokens.layout.explainW), minHeight: px(tokens.layout.explainH), backgroundColor: tokens.color.surface1, borderRadius: 8, padding: px(32), gap: px(12) }}>
-        {h ? (
+        {wordFocus === 'card' && cue.highlights.length > 0 ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: px(tokens.layout.wordGap) }}>
+            {cue.highlights.map((h, i) => (
+              <WordChip
+                key={h.id}
+                text={h.word}
+                highlighted
+                focusable
+                saved={isSaved(h)}
+                label={isSaved(h) ? strings.explain.wordSavedLabel(h.word) : strings.explain.wordLabel(h.word)}
+                size={tokens.type.cueNative.size}
+                onFocus={() => onFocusWord(i)}
+                onPress={() => onFocusWord(i)}
+                nextFocusDown={downHandle}
+                chipRef={(r) => { chipRefs.current[i] = r }}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {highlight ? (
           <>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: px(14) }}>
-              <View style={{ backgroundColor: tokens.color.marker, paddingHorizontal: px(10), paddingVertical: px(2), borderRadius: 3 }}><T variant="title" color={tokens.color.ground}>{h.word}</T></View>
-              <T variant="body" color={tokens.color.textSecondary}>· {h.lemma} · {h.level}</T>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: px(14), flexWrap: 'wrap' }}>
+              <View style={{ backgroundColor: tokens.color.marker, paddingHorizontal: px(10), paddingVertical: px(2), borderRadius: 3, flexDirection: 'row', alignItems: 'center' }}>
+                <Check size={px(tokens.type.title.size * 0.7)} color={tokens.color.ground} visible={saved} />
+                <T variant="title" color={tokens.color.ground}>{highlight.word}</T>
+              </View>
+              {highlight.lemma ? <T variant="body" color={tokens.color.textSecondary}>{`· ${highlight.lemma}`}</T> : null}
+              <View style={{ backgroundColor: tokens.color.surface2, paddingHorizontal: px(12), paddingVertical: px(4), borderRadius: 4 }}>
+                <T variant="label">{strings.explain.rankChip(highlight.rank, highlight.level)}</T>
+              </View>
             </View>
-            <T variant="cueTarget">{h.gloss}</T>
-            <T variant="body" color={tokens.color.textSecondary}>{h.grammar}</T>
-            <T variant="body" style={{ fontStyle: 'italic' }}>"{cue.text}"</T>
+            {/* gloss/grammar may be empty for clips prepared with --no-ai (LING-001); rows collapse cleanly. */}
+            {highlight.gloss ? <T variant="cueTarget">{highlight.gloss}</T> : null}
+            {highlight.grammar ? <T variant="body" color={tokens.color.textSecondary}>{highlight.grammar}</T> : null}
+            <T variant="body" style={{ fontStyle: 'italic' }}>{`“${cue.text.replace(/\n/g, ' ')}”`}</T>
           </>
-        ) : <T variant="body">{cue.native}</T>}
+        ) : cue.native ? (
+          <T variant="cueTarget" color={tokens.color.nativeCue}>{cue.native}</T>
+        ) : null}
+
         <View style={{ flexDirection: 'row', gap: px(14), marginTop: 'auto' }}>
-          {h ? <Focusable label={`${strings.explain.save}: ${h.word}`} hasTVPreferredFocus onPress={async () => setStatus((await onSave(h.id)) === 'limit' ? strings.explain.limit : strings.explain.saved(1))} style={{ backgroundColor: tokens.color.interactive, paddingHorizontal: px(28), paddingVertical: px(16) }}><T variant="body" color={tokens.color.ground}>{strings.explain.save}</T></Focusable> : null}
-          <Focusable label={strings.explain.replay} onPress={onReplay} style={{ backgroundColor: tokens.color.surface2, paddingHorizontal: px(28), paddingVertical: px(16) }}><T variant="body">{strings.explain.replay}</T></Focusable>
-          <Focusable label={strings.explain.slower} onPress={onSlower} style={{ backgroundColor: tokens.color.surface2, paddingHorizontal: px(28), paddingVertical: px(16) }}><T variant="body">{strings.explain.slower}</T></Focusable>
-          <Focusable label={strings.explain.continue} onPress={onContinue} style={{ backgroundColor: tokens.color.surface2, paddingHorizontal: px(28), paddingVertical: px(16) }}><T variant="body">{strings.explain.continue}</T></Focusable>
+          {highlight ? (
+            <Focusable focusRef={saveRef} label={saveLabel} hasTVPreferredFocus nextFocusUp={upHandle} onPress={save} style={{ ...action, backgroundColor: tokens.color.interactive }}>
+              <T variant="body" color={tokens.color.ground}>{saveText}</T>
+            </Focusable>
+          ) : null}
+          <Focusable focusRef={replayRef} label={strings.explain.replay} hasTVPreferredFocus={!highlight} nextFocusUp={upHandle} onPress={onReplay} style={{ ...action, backgroundColor: tokens.color.surface2 }}>
+            <T variant="body">{strings.explain.replay}</T>
+          </Focusable>
+          {caps.rate ? (
+            <Focusable
+              label={rate === 0.75 ? strings.explain.normalSpeed : plus ? strings.explain.slower : strings.explain.slowerPlus}
+              nextFocusUp={upHandle}
+              onPress={() => (plus ? onSlower() : setStatus(strings.explain.slowerUpsell))}
+              style={{ ...action, backgroundColor: tokens.color.surface2 }}
+            >
+              <T variant="body">{rate === 0.75 ? strings.explain.normalSpeed : plus ? strings.explain.slower : strings.explain.slowerPlus}</T>
+            </Focusable>
+          ) : null}
         </View>
-        {status ? <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{status}</T> : null}
+        <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{status ?? strings.explain.continueHint}</T>
       </View>
     </View>
   )

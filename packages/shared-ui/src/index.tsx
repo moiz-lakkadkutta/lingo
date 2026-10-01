@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
 import type { Catalog, ClipDetail, HighlightDto, LearnerDto } from '@lingo/contracts'
 import { Rail, Screen, T } from './components'
@@ -10,17 +10,20 @@ import { Pair } from './screens/Pair'
 import { strings } from './strings'
 import { useSession } from './session/useSession'
 import type { SessionTransport } from './session/types'
+import { noRemote, type RemoteSource } from './remote/types'
 export { tokens } from './theme/tokens'
 export * from './components'
 export { createSocketTransport } from './session/socketTransport'
 export type { SessionTransport, SessionState } from './session/types'
+export { createRemoteBus, noRemote } from './remote/types'
+export type { RemoteSource, RawRemoteEvent } from './remote/types'
 
 type Route = { name: 'home' } | { name: 'player'; slug: string; challenge: boolean } | { name: 'summary' } | { name: 'quiz' } | { name: 'pair' } | { name: 'settings' } | { name: 'words' }
 const defaultLearner: LearnerDto = { learning: 'de', native: 'en', level: 'A2', plus: false, streak: 0, firstRunDone: false, nativeLine: 'always', autoPause: false, cueScale: 1 }
 
-export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport }
+export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource }
 
-export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport }: RootProps) {
+export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport, remote = noRemote }: RootProps) {
   const [route, setRoute] = useState<Route>({ name: 'home' })
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [learner, setLearner] = useState<LearnerDto>(defaultLearner)
@@ -37,16 +40,27 @@ export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport }: 
   const session = useSession({ api, apiBaseUrl, enabled: learnerLoaded && !offline, transport, onOffline: () => setOffline(true) })
   useEffect(() => { if (route.name === 'player') { setSaved([]); api<ClipDetail>(`/clips/${route.slug}`).then(setClip).catch(() => setOffline(true)) } }, [route, api])
 
-  const save = async (highlightId: string) => {
-    const r = await api<{ limit: boolean; saved: { highlight: HighlightDto } | null }>('/me/words', { method: 'POST', body: JSON.stringify({ highlightId, sessionCode: session.code ?? undefined }) })
-    if (r.limit) return 'limit' as const
-    if (r.saved) setSaved((s) => (s.some((h) => h.id === highlightId) ? s : [...s, r.saved!.highlight]))
-    return 'saved' as const
+  const save = async (highlightId: string): Promise<'saved' | 'limit' | 'error'> => {
+    try {
+      const r = await api<{ limit: boolean; saved: { highlight: HighlightDto } | null }>('/me/words', { method: 'POST', body: JSON.stringify({ highlightId, sessionCode: session.code ?? undefined }) })
+      if (r.limit) return 'limit'
+      if (r.saved) setSaved((s) => (s.some((h) => h.id === highlightId) ? s : [...s, r.saved!.highlight]))
+      return 'saved'
+    } catch {
+      return 'error'
+    }
   }
+  const savedIds = useMemo(() => new Set(saved.map((h) => h.id)), [saved])
+  /** Optimistic: the Player sees the change at once; a later /me reload corrects a failed PUT. */
+  const patchLearner = (p: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>) => {
+    setLearner((l) => ({ ...l, ...p }))
+    api('/me', { method: 'PUT', body: JSON.stringify(p) }).catch(() => {})
+  }
+  const onPlus = () => setRoute({ name: 'settings' }) // LING-005/007 own the Plus screen
   const rail = <Rail expanded={false} current={route.name} items={[{ key: 'home', label: strings.rail.watch }, { key: 'quiz', label: strings.rail.review }, { key: 'words', label: strings.rail.words }, { key: 'pair', label: 'Pair' }, { key: 'settings', label: strings.rail.settings }]} onSelect={(k) => setRoute({ name: k as 'home' })} />
   if (offline) return <Screen><View style={{ flex: 1, justifyContent: 'center' }} accessibilityLiveRegion="polite"><T variant="title">{strings.offline}</T></View></Screen>
   switch (route.name) {
-    case 'player': return clip ? <Player clip={clip} learner={learner} scale={scale} challenge={route.challenge && learner.plus} sessionCode={session.code ?? undefined} onSave={save} onBack={() => setRoute({ name: 'home' })} onEnd={() => setRoute({ name: 'summary' })} /> : <Screen rail={rail}><T variant="body">…</T></Screen>
+    case 'player': return clip ? <Player clip={clip} learner={learner} scale={scale} challenge={route.challenge && learner.plus} sessionCode={session.code ?? undefined} savedIds={savedIds} savedCount={saved.length} remote={remote} onSave={save} onPlus={onPlus} onLearnerChange={patchLearner} onBack={() => setRoute({ name: 'home' })} onEnd={() => setRoute({ name: 'summary' })} /> : <Screen rail={rail}><T variant="body">…</T></Screen>
     case 'summary': return <Screen><Summary saved={saved} lang={learner.learning} phoneConnected={!!session.phone} onQuizTv={() => setRoute({ name: 'quiz' })} onQuizPhone={() => setRoute({ name: 'home' })} onAgain={() => clip && setRoute({ name: 'player', slug: clip.slug, challenge: false })} onNext={() => setRoute({ name: 'home' })} /></Screen>
     case 'quiz': return <Screen>{clip ? <Quiz items={clip.quiz} onDone={() => setRoute({ name: 'home' })} onReplayCue={() => {}} /> : <T variant="body">{strings.words.empty}</T>}</Screen>
     case 'pair': return <Screen rail={rail}><Pair code={session.code} joinUrl={session.joinUrl} connected={session.phone} onLater={() => setRoute({ name: 'home' })} /></Screen>

@@ -4,7 +4,10 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_TV": "1"
+      }
     }
   }
 }

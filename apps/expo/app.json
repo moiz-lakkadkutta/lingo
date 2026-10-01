@@ -25,7 +25,9 @@
         {
           "fonts": []
         }
-      ]
+      ],
+      "@react-native-tvos/config-tv",
+      "./plugins/withKeyDownEvents"
     ]
   }
 }

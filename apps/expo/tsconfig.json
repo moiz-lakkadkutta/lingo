@@ -7,6 +7,6 @@
     ]
   },
   "include": [
-    "App.tsx"
+    "App.tsx", "RemoteBridge.tsx"
   ]
 }

@@ -11,6 +11,8 @@ export const tokens = {
     focus: '#EFF1EE',
     incorrect: '#D98B7A', error: '#D98B7A',
     cueBox: 'rgba(0,0,0,0.65)',
+    scrim: 'rgba(15,21,27,0.4)',     // ground at 40 %: dims the picture behind the Explain card
+    stage: '#000000',                // letterbox behind the video
   },
   type: {
     floor: 28,
@@ -21,7 +23,7 @@ export const tokens = {
     cueTarget: { family: 'NotoSans-Regular', weight: '400', size: 44, line: 57 },
     cueNative: { family: 'NotoSans-Regular', weight: '400', size: 32, line: 40 },
   } as Record<TypeRole, { family: string; weight: '400' | '700'; size: number; line: number; tracking?: number; tabular?: boolean }> & { floor: number },
-  layout: { safeX: 96, safeY: 54, rail: 96, railExpanded: 336, cardW: 412, cardH: 232, gutter: 24, heroH: 520, explainW: 880, explainH: 420 },
-  focus: { width: 4, offset: 3, wordWidth: 3 },
-  motion: { focusMs: 150, focusScale: 1.04, overlayHideMs: 4000, autoPauseHoldMs: 2000 },
+  layout: { safeX: 96, safeY: 54, rail: 96, railExpanded: 336, cardW: 412, cardH: 232, gutter: 24, heroH: 520, explainW: 880, explainH: 420, holdBarH: 4, wordGap: 12, wordPadX: 6, sheetW: 640 },
+  focus: { width: 4, offset: 3, wordWidth: 3, wordOffset: 2 },
+  motion: { focusMs: 150, focusScale: 1.04, overlayHideMs: 4000, autoPauseHoldMs: 2000, longPressMs: 500, seekGraceS: 1 },
 } as const
