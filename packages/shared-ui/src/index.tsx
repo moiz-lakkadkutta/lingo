@@ -62,6 +62,6 @@ export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport, re
     case 'summary': return <Screen><Summary saved={saved} lang={learner.learning} phoneConnected={!!session.phone} onQuizTv={() => setRoute({ name: 'quiz' })} onQuizPhone={() => setRoute({ name: 'home' })} onAgain={() => clip && setRoute({ name: 'player', slug: clip.slug, challenge: false })} onNext={() => setRoute({ name: 'home' })} /></Screen>
     case 'quiz': return <Screen>{clip ? <Quiz items={clip.quiz} onDone={() => setRoute({ name: 'home' })} onReplayCue={() => {}} /> : <T variant="body">{strings.words.empty}</T>}</Screen>
     case 'pair': return <Screen rail={rail}><Pair code={session.code} joinUrl={session.joinUrl} connected={session.phone} onLater={() => setRoute({ name: 'home' })} /></Screen>
-    default: return <Screen rail={rail}><Home catalog={catalog} learner={learner} onOpen={(slug) => setRoute({ name: 'player', slug, challenge: false })} onWatch={(slug) => setRoute({ name: 'player', slug, challenge: false })} /></Screen>
+    default: return <Home catalog={catalog ? { state: 'ready', data: catalog } : { state: 'loading' }} learner={learner} onReload={() => {}} onRail={() => {}} onSettings={() => setRoute({ name: 'settings' })} onFocusId={() => {}} onOpen={(slug) => setRoute({ name: 'player', slug, challenge: false })} onWatch={(c) => setRoute({ name: 'player', slug: c.slug, challenge: false })} />
   }
 }
