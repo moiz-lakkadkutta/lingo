@@ -1,11 +1,12 @@
 import { Catalog, ClipResponse, LearnerDto, LevelResult, LibraryWord } from '@lingo/contracts'
-import type { HighlightDto, LearnerSettingsPatch, LevelPut, ProgressPut } from '@lingo/contracts'
+import type { HighlightDto, Lang, LearnerSettingsPatch, Level, LevelPut, ProgressPut } from '@lingo/contracts'
 import type { Api } from './client'
 
 export interface Endpoints {
   me(): Promise<LearnerDto>
   patchMe(p: LearnerSettingsPatch): Promise<LearnerDto>
-  catalog(): Promise<Catalog>
+  /** `q` overrides the stored learner values (GET /catalog?learning=&level=), so an optimistic Settings change is used at once. */
+  catalog(q?: { learning: Lang; level: Level }): Promise<Catalog>
   clip(slug: string): Promise<ClipResponse>
   putProgress(b: ProgressPut): Promise<void>
   putLevel(b: LevelPut): Promise<LevelResult>
@@ -18,7 +19,7 @@ export function endpoints(api: Api): Endpoints {
   return {
     me: async () => LearnerDto.parse(await api('/me')),
     patchMe: async (p) => LearnerDto.parse(await api('/me', json('PUT', p))),
-    catalog: async () => Catalog.parse(await api('/catalog')),
+    catalog: async (q) => Catalog.parse(await api(q ? `/catalog?learning=${q.learning}&level=${q.level}` : '/catalog')),
     clip: async (slug) => ClipResponse.parse(await api(`/clips/${encodeURIComponent(slug)}`)),
     putProgress: async (b) => { await api('/me/progress', json('PUT', b)) },
     putLevel: async (b) => LevelResult.parse(await api('/me/level', json('PUT', b))),

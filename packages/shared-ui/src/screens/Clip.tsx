@@ -63,7 +63,7 @@ export function Clip({ clip, learner, inContinue, onReload, onWatch, onPlus, onA
   const ids = ['watch', 'challenge', ...(showAdd ? ['continue'] : [])]
   if (pref.current === undefined) pref.current = pickPreferred(initialFocus, ids, 'watch')
   const preferred = pref.current
-  const at = data.resumeS !== null ? formatClock(data.resumeS) : null
+  const at = data.resumeS ? formatClock(data.resumeS) : null // 0 s (added to Continue, not started) reads Watch
   const words = data.wordsYoullMeet.slice(0, MEET_MAX)
   const status = added === 'yes' ? strings.clip.added : added === 'error' ? strings.common.saveError : null
   const addToContinue = async () => {

@@ -85,7 +85,7 @@ export function Home({ catalog, learner, onReload, onWatch, onOpen, onRail, onSe
   }
 
   const rail = <Rail items={RAIL_ITEMS} current="home" onSelect={onRail} itemRefs={railRefs} rightTarget={handles.right} initialFocus={preferred ?? undefined} onFocusId={onFocusId} />
-  const at = hero?.resumeS != null ? formatClock(hero.resumeS) : null
+  const at = hero?.resumeS ? formatClock(hero.resumeS) : null // 0 s (added to Continue, not started) reads Watch
   return (
     <Screen rail={rail}>
       <ScrollView showsVerticalScrollIndicator={false}>
