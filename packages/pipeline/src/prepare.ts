@@ -98,8 +98,9 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   await writeFile(`${work}/gate.json`, JSON.stringify(gateReport(segs, dropped), null, 2) + '\n')
   assertGate(segs, `edit ${targetPath} (condense, retime, split or merge the cues; a line break in the file is kept) and re-run with --cues ${targetPath}`)
   // 4. native lines, aligned 1:1 by cue
-  const native = await alignNative(segs, lang, natives, deps.translate)
-  mark(`translated (${natives.join(', ')})`)
+  const formality = input.formality ?? 'INFORMAL'
+  const native = await alignNative(segs, lang, natives, (t, f, to) => deps.translate(t, f, to, { formality }))
+  mark(`translated (${natives.join(', ')}, ${formality.toLowerCase()})`)
   // 5. tokens (from the final cue text) → lemma → rank → name
   const raw = tokenizeCues(segs)
   const unique = new Map<string, { word: string; sentenceInitial: boolean }>()
