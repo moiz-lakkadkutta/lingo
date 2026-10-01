@@ -13,6 +13,8 @@
   },
   "include": [
     "App.tsx",
-    "RemoteBridge.tsx"
+    "RemoteBridge.tsx",
+    "LaunchBridge.tsx",
+    "src"
   ]
 }

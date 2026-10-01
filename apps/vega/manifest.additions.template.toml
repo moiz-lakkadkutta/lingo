@@ -1,0 +1,50 @@
+# Merge into the Vega CLI's manifest.toml (LING-007). Keep the generated [package]/[components]; set [package] id = "dev.moizp.lingo"
+# (the Fire OS package: an existing Fire TV app must reuse its application id for IAP items to apply) and add
+# "com.amazon.category.kepler.media" to the main interactive component's categories.
+# Source: AmazonAppDev/vega-video-sample manifest.toml, reduced to what Lingo uses.
+# https://developer.amazon.com/docs/vega/0.22/vega-iap-overview.html
+# https://community.amazondeveloper.com/t/sample-manifest-for-content-launcher-account-login-and-vega-media-controls/7956
+
+# IAP
+[[wants.service]]
+id = "com.amazon.iap.core.service"
+[[wants.module]]
+id = "/com.amazon.iap.core@IIAPCoreUI"
+[[wants.service]]
+id = "com.amazon.iap.tester.service"            # App Tester (sandbox)
+[[wants.module]]
+id = "/com.amazonappstore.iap.tester@IIAPTesterUI"
+[[needs.module]]
+id = "/com.amazon.kepler.appstore.iap.purchase.core@IAppstoreIAPPurchaseCoreService"
+# Content Launcher
+[[needs.module]]
+id = "/com.amazon.kepler.media@IContentLauncher1"
+# Content Personalization (only effective once KIT-007 calls the API; harmless before)
+[[wants.service]]
+id = "com.amazon.tv.developer.dataservice"
+[[wants.privilege]]
+id = "com.amazon.tv.content-personalization.privilege.provide-data"
+# Media Controls
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+
+[[message]]
+uri = "pkg://dev.moizp.lingo.main"
+sender-privileges = ["*"]
+receiver-privileges = ["self"]
+
+[[extras]]
+key = "interface.provider"
+component-id = "dev.moizp.lingo.main"
+[extras.value.application]
+[[extras.value.application.interface]]
+interface_name = "com.amazon.kepler.media.IContentLauncherServer"
+attribute_options = ["partner-id"]
+static-values = { partner-id = "LINGO" }      # Q5: the real partner id comes from Amazon catalog onboarding
+[[extras.value.application.interface]]
+interface_name = "com.amazon.kepler.media.IMediaPlaybackServer"
+command_options = ["SkipForward", "SkipBackward"]
+features = ["AdvancedSeek"]                     # no VariableSpeed: Vega caps.rate is false (decision 0006)
+
+# Not added: the IContentPersonalizationServer interface block (SupportedCustomerLists / DataRefreshComponentId). It needs a
+# headless data-refresh service component Lingo does not have (escalation E3).
