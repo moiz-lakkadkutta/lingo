@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { defaultPython, lemmaKey, pythonHasSimplemma, REPO_VENV_PYTHON, pythonLemmatizer, tableLemmatizer, type LemmaResult } from '../src/lemmatize'
-import { tokenizeWords } from '../src/tokenize'
+import { tokenizeCues, tokenizeWords } from '../src/tokenize'
+import { segmentWithReport, wrap2 } from '../src/segment'
 import { wordsFromTranscribe } from '../src/steps/transcribe'
 import { TranscribeJson } from '../src/types'
 import { FIXTURES, fixtureVocabulary, lemmaTable } from '../scripts/gen-fixtures'
@@ -9,6 +10,7 @@ import { FIXTURES, fixtureVocabulary, lemmaTable } from '../scripts/gen-fixtures
 const readJson = async <T>(f: string) => JSON.parse(await readFile(resolve(FIXTURES, f), 'utf8')) as T
 const table = (lang: 'de' | 'en') => readJson<Record<string, LemmaResult>>(`lemmas-${lang}.json`)
 const fixture = (lang: 'de' | 'en') => readJson<unknown>(`transcribe-60s-${lang}.json`).then((j) => TranscribeJson.parse(j))
+const overlapFixture = () => readJson<unknown>('transcribe-overlap-de.json').then((j) => TranscribeJson.parse(j))
 
 describe('tableLemmatizer', () => {
   const t = { Warte: { lemma: 'Warte', known: true }, 'Warte|si': { lemma: 'warten', known: true }, Stunden: { lemma: 'Stunde', known: true } }
@@ -36,6 +38,14 @@ describe('lemma fixtures', () => {
       expect(missing).toEqual([])
     }
   })
+  it('cover every (word, sentenceInitial) pair of the overlap fixture', async () => {
+    const tbl = { ...(await table('de')), ...(await readJson<Record<string, LemmaResult>>('lemmas-overlap-de.json')) }
+    const cues = segmentWithReport(wordsFromTranscribe(await overlapFixture())).cues.map((s) => ({ ...s, text: wrap2(s.text) }))
+    const toks = tokenizeCues(cues)
+    expect(toks.length).toBeGreaterThan(80)
+    expect(toks.map((t) => lemmaKey(t.word, t.sentenceInitial)).filter((k) => !(k in tbl))).toEqual([])
+    expect(toks.find((t) => t.word === 'Aber')!.sentenceInitial).toBe(true) // the second line of a two-speaker cue
+  })
   it('contain the expected entries the highlight path relies on', async () => {
     const de = await table('de'), en = await table('en')
     expect(de['Warte|si']!.lemma).toBe('warten'); expect(de['Stunden']!.lemma).toBe('Stunde'); expect(de['angerufen']!.lemma).toBe('anrufen')
@@ -52,6 +62,10 @@ describe.skipIf(!hasSimplemma)('pythonLemmatizer (skipIf no simplemma)', () => {
   it('matches the committed lemma table for the German fixture', async () => {
     const vocab = fixtureVocabulary(await fixture('de'), 'de')
     expect(await lemmaTable(vocab, 'de')).toEqual(await table('de'))
+  }, 30000)
+  it('matches the committed lemma table for the overlap fixture', async () => {
+    const vocab = fixtureVocabulary(await overlapFixture(), 'de', [])
+    expect(await lemmaTable(vocab, 'de')).toEqual(await readJson<Record<string, LemmaResult>>('lemmas-overlap-de.json'))
   }, 30000)
   it('reports the pinned version', async () => {
     const lm = pythonLemmatizer()

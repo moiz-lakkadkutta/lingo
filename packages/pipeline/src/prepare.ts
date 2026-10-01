@@ -1,17 +1,18 @@
 import { execa } from 'execa'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { PreparedClip, type PreparedCue, type PreparedHighlight, type PreparedQuizItem, type PreparedToken } from '@lingo/contracts'
-import { segment, wrap2 } from './segment'
-import { assertGate } from './gate'
+import { segmentWithReport, wrap2, type Dropped, type Seg } from './segment'
+import { assertGate, gateReport } from './gate'
 import { BANDS, clipLevel, coverageRank, isCountable, NEXT, pickHighlights, type Level } from './highlights'
 import { DATA_DIR, loadFreqList, rankFn } from './freq'
 import { isName, loadNames } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
-import { tokenizeWords } from './tokenize'
-import { checkVtt, cuesToVtt } from './vtt'
+import { tokenizeCues } from './tokenize'
+import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
 import { glossWord, quizForClip } from './prompts'
-import { normalize } from './steps/normalize'
+import { normalize, probeMezz } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
 import { pack } from './steps/package'
@@ -36,7 +37,7 @@ export function defaultDeps(): PrepareDeps {
   }
 }
 
-/** Steps 1–10 of PLAN §4: normalise → transcribe → segment → translate → lemmatize/rank/highlight → gloss/quiz (skipped when input.ai === false) → VTT → package → publish → clip.json. */
+/** Steps 1–10 of PLAN §4: normalise → transcribe → segment (or, with input.cues, a corrected VTT: docs/decisions/0007) → translate → lemmatize/rank/highlight → gloss/quiz (skipped when input.ai === false) → VTT → package → publish → clip.json. */
 export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDeps()): Promise<PrepareResult> {
   const { slug, source, lang } = input
   const natives = [...new Set(input.natives.filter((n) => n !== lang))]
@@ -50,24 +51,42 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const work = resolve(input.workRoot ?? 'work', slug)
   await mkdir(work, { recursive: true })
 
-  // 1. download + probe + normalise
-  const { durationS } = await normalize(work, source, deps)
-  // 2. transcribe → transcript.json, words.json
-  const transcribeJob = transcribeJobName(slug, deps.now())
-  const transcript = await deps.transcribe(source, lang, transcribeJob)
-  await writeFile(`${work}/transcript.json`, JSON.stringify(transcript, null, 2))
-  const words = wordsFromTranscribe(transcript)
-  if (!words.length) throw new Error(`no speech in ${slug}`)
-  await writeFile(`${work}/words.json`, JSON.stringify(words))
-  // 3. segment + quality gate
-  const segs = segment(words).map((s) => ({ ...s, text: wrap2(s.text) }))
-  assertGate(segs)
+  const vttFiles: Record<string, string> = {}
+
+  // 1. media: download + probe + normalise; a --cues re-run reuses the mezzanine when it exists
+  const reuse = !!input.cues && existsSync(`${work}/mezz.mp4`)
+  const { durationS } = reuse ? await probeMezz(work, deps) : await normalize(work, source, deps)
+  // 2–3. cues: from Transcribe + segmenter, or from the corrected VTT (docs/decisions/0007)
+  let transcribeJob: string | null = null
+  let segs: Seg[]
+  let dropped: Dropped[] = []
+  if (input.cues) {
+    const tPath = `${work}/transcript.json`
+    if (existsSync(tPath)) transcribeJob = (JSON.parse(await readFile(tPath, 'utf8')) as { jobName?: string }).jobName ?? null
+    segs = (await loadCuesVtt(input.cues, lang)).map((s) => ({ ...s, text: wrap2(s.text) })) // read fully before anything is written
+  } else {
+    transcribeJob = transcribeJobName(slug, deps.now())
+    const transcript = await deps.transcribe(source, lang, transcribeJob)
+    await writeFile(`${work}/transcript.json`, JSON.stringify(transcript, null, 2))
+    const words = wordsFromTranscribe(transcript)
+    if (!words.length) throw new Error(`no speech in ${slug}`)
+    await writeFile(`${work}/words.json`, JSON.stringify(words))
+    const r = segmentWithReport(words)
+    segs = r.cues.map((s) => ({ ...s, text: wrap2(s.text) }))
+    dropped = r.dropped
+  }
+  for (const d of dropped) warnings.push(`dropped cue ${d.startS.toFixed(3)}–${d.endS.toFixed(3)} ${JSON.stringify(d.text)} (${d.reason})`)
+  // write before the gate so a human can correct what the segmenter produced
+  const targetVtt = cuesToVtt(segs, lang)
+  const targetPath = `${work}/${lang}.vtt`
+  await writeFile(targetPath, targetVtt); vttFiles[lang] = targetPath
+  if (dropped.length) await writeFile(`${work}/dropped.vtt`, cuesToVtt(dropped.map((d, i) => ({ index: i, startS: d.startS, endS: d.endS, text: d.text })), lang))
+  await writeFile(`${work}/gate.json`, JSON.stringify(gateReport(segs, dropped), null, 2) + '\n')
+  assertGate(segs, `edit ${targetPath} (condense, retime, split or merge the cues; a line break in the file is kept) and re-run with --cues ${targetPath}`)
   // 4. native lines, aligned 1:1 by cue
   const native = await alignNative(segs, lang, natives, deps.translate)
-  // 5. tokens → lemma → rank → name
-  const raw = tokenizeWords(words)
-  const cueOf = new Map<number, number>()
-  for (let k = 0, t = 0; t < raw.length; t++) { const w = words[raw[t]!.wordIndex]!; while (k + 1 < segs.length && w.start >= segs[k + 1]!.startS - 1e-6) k++; cueOf.set(t, k) }
+  // 5. tokens (from the final cue text) → lemma → rank → name
+  const raw = tokenizeCues(segs)
   const unique = new Map<string, { word: string; sentenceInitial: boolean }>()
   for (const t of raw) unique.set(lemmaKey(t.word, t.sentenceInitial), { word: t.word, sentenceInitial: t.sentenceInitial })
   const keys = [...unique.keys()]
@@ -79,7 +98,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   raw.forEach((t, i) => {
     const { lemma, known } = lemmaOf.get(lemmaKey(t.word, t.sentenceInitial))!
     const name = isName({ word: t.word, lemma, known, sentenceInitial: t.sentenceInitial }, nameCtx)
-    tokensByCue[cueOf.get(i)!]!.push({ word: t.word, lemma, rank: rank(lemma) ?? null, name, sentenceInitial: t.sentenceInitial })
+    tokensByCue[t.cueIndex]!.push({ word: t.word, lemma, rank: rank(lemma) ?? null, name, sentenceInitial: t.sentenceInitial })
   })
   // 6. level, coverage, highlights, glosses, quiz (names, digits and number words do not count, as in pickHighlights)
   const rankable = tokensByCue.flat().filter(isCountable)
@@ -94,15 +113,12 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
     highlights.push(...glossed)
     quiz = (await deps.quiz(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '', highlights: glossed.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), lang, natives[0]!)).items
   } else highlights.push(...picked)
-  // 7. VTT files: target findings fail the clip, native findings are warnings (translations can run long)
-  const vttFiles: Record<string, string> = {}
-  const targetVtt = cuesToVtt(segs, lang)
+  // 7. VTT files: the target VTT is already on disk (step 3) and its findings fail the clip; native findings (2 × 56, 26 cps) are warnings
   const targetCheck = checkVtt(targetVtt, lang)
   if (targetCheck.findings.length) throw new Error(`target VTT lint: ${targetCheck.findings.map((f) => `${f.id} ${f.problem}=${f.value}`).join('; ')}`)
-  await writeFile(`${work}/${lang}.vtt`, targetVtt); vttFiles[lang] = `${work}/${lang}.vtt`
   for (const n of natives) {
     const vtt = cuesToVtt(segs.map((s) => ({ ...s, text: native[s.index]![n] || ' ' })), n)
-    for (const f of checkVtt(vtt, n).findings) warnings.push(`native ${n} ${f.id} ${f.problem}=${f.value}`)
+    for (const f of checkVtt(vtt, n, NATIVE_LINT_LIMITS).findings) warnings.push(`native ${n} ${f.id} ${f.problem}=${f.value}`)
     await writeFile(`${work}/native-${n}.vtt`, vtt); vttFiles[n] = `${work}/native-${n}.vtt`
   }
   // 8. package (+ publish)
@@ -119,6 +135,6 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   let clip = PreparedClip.parse({ ...clipBase, publishedBase: null })
   await write(clip)
   if (doPublish) { clip = PreparedClip.parse({ ...clipBase, publishedBase: await publish({ work, slug, lang, natives, bucket: bucket!, cloudfrontDomain: cloudfrontDomain! }, deps) }); await write(clip) }
-  deps.log(`prepared ${slug}: level ${level} (coverage rank ${coverage}), ${cues.length} cues, ${highlights.length} highlights, ${quiz ? `${quiz.length} quiz items` : 'no glosses or quiz (--no-ai)'}, ${warnings.length} warnings, ${durationS.toFixed(1)} s, lemmatizer ${deps.lemmatizer.name} → ${clip.publishedBase ?? 'not published'} (${work})`)
+  deps.log(`prepared ${slug}: level ${level} (coverage rank ${coverage}), ${cues.length} cues, ${highlights.length} highlights, ${quiz ? `${quiz.length} quiz items` : 'no glosses or quiz (--no-ai)'}, ${warnings.length} warnings, ${dropped.length} dropped, ${durationS.toFixed(1)} s, lemmatizer ${deps.lemmatizer.name} → ${clip.publishedBase ?? 'not published'} (${work})`)
   return { clip, workDir: work, files: { clipJson, vtt: vttFiles, manifest } }
 }

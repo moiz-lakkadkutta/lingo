@@ -4,7 +4,7 @@
  * translate upper-cases (not quite length-preserving — ß → SS — but the fixture dialogues stay within the cps/line limits either way, and native
  * VTT findings are warnings that the prepare tests assert to be empty); lemmatizer is the committed lookup table; freq/names are the real data files.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,9 +16,19 @@ import { TranscribeJson, type Lang, type PrepareDeps } from './types'
 export interface RecordedExec { cmd: string; args: string[] }
 const FIXTURES = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'test', 'fixtures')
 
-export function fixtureDeps(lang: Lang, opts: { durationS?: number } = {}): PrepareDeps & { calls: RecordedExec[] } {
+/** The lemma table of a fixture: lemmas-{lang}.json, merged with lemmas-{name}-{lang}.json for a named fixture when that file exists. */
+function lemmaTableFor(name: string, lang: Lang): Record<string, LemmaResult> {
+  const read = (f: string) => JSON.parse(readFileSync(resolve(FIXTURES, f), 'utf8')) as Record<string, LemmaResult>
+  const base = read(`lemmas-${lang}.json`)
+  const extra = `lemmas-${name}-${lang}.json`
+  return name !== '60s' && existsSync(resolve(FIXTURES, extra)) ? { ...base, ...read(extra) } : base
+}
+
+/** opts.transcript: the Transcribe fixture name (default '60s'; also 'overlap' → transcribe-overlap-{lang}.json). */
+export function fixtureDeps(lang: Lang, opts: { durationS?: number; transcript?: string } = {}): PrepareDeps & { calls: RecordedExec[] } {
   const calls: RecordedExec[] = []
-  const transcript = TranscribeJson.parse(JSON.parse(readFileSync(resolve(FIXTURES, `transcribe-60s-${lang}.json`), 'utf8')))
+  const name = opts.transcript ?? '60s'
+  const transcript = TranscribeJson.parse(JSON.parse(readFileSync(resolve(FIXTURES, `transcribe-${name}-${lang}.json`), 'utf8')))
   const lastWordEnd = Math.max(...transcript.results.items.map((i) => parseFloat(i.end_time ?? '0')))
   return {
     calls,
@@ -32,9 +42,10 @@ export function fixtureDeps(lang: Lang, opts: { durationS?: number } = {}): Prep
       }
       return { stdout: '' }
     },
-    transcribe: async () => transcript,
+    // like Transcribe, the transcript carries the job name it was started with (prepare --cues reads it back from transcript.json)
+    transcribe: async (_source, _lang, jobName) => ({ ...transcript, jobName }),
     translate: async (t) => t.toUpperCase(),
-    lemmatizer: tableLemmatizer(JSON.parse(readFileSync(resolve(FIXTURES, `lemmas-${lang}.json`), 'utf8')) as Record<string, LemmaResult>),
+    lemmatizer: tableLemmatizer(lemmaTableFor(name, lang)),
     freqList: (l) => loadFreqList(l),
     names: (l) => loadNames(resolve(DATA_DIR, `names-${l}.txt`)),
     gloss: async (word, lemma) => ({ gloss: `gloss of ${lemma}`, grammar: 'test grammar note', example: `Example with ${word}.` }),

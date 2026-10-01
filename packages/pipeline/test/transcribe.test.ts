@@ -92,6 +92,50 @@ describe('fixtures', () => {
   })
 })
 
+describe('overlapping-speaker fixture (docs/decisions/0007 M3)', () => {
+  type Item = { type: string; start_time?: string; end_time?: string; speaker_label?: string; alternatives: Array<{ content: string }> }
+  type Run = { start_time: string; end_time: string; speaker_label: string; items: Array<{ start_time: string; end_time: string; speaker_label: string }> }
+  const overlap = async () => JSON.parse(await read('transcribe-overlap-de.json')) as { jobName: string; results: { items: Item[]; speaker_labels?: { channel_label: string; speakers: number; segments: Run[] } } }
+  it('regenerating dialogue-overlap-de.txt reproduces transcribe-overlap-de.json byte for byte', async () => {
+    const regenerated = stringify(transcribeFixtureFromDialogue(await read('dialogue-overlap-de.txt'), 'de', 'overlap'))
+    expect(regenerated).toBe(await read('transcribe-overlap-de.json'))
+    expect((await overlap()).jobName).toBe('fixture-overlap-de')
+  })
+  it('overlap fixture: speaker_label on every item, speaker_labels with 2 speakers and one segment per run, one item starting before the previous item ends', async () => {
+    const t = await overlap()
+    const items = t.results.items
+    expect(items.every((i) => i.speaker_label === 'spk_0' || i.speaker_label === 'spk_1')).toBe(true)
+    const sl = t.results.speaker_labels!
+    expect(sl.channel_label).toBe('ch_0'); expect(sl.speakers).toBe(2)
+    const pron = items.filter((i) => i.type === 'pronunciation')
+    const runs: string[] = []
+    for (const i of pron) if (runs.at(-1) !== i.speaker_label) runs.push(i.speaker_label!)
+    expect(sl.segments.map((s) => s.speaker_label)).toEqual(runs)
+    expect(sl.segments.flatMap((s) => s.items).length).toBe(pron.length)
+    for (const s of sl.segments) { expect(s.start_time).toBe(s.items[0]!.start_time); expect(s.end_time).toBe(s.items.at(-1)!.end_time) }
+    const overlapping = pron.filter((p, k) => k > 0 && parseFloat(p.start_time!) < parseFloat(pron[k - 1]!.end_time!))
+    expect(overlapping.map((p) => [p.alternatives[0]!.content, p.speaker_label])).toEqual([['Das', 'spk_1']])
+    expect(wordsFromTranscribe(TranscribeJson.parse(t)).every((w) => w.speaker === 'spk_0' || w.speaker === 'spk_1')).toBe(true)
+  })
+  it('speaker offsets: [B+0.05] starts 50 ms after the previous word ends, [B-0.12] 120 ms before', () => {
+    const t = transcribeFixtureFromDialogue('[A] Genau. [B+0.05] Aber was? [A] Das war alle. [B-0.12] Das glaube ich.', 'de', 'x')
+    const words = wordsFromTranscribe(t)
+    const at = (w: string) => words.findIndex((x) => x.text === w)
+    const ms = (n: number) => Math.round(n * 1000)
+    expect(ms(words[at('Aber')]!.start) - ms(words[at('Genau.')]!.end)).toBe(50)
+    expect(ms(words[at('alle.')]!.end) - ms(words[at('alle.') + 1]!.start)).toBe(120)
+    expect(words.map((w) => w.speaker)).toEqual(['spk_0', 'spk_1', 'spk_1', 'spk_0', 'spk_0', 'spk_0', 'spk_1', 'spk_1', 'spk_1'])
+    expect(t.results.transcripts[0]!.transcript).toBe('Genau. Aber was? Das war alle. Das glaube ich.')
+  })
+  it('the 60-second fixtures carry no speaker_label and no speaker_labels section', async () => {
+    for (const lang of ['de', 'en'] as const) {
+      const raw = await read(`transcribe-60s-${lang}.json`)
+      expect(raw).not.toContain('speaker_label')
+      expect((await fixture(lang)).results).not.toHaveProperty('speaker_labels')
+    }
+  })
+})
+
 describe('transcribeWithAws polling', () => {
   it('throws a clear error when the job is still running after maxWaitMs (mocked client, no AWS)', async () => {
     const sent: string[] = []

@@ -1,11 +1,13 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PreparedClip } from '@lingo/contracts'
 import { prepare } from '../src/prepare'
 import { fixtureDeps } from '../src/fixtureDeps'
 import { BANDS, NEXT } from '../src/highlights'
-import { checkVtt, LINT_LIMITS } from '../src/vtt'
+import { isDualText } from '../src/segment'
+import { checkVtt, cuesToVtt, LINT_LIMITS } from '../src/vtt'
 import { parseVtt, lintCues } from '@moizp/vega-media-kit/core'
 import { TranscribeJson, type Lang } from '../src/types'
 
@@ -129,6 +131,77 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     const sentence = lang === 'de' ? 'Ich habe dreimal angerufen und niemand hat abgenommen, also bin ich hierher gekommen.' : 'I called you three times and nobody answered, so in the end I just walked all the way here.'
     d.transcribe = async () => TranscribeJson.parse({ results: { transcripts: [{ transcript: sentence }], items: sentence.split(' ').map((w, i) => ({ type: 'pronunciation', start_time: (i * 0.02).toFixed(2), end_time: (i * 0.02 + 0.015).toFixed(3), alternatives: [{ content: w }] })) } })
     await expect(prepare({ slug: `fast-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)).rejects.toThrow(/cps/)
+    // docs/decisions/0007: the target VTT and the gate report are on disk before the gate fails, and the error names the correction path
+    const work = `${workRoot}/fast-${lang}`
+    expect(existsSync(`${work}/${lang}.vtt`)).toBe(true)
+    const report = JSON.parse(await readFile(`${work}/gate.json`, 'utf8')) as { findings: Array<{ problem: string; text: string; startS: number }>; dropped: unknown[] }
+    expect(report.findings[0]!.problem).toBe('cps')
+    expect(typeof report.findings[0]!.text).toBe('string'); expect(report.findings[0]!.text.length).toBeGreaterThan(0)
+    expect(typeof report.findings[0]!.startS).toBe('number')
+    await expect(prepare({ slug: `fast-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)).rejects.toThrow(new RegExp(`--cues ${work}/${lang}\\.vtt`))
+  })
+  it('with cues: skips Transcribe and segmentation, re-wraps a single-line cue, keeps a written line break, and tokens follow the edited text', async () => {
+    const slug = `edit-${lang}`
+    const first = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, fixtureDeps(lang))
+    const path = first.files.vtt[lang]!
+    const cues = parseVtt(await readFile(path, 'utf8'), { trackId: lang, minDuration: 0, mergeGap: 0 }).map((c) => ({ text: c.text, startS: c.start, endS: c.end }))
+    const joined = cues.findIndex((c) => c.text.includes('\n'))
+    const broken = cues.findIndex((c, i) => i !== joined && !c.text.includes('\n') && c.text.split(' ').length >= 3)
+    const cut = cues.findIndex((c, i) => i !== joined && i !== broken && !c.text.includes('\n') && c.text.split(' ').length >= 5)
+    expect(Math.min(joined, broken, cut)).toBeGreaterThanOrEqual(0)
+    const wrappedOriginal = cues[joined]!.text
+    cues[joined]!.text = wrappedOriginal.replace('\n', ' ')
+    cues[broken]!.text = cues[broken]!.text.replace(' ', '\n')
+    const brokenText = cues[broken]!.text
+    const cutWords = cues[cut]!.text.split(' ')
+    const k = cutWords.findIndex((w, i) => i > 0 && i < cutWords.length - 1 && /^[\p{L}]+$/u.test(w) && cutWords.filter((x) => x === w).length === 1)
+    expect(k).toBeGreaterThan(0)
+    const deleted = cutWords[k]!
+    cues[cut]!.text = cutWords.filter((_, i) => i !== k).join(' ')
+    await writeFile(path, cuesToVtt(cues.map((c, index) => ({ index, ...c })), lang))
+    const d = fixtureDeps(lang)
+    const transcribe = vi.fn(d.transcribe); d.transcribe = transcribe
+    const r = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false, cues: path }, d)
+    expect(transcribe).not.toHaveBeenCalled()
+    expect(r.clip.source.transcribeJob).toBe(first.clip.source.transcribeJob)
+    expect(r.clip.cues.length).toBe(cues.length)
+    expect(r.clip.cues[joined]!.text).toBe(wrappedOriginal)
+    expect(r.clip.cues[broken]!.text).toBe(brokenText)
+    expect(r.clip.cues[cut]!.text).toBe(cues[cut]!.text)
+    expect(r.clip.cues[cut]!.tokens.map((t) => t.word)).not.toContain(deleted)
+    expect(first.clip.cues[cut]!.tokens.map((t) => t.word)).toContain(deleted)
+    for (const c of r.clip.cues) for (const t of c.tokens) expect(c.text.replace(/\n/g, ' ')).toContain(t.word)
+  })
+  it('with cues: reuses mezz.mp4 when present and runs ffprobe only', async () => {
+    const slug = `reuse-${lang}`
+    await mkdir(`${workRoot}/${slug}`, { recursive: true })
+    await writeFile(`${workRoot}/${slug}/mezz.mp4`, '')
+    const d = fixtureDeps(lang)
+    const r = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false, cues: result.files.vtt[lang]! }, d)
+    expect(d.calls.map((c) => c.cmd)).toEqual(['ffprobe', 'packager'])
+    expect(d.calls[0]!.args.at(-1)).toBe(`${workRoot}/${slug}/mezz.mp4`)
+    expect(r.clip.source.transcribeJob).toBeNull() // no transcript.json in this work dir
+    expect(r.clip.cues.map((c) => c.text)).toEqual(clip.cues.map((c) => c.text))
+  })
+  it('native lines are wrapped at 56 and a 15-char-longer translation produces no warning', async () => {
+    const d = fixtureDeps(lang)
+    d.translate = async (t) => t.toUpperCase() + ' ab ab ab ab ab'
+    const r = await prepare({ slug: `long-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    for (const c of r.clip.cues) {
+      const lines = c.native[native]!.split('\n')
+      expect(lines.length).toBeLessThanOrEqual(2)
+      for (const l of lines) expect(l.length).toBeLessThanOrEqual(56)
+    }
+    for (const c of r.clip.cues) expect(c.native[native]!.replace(/\n/g, ' ')).toBe(c.text.replace(/\n/g, ' ').toUpperCase() + ' ab ab ab ab ab')
+    // no layout warning; short cues + 15 chars can pass 26 cps, which stays a warning by design (docs/decisions/0007 M4)
+    expect(r.clip.warnings.filter((w) => !/^native \S+ c\d+ cps=/.test(w))).toEqual([])
+  })
+  it('a native line that cannot be wrapped under 56 is a warning, not a failure', async () => {
+    const d = fixtureDeps(lang)
+    d.translate = async (t) => t.toUpperCase() + ' ' + 'x'.repeat(60)
+    const r = await prepare({ slug: `toolong-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    expect(r.clip.warnings.length).toBeGreaterThan(0)
+    expect(r.clip.warnings.some((w) => /native .* lineLength=/.test(w))).toBe(true)
   })
   it('gloss and quiz doubles are called with (word, lemma, cue, lang, native, level)', async () => {
     const d = fixtureDeps(lang)
@@ -160,5 +233,36 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     const parsed = PreparedClip.parse(json)
     expect(parsed.cues.length).toBe(clip.cues.length); expect(parsed.level).toBe(clip.level); expect(parsed.coverageRank).toBe(clip.coverageRank)
     expect(await readFile(r.files.vtt[lang]!, 'utf8')).toBe(await readFile(result.files.vtt[lang]!, 'utf8'))
+  })
+})
+
+describe('prepare: overlapping speakers (docs/decisions/0007)', () => {
+  let workRoot: string
+  beforeAll(async () => { workRoot = await mkdtemp(join(tmpdir(), 'lingo-overlap-')) })
+  afterAll(async () => { await rm(workRoot, { recursive: true, force: true }) })
+  it('overlap fixture: clip.json passes every limit, has 12 cues, two hyphenated two-speaker cues, no token contains a leading hyphen, and exactly 3 "dropped cue" warnings', async () => {
+    const r = await prepare({ slug: 'overlap-de', source: 's3://unused', lang: 'de', natives: ['en'], workRoot, publish: false }, fixtureDeps('de', { transcript: 'overlap' }))
+    const clip = PreparedClip.parse(JSON.parse(await readFile(r.files.clipJson, 'utf8')))
+    expect(clip.cues.length).toBe(12)
+    for (const c of clip.cues) {
+      const lines = c.text.split('\n'), dur = (c.endMs - c.startMs) / 1000
+      expect(lines.length).toBeLessThanOrEqual(2); for (const l of lines) expect(l.length).toBeLessThanOrEqual(42)
+      expect(dur).toBeGreaterThanOrEqual(1); expect(dur).toBeLessThanOrEqual(7); expect(lines.join('').length / dur).toBeLessThanOrEqual(20)
+    }
+    for (let i = 0; i < clip.cues.length - 1; i++) expect(clip.cues[i + 1]!.startMs - clip.cues[i]!.endMs).toBeGreaterThanOrEqual(84)
+    const dual = clip.cues.filter((c) => isDualText(c.text))
+    expect(dual.map((c) => c.text)).toEqual(['-Genau.\n-Aber was ist mit den Kosten?', '-Nein, nein, nein, warte mal kurz!\n-Okay, okay.'])
+    for (const c of dual) expect(c.native.en).toBe(c.text.toUpperCase()) // translated line by line, hyphens kept
+    expect(clip.cues.flatMap((c) => c.tokens).some((t) => t.word.startsWith('-'))).toBe(false)
+    expect(dual[0]!.tokens.find((t) => t.word === 'Aber')!.sentenceInitial).toBe(true)
+    expect(clip.warnings.filter((w) => w.startsWith('dropped cue ')).length).toBe(3)
+    expect(clip.warnings.length).toBe(3)
+    for (const f of ['de.vtt', 'native-en.vtt', 'dropped.vtt', 'gate.json']) expect(existsSync(`${r.workDir}/${f}`)).toBe(true)
+    const report = JSON.parse(await readFile(`${r.workDir}/gate.json`, 'utf8')) as { findings: unknown[]; dropped: Array<{ text: string; reason: string }> }
+    expect(report.findings).toEqual([])
+    expect(report.dropped.map((d) => [d.text, d.reason])).toEqual([['Ja.', 'unplaceable'], ['Ja.', 'interjection'], ['Mhm.', 'interjection']])
+    const droppedVtt = parseVtt(await readFile(`${r.workDir}/dropped.vtt`, 'utf8'), { trackId: 'de', minDuration: 0, mergeGap: 0 })
+    expect(droppedVtt.map((c) => c.text)).toEqual(['Ja.', 'Ja.', 'Mhm.'])
+    expect(checkVtt(await readFile(r.files.vtt.de!, 'utf8'), 'de').findings).toEqual([])
   })
 })

@@ -1,4 +1,4 @@
-import { MIN_GAP_S, type Seg } from './segment'
+import { MIN_GAP_S, type Dropped, type Seg } from './segment'
 
 /** Quality gate on the target-language cues (PLAN §5: reject any cue over 20 cps or 2 lines; 1–7 s; ≥ 2 frames apart; monotonic). */
 export interface GateFinding { cueIndex: number; problem: 'cps' | 'lines' | 'lineLength' | 'tooShort' | 'tooLong' | 'gap' | 'order'; value: number }
@@ -27,8 +27,20 @@ export function qualityGate(segs: Seg[]): GateFinding[] {
   return out
 }
 
-/** prepare() calls this: throws one Error listing every finding. */
-export function assertGate(segs: Seg[]): void {
-  const findings = qualityGate(segs)
-  if (findings.length) throw new Error(`quality gate: ${findings.length} finding(s) — ${findings.map((f) => `cue ${f.cueIndex} ${f.problem}=${f.value}`).join('; ')}`)
+/** gate.json (docs/decisions/0007): every finding joined with its cue's time span and text, plus what the segmenter dropped. */
+export interface GateReport { findings: Array<GateFinding & { startS: number; endS: number; text: string }>; dropped: Dropped[] }
+export function gateReport(segs: Seg[], dropped: Dropped[]): GateReport {
+  const byIndex = new Map(segs.map((s) => [s.index, s]))
+  return {
+    findings: qualityGate(segs).map((f) => { const s = byIndex.get(f.cueIndex)!; return { ...f, startS: s.startS, endS: s.endS, text: s.text } }),
+    dropped,
+  }
+}
+
+/** prepare() calls this: throws one Error listing every finding with its time span and text; `hint` (the correction path) goes on its own line. */
+export function assertGate(segs: Seg[], hint?: string): void {
+  const findings = gateReport(segs, []).findings
+  if (!findings.length) return
+  const list = findings.map((f) => `cue ${f.cueIndex} ${f.problem}=${f.value} [${f.startS.toFixed(3)}–${f.endS.toFixed(3)}] ${JSON.stringify(f.text)}`).join('; ')
+  throw new Error(`quality gate: ${findings.length} finding(s) — ${list}${hint ? `\n${hint}` : ''}`)
 }

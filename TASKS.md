@@ -5,6 +5,7 @@
 - [ ] LING-003 · week 2 · Player with dual cues + marker rendering + word focus; cue-wise seek; long-press replay; 0.75×
 - [x] LING-004 · week 3 · Socket.IO session (POST /sessions idempotent per TV, join validation, QR via react-native-svg, phone join/Live, word:saved < 1 s integration test) — done 2026-09-18, docs/decisions/0005. Explain-card anatomy + Save UI land with LING-003's Player rewrite.
 - [ ] LING-005 · week 3 · Home, Clip, Summary, Quiz(TV), Words, Settings, First run (placement)
+  - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank
 - [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build
   - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today)
 - [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls

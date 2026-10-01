@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { assertGate, qualityGate } from '../src/gate'
-import { MIN_GAP_S, segment, wrap2 } from '../src/segment'
+import { assertGate, gateReport, qualityGate } from '../src/gate'
+import { MIN_GAP_S, segment, segmentWithReport, wrap2, type Dropped } from '../src/segment'
 import { wordsFromTranscribe } from '../src/steps/transcribe'
 import { TranscribeJson } from '../src/types'
 import { FIXTURES } from '../scripts/gen-fixtures'
@@ -39,6 +39,27 @@ describe('assertGate', () => {
   it('throws with every finding listed', () => {
     expect(() => assertGate([{ index: 0, startS: 0, endS: 2, text: 'a'.repeat(42) }, { index: 1, startS: 2.5, endS: 3.2, text: 'Ja.' }])).toThrow(/cue 0 cps=21.*cue 1 tooShort=0.7/)
     expect(() => assertGate([{ index: 0, startS: 0, endS: 2, text: 'Ja.' }])).not.toThrow()
+  })
+  it('assertGate names the text and time span of every finding and appends the hint', () => {
+    const hint = 'edit work/x/de.vtt and re-run with --cues work/x/de.vtt'
+    let message = ''
+    try { assertGate([{ index: 0, startS: 0, endS: 2, text: 'a'.repeat(42) }, { index: 1, startS: 2.5, endS: 3.2, text: 'Ja.' }], hint) } catch (e) { message = (e as Error).message }
+    expect(message).toMatch(/cue 0 cps=21 \[0\.000–2\.000\] "a+"/)
+    expect(message).toMatch(/cue 1 tooShort=0\.7 \[2\.500–3\.200\] "Ja\."/)
+    expect(message.endsWith(`\n${hint}`)).toBe(true)
+  })
+  it('returns [] for the segmented overlap fixture', async () => {
+    const t = TranscribeJson.parse(JSON.parse(await readFile(resolve(FIXTURES, 'transcribe-overlap-de.json'), 'utf8')))
+    const segs = segmentWithReport(wordsFromTranscribe(t)).cues.map((s) => ({ ...s, text: wrap2(s.text) }))
+    expect(segs.length).toBe(12)
+    expect(qualityGate(segs)).toEqual([])
+    expect(() => assertGate(segs)).not.toThrow()
+  })
+  it('gateReport joins findings with their cue and carries the dropped list', () => {
+    const dropped: Dropped[] = [{ startS: 0.1, endS: 0.3, text: 'Mhm.', speaker: 'spk_1', reason: 'interjection' }]
+    const r = gateReport([{ index: 0, startS: 0, endS: 2, text: 'a'.repeat(42) }, { index: 1, startS: 2.5, endS: 4, text: 'Gut.' }], dropped)
+    expect(r).toEqual({ findings: [{ cueIndex: 0, problem: 'cps', value: 21, startS: 0, endS: 2, text: 'a'.repeat(42) }], dropped })
+    expect(gateReport([{ index: 0, startS: 0, endS: 2, text: 'Ja.' }], [])).toEqual({ findings: [], dropped: [] })
   })
 })
 

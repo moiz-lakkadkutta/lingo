@@ -44,6 +44,8 @@ export interface PrepareInput {
   bucket?: string
   /** default env CLOUDFRONT_DOMAIN */
   cloudfrontDomain?: string
+  /** path of a corrected WebVTT for the target track; skips Transcribe + segmentation (docs/decisions/0007) */
+  cues?: string
 }
 
 /** Every side effect of prepare() goes through this seam; tests use fixtureDeps(), the CLI uses defaultDeps(). */

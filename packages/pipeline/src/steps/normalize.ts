@@ -16,13 +16,23 @@ export function sourceExt(source: string): string {
   return m ? `.${m[1]!.toLowerCase()}` : '.mp4'
 }
 
+async function probeDuration(file: string, deps: Pick<PrepareDeps, 'exec'>): Promise<number> {
+  const { stdout } = await deps.exec('ffprobe', ffprobeArgs(file))
+  const probe = JSON.parse(stdout) as { format?: { duration?: string } }
+  const durationS = parseFloat(probe.format?.duration ?? '')
+  if (!Number.isFinite(durationS) || durationS <= 0) throw new Error(`ffprobe returned no duration for ${file}`)
+  return durationS
+}
+
 export async function normalize(work: string, source: string, deps: Pick<PrepareDeps, 'exec'>): Promise<{ durationS: number }> {
   const src = `${work}/source${sourceExt(source)}`
   await deps.exec('aws', ['s3', 'cp', source, src])
-  const { stdout } = await deps.exec('ffprobe', ffprobeArgs(src))
-  const probe = JSON.parse(stdout) as { format?: { duration?: string } }
-  const durationS = parseFloat(probe.format?.duration ?? '')
-  if (!Number.isFinite(durationS) || durationS <= 0) throw new Error(`ffprobe returned no duration for ${src}`)
+  const durationS = await probeDuration(src, deps)
   await deps.exec('ffmpeg', ffmpegNormalizeArgs(src, `${work}/mezz.mp4`))
   return { durationS }
+}
+
+/** --cues re-runs: ffprobe the existing mezzanine instead of downloading and encoding again. */
+export async function probeMezz(work: string, deps: Pick<PrepareDeps, 'exec'>): Promise<{ durationS: number }> {
+  return { durationS: await probeDuration(`${work}/mezz.mp4`, deps) }
 }
