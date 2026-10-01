@@ -1,19 +1,71 @@
 # AWS usage — Lingo
 
-        Every call, why it is load-bearing, and its approximate cost. Kept current; judges read this for the AWS Builder mini-challenge.
+Every AWS call Lingo makes, where in the code, why, and roughly what it costs. Judges read this for the AWS Builder mini-challenge;
+engineers read it before a run. Prices are the repo's figures and **unverified** until checked against the pricing pages listed below.
+Features owned by LING-005/006/007 are marked pending until they merge.
 
-        | Service | Region | Used for | Approx. cost |
-        |---|---|---|---|
-        | Amazon Transcribe | eu-central-1 | Source-language cues with word timestamps | ~$0.024/min |
-| Amazon Translate | eu-central-1 | Native-language cue pair, aligned 1:1 | ~$15 / M chars → cents |
-| Amazon Bedrock — Nova Lite | us-east-1 | Per-word gloss + grammar note + example; quiz plan (which highlights, which distractors; items built by code). Converse + forced tool use, `us.amazon.nova-lite-v1:0` (env `NOVA_LITE_MODEL_ID`); file cache keyed by (lemma, cue) | ~$0.01 per 6-min clip (≈40 glosses + 1 quiz plan)* |
-| Amazon Polly (neural) | eu-central-1 | Pronunciation of saved words | cents |
-| Amazon S3 + CloudFront | eu-central-1 | Clips + VTT delivery | cents |
-| Amazon Appstore IAP (RVS) | — | Lingo Plus receipt verification (sandbox) | — |
-| Pipeline orchestration | — | `packages/pipeline` is a plain commander CLI (`pnpm pipeline prepare`) that runs the steps in order; no agent framework | — |
-| AWS CDK | — | `infra/` | — |
+## Calls
 
-        Infra as code: `infra/` (AWS CDK, TypeScript). Dev tooling: Claude Code, Kiro Crew, Amazon Devices Builder Tools MCP.
+| Service | API / command | Code | Region | When | Purpose | Approx. cost |
+|---|---|---|---|---|---|---|
+| S3 | `aws s3 cp <cut> s3://$S3_BUCKET_MEDIA/clips/<slug>.mp4` | batch `upload` stage, `packages/pipeline/src/batch/plan.ts` | eu-central-1 | once per clip | the re-encoded cut that Transcribe and prepare read | storage cents/month |
+| S3 | `aws s3 cp s3://…/clips/<slug>.mp4 work/<slug>/source.*` | `packages/pipeline/src/steps/normalize.ts` | eu-central-1 | each prepare without `--reuse` / `--cues` | prepare downloads its own source to build the mezzanine | transfer cents |
+| Amazon Transcribe | `StartTranscriptionJob` (de-DE / en-US, `ShowSpeakerLabels`, `MaxSpeakerLabels: 6`), `GetTranscriptionJob` every 5 s (≤ 30 min), HTTPS GET of `TranscriptFileUri` | `packages/pipeline/src/steps/transcribe.ts` | eu-central-1 | once per clip; afterwards `transcript.json` is reused (`--reuse`, batch never deletes it) | word timestamps, punctuation and speaker labels for the target cues | $0.024/min |
+| Amazon Translate | `TranslateText` per cue × native, `Settings.Brevity: ON`, `Formality` where the target supports it; two-speaker cues per line; spelled letters not sent | `packages/pipeline/src/steps/translate.ts` | eu-central-1 | every prepare (batch draft and final) | the native line, aligned 1:1 with the target cues | $15 per million characters |
+| Amazon Bedrock (Nova Lite) | `Converse` with forced tool use, `us.amazon.nova-lite-v1:0` | `packages/pipeline/src/ai/*` | us-east-1 (`us.` inference profile) | batch final phase and spot checks; one call per highlight (gloss) + one per clip (quiz plan); file cache makes repeats free | glosses, grammar notes, examples; quiz plan | ≤ $0.005 per clip (measured $0.0010–0.0014 per clip, Gate C run) |
+| S3 | `aws s3 sync work/<slug>/hls s3://…/published/<slug>/ --delete` + `cp` of master playlist, VTTs, clip.json | `packages/pipeline/src/steps/publish.ts` | eu-central-1 | batch final phase | HLS segments (immutable, 1 year) and the 60 s-cached playlist, VTTs and clip manifest | storage cents/month |
+| S3 | `aws s3 cp poster.jpg s3://…/published/<slug>/poster.jpg` | batch `publish-extra` stage | eu-central-1 | batch final phase | catalog poster | negligible |
+| CloudFront | serves `published/*` from the media bucket (Origin Access Control, HTTPS only, PriceClass 100) | `infra/lib/media-stack.ts` | global | app playback | HLS + WebVTT to the TV | free tier / cents for demo traffic (verify) |
+| CloudFormation via CDK | `cdk deploy lingo-media-dev --exclusively` | `infra/` | eu-central-1 | deploys | media bucket, CDN, PipelineRole | free |
+| IAM | `PipelineRole` (assumable by the account; S3 read/write, Transcribe, Translate, Polly, Bedrock Converse on `amazon.nova-*`) | `infra/lib/media-stack.ts` | global | defined | least-privilege role for the pipeline | free |
+| Amazon Appstore RVS | `POST /iap/verify` → Receipt Verification Service (sandbox) | `apps/api/src/routes/iap.ts` | — | pending <!-- LING-007: fill when merged --> | Lingo Plus receipts | — |
+
+Whether the pipeline runs under `PipelineRole` or the deploying profile: **TBD by human** (the root-keys friction log says deploys ran as
+root: docs/friction/2026-10-01-cdk-deploy-as-root-user-cannot-assume-bootstrap-roles.md).
+
+## Declared, not used by Lingo
+
+Kept, not deleted (orchestrator decision 2026-10-01). Nothing in Lingo's code calls these today.
+
+- `@aws-sdk/client-polly` in `packages/pipeline/package.json`, `polly:SynthesizeSpeech` in `PipelineRole`, `POLLY_VOICE_*` in `.env.example`:
+  planned "tap to hear" pronunciation of saved words — pending <!-- LING-005/006 -->.
+- Stack `lingo-nova-dev` (us-east-1, bucket `lingo-nova-ingest-<stage>-…`, `infra/lib/nova-ingest-stack.ts`), `S3_BUCKET_NOVA_INGEST` and
+  `NOVA_PRO_MODEL_ID`: Nova Pro video ingest, a Described pattern; no Lingo code reads them. Whether `lingo-nova-dev` was deployed: **TBD by human**.
+
+## Cost per clip and for the 12-clip batch (unverified prices)
+
+Per clip: Transcribe `minutes × $0.024` (once) + Translate `seconds × 15 chars/s × natives × $15/M` per phase + Bedrock ≤ $0.005 (final phase).
+`pnpm pipeline batch content/clips.json --dry-run` prints the estimate for the actual state of `work/` (constants in
+`packages/pipeline/src/batch/estimate.ts`, each with its pricing URL).
+
+| Item | Basis | Estimate |
+|---|---|---|
+| Transcribe | 58.9 new min (4 217 s of clips; rows 3 and 7 are already transcribed) × $0.024 | $1.41 (all 70.3 min: $1.69) |
+| Translate, one native per clip | 4 217 s × 15 ch/s ≈ 63 k chars × 2 phases × $15/M | $1.90 |
+| Translate, if tr/ar/uk are added | + 3 × 63 k chars in the final phase | + $2.85 (option, not chosen: natives are en/de for now; `ar` would also need Noto Sans Arabic) |
+| Bedrock Nova Lite | 12 × ≤ $0.005 | ≤ $0.06 |
+| S3 storage and transfer, CloudFront demo traffic | ≈ 1.2 GB cuts + ≈ 2.4 GB HLS (estimate) | cents per month; free-tier coverage to verify |
+| **Total** | one native per clip | **≈ $3.4** (four natives ≈ $6.3), below the ~$10 per-run escalation line (docs/KICKOFF.md) |
+
+Pricing pages to verify against (eu-central-1 may differ from us-east-1; Transcribe bills per second with a per-request minimum):
+https://aws.amazon.com/transcribe/pricing/ · https://aws.amazon.com/translate/pricing/ · https://aws.amazon.com/bedrock/pricing/ ·
+https://aws.amazon.com/s3/pricing/ · https://aws.amazon.com/cloudfront/pricing/
+
+**Actual spend:** TBD by human after the batch final phase — sum of `clip.json.cost.usd` (Bedrock), Transcribe minutes from
+`work/batch-report.md`, and Cost Explorer for the month.
+
+## Data flow and naming
+
+- Subtitle text of the CC / public-domain clips goes to us-east-1 for Bedrock (the `us.` cross-region profile). EU-only switch:
+  `BEDROCK_REGION=eu-central-1` + `NOVA_LITE_MODEL_ID=eu.amazon.nova-lite-v1:0` (docs/plans/LING-002.md). Media, transcripts and
+  translations stay in eu-central-1.
+- The media bucket is `lingo-media-<stage>-<account>` (`infra/lib/media-stack.ts`); take the exact name from the `MediaBucket` stack output.
+
+## Tooling
+
+Infra as code: `infra/` (AWS CDK, TypeScript, two stacks). The pipeline is a plain commander CLI (`pnpm pipeline prepare` / `batch`),
+no agent framework. Development tools: the repo records Claude Code (commit trailers); whether Kiro Crew and the Amazon Devices
+Builder Tools MCP were used: **TBD by human**.
 
 ## Sources
 - Word-frequency lists: derived from hermitdave/FrequencyWords (OpenSubtitles 2018), content licensed CC BY-SA 4.0 — https://github.com/hermitdave/FrequencyWords · https://creativecommons.org/licenses/by-sa/4.0/ . Our derived lists (packages/pipeline/data/freq-*.txt) are lemmatized and truncated; they are redistributed under the same licence with this attribution (share-alike).

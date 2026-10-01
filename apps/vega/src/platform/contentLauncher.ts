@@ -7,7 +7,7 @@
 // Docs: https://developer.amazon.com/ja/docs/vega/0.24/content-launcher-integration-guide.html ·
 // https://developer.amazon.com/docs/vega/0.21/content-launcher-overview.html
 import { ContentLauncherServerComponent, ContentLauncherStatusType, type IContentSearch, type ILaunchContentOptionalFields } from '@amazon-devices/kepler-media-content-launcher'
-import type { LaunchIntent } from '@moizp/vega-media-kit'
+import type { LaunchIntent } from '@lingo/shared-ui'
 
 /** The external id name Lingo's catalog entries carry (Q5: confirm with Amazon catalog onboarding). */
 export const LINGO_ID_NAME = 'lingo_slug'

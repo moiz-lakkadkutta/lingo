@@ -16,6 +16,9 @@ importers:
       prettier:
         specifier: ^3.3.0
         version: 3.9.6
+      smol-toml:
+        specifier: ^1.4.2
+        version: 1.9.0
       turbo:
         specifier: ^2.3.0
         version: 2.10.13
@@ -4612,6 +4615,10 @@ packages:
   slugify@1.6.9:
     resolution: {integrity: sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==}
     engines: {node: '>=8.0.0'}
+
+  smol-toml@1.9.0:
+    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+    engines: {node: '>= 18'}
 
   socket.io-adapter@2.5.8:
     resolution: {integrity: sha512-6Oy52pbg+kvdCVvjcN+FnY7BvxZ7cIHNScbvztT/It5d0vbwoJoVZmF2gjJmnV0/4WlXRfG15zc45ySk9Ah8bw==}
@@ -10679,6 +10686,8 @@ snapshots:
   slash@3.0.0: {}
 
   slugify@1.6.9: {}
+
+  smol-toml@1.9.0: {}
 
   socket.io-adapter@2.5.8:
     dependencies:

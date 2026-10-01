@@ -1,0 +1,10 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["@amazon-devices/react-native-kepler"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": { "@lingo/shared-ui": ["./types/lingo-shared-ui.d.ts"] }
+  },
+  "include": ["src", "types"]
+}

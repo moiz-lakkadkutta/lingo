@@ -94,7 +94,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   }
   for (const d of dropped) warnings.push(`dropped cue ${d.startS.toFixed(3)}–${d.endS.toFixed(3)} ${JSON.stringify(d.text)} (${d.reason})`)
   // write before the gate so a human can correct what the segmenter produced
-  const targetVtt = cuesToVtt(segs, lang)
+  const targetVtt = cuesToVtt(segs, lang, input.vttNote)
   const targetPath = `${work}/${lang}.vtt`
   await writeFile(targetPath, targetVtt); vttFiles[lang] = targetPath
   if (dropped.length) await writeFile(`${work}/dropped.vtt`, cuesToVtt(dropped.map((d, i) => ({ index: i, startS: d.startS, endS: d.endS, text: d.text })), lang))
@@ -142,7 +142,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const targetCheck = checkVtt(targetVtt, lang)
   if (targetCheck.findings.length) throw new Error(`target VTT lint: ${targetCheck.findings.map((f) => `${f.id} ${f.problem}=${f.value}`).join('; ')}`)
   for (const n of natives) {
-    const vtt = cuesToVtt(segs.map((s) => ({ ...s, text: native[s.index]![n] || ' ' })), n)
+    const vtt = cuesToVtt(segs.map((s) => ({ ...s, text: native[s.index]![n] || ' ' })), n, input.vttNote)
     for (const f of checkVtt(vtt, n, NATIVE_LINT_LIMITS).findings) warnings.push(`native ${n} ${f.id} ${f.problem}=${f.value}`)
     await writeFile(`${work}/native-${n}.vtt`, vtt); vttFiles[n] = `${work}/native-${n}.vtt`
   }

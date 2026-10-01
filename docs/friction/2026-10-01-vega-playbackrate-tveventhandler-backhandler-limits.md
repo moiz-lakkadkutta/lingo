@@ -1,4 +1,4 @@
-# vega playbackrate tveventhandler backhandler limits
+# Vega: no playbackRate, TVEventHandler cannot consume keys, BackHandler is silent behind a Modal
 
 Task attempted: Design the LING-003 player for both Fire OS and Vega OS from one `shared-ui`: a "Slower" (0.75×) option,
 word focus with the remote while paused, remote keys (seek, Play/Pause, Menu) while playing, and Back to close the Explain
@@ -23,7 +23,7 @@ stays in `apps/vega`; the sheet is a view inside the screen, not a `<Modal>`.
 Suggestion: Document a supported way to slow playback on Vega (or the plan for `playbackRate`); add a consume/preventDefault
 option to `useTVEventHandler`; let `BackHandler` receive events while a `<Modal>` is shown, or say in the Modal page what
 replaces it.
-Environment: Vega SDK docs 0.22 / React Native for Vega 0.72 docs, read 2026-10-01; no Vega device or VVD run yet.
+Environment: Platform: Vega OS. Vega SDK docs 0.22 / React Native for Vega 0.72 docs, read 2026-10-01; no Vega device or VVD run yet.
 Links:
   - W3C media README (`playbackRate` unsupported): https://www.npmjs.com/package/@amazon-devices/react-native-w3cmedia
   - Vega media player overview: https://developer.amazon.com/docs/vega/0.22/media-player.html

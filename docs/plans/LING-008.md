@@ -851,3 +851,42 @@ Other:
 - ffmpeg seeking: https://trac.ffmpeg.org/wiki/Seeking · adb screencap: https://developer.android.com/tools/adb
 - Expo font config plugin: https://docs.expo.dev/versions/latest/sdk/font/ · Expo monorepos: https://docs.expo.dev/guides/monorepos/ · Metro resolution: https://metrobundler.dev/docs/resolution/
 - Noto Sans: https://github.com/notofonts/latin-greek-cyrillic · Manrope: https://github.com/sharanda/manrope · OFL: https://openfontlicense.org
+
+## 14. Implementation notes (2026-10-01, implementer session; orchestrator decisions applied)
+
+Orchestrator decisions on §12: Vega RN 0.83 and apps/vega outside the pnpm workspace (open questions 1–2) — **pending human confirmation
+after `vega project create`** (apps/vega/README.md "Decisions"); natives en and de only, tr/ar/uk a documented, costed option (docs/aws.md);
+Gate C fallback left to the human (batch final-phase guard message, README status); unused AWS resources documented as "declared, not
+used by Lingo" (docs/aws.md), nothing deleted; `caps.playback` only in `platformCaps.ts`.
+
+Follow-ups for TASKS.md (the orchestrator files them; not implemented here):
+- [ ] LING-005 (or new) · import processed clips into Postgres: Clip row from `content/clips.json` (title, license, attribution, sourceUrl)
+  + `work/<slug>/clip.json` (level, cues, highlights, quiz, durationS, publishedBase) + poster key `published/<slug>/poster.jpg` (open question 6)
+  - follow-up from LING-008: the Player renders a playback-unavailable message (and no `KitPlayer`) when `caps.playback === false`;
+    string per §3.4; render test. Until then, opening a clip on Vega reaches the kit's Vega adapter without Shaka (VVD step 8).
+  - follow-up from LING-008: make `Caps.playback` required once the Caps literals in shared-ui tests are updated (it is optional today to
+    keep the change inside platformCaps.ts).
+- [ ] LING-006 · fonts on the phone: the same `expo-font` plugin entry in `apps/phone/app.json` (`../../packages/shared-ui/assets/fonts/*.ttf`).
+
+Deviations from §2–§4 (each deliberate, recorded here and in the commit messages):
+- `cues` paths in the manifest resolve against the manifest's directory: `"cues": "cues/<slug>.<lang>.vtt"` (not `content/cues/…`), because
+  `pnpm pipeline` runs inside packages/pipeline; the manifest path itself resolves from `INIT_CWD` (where the human typed it).
+- A manifest problem tied to one clip blocks that clip only (others run); `--dry-run` lists the problems and still exits 0. Problems without
+  a slug (duplicate slugs) stop a real run. `loadManifest` returns `{ manifest, problems }` instead of throwing on the documented TBD rows.
+- `sourceS3` may contain the literal `$S3_BUCKET_MEDIA` (row 7), expanded from the environment, so no account number is committed.
+- Row 10 `cosmos-laundromat` re-checks the **Commons** tag (`CC BY-SA 3.0`, the label) instead of archive.org (which says CC BY 4.0 and would
+  never match the stricter label).
+- Row 2 `openhpi-vandalismus` downloads from the Commons title in its Source URL; the register's direct URL does not match its md5 upload
+  path (docs/content.md footnote `[^dl2]`). Not fetched from the sandbox (Commons and archive.org are unreachable here).
+- Rows 3–5 use the Commons file page as the manual-check URL (the register has no per-clip schule.zdf.de URL for them); row 6 uses the
+  zdf.de credit page. All four have `verifiedOn: null` until the human opens them.
+- Resume markers: `_cuts/<slug>.uploaded`, `<slug>/.batch-<phase>.json` (prepare inputs + sha256 of the cues file, `--reuse` excluded),
+  `<slug>/.poster-published`; a failed stage removes its half-written output.
+- Dry run in this sandbox says "Transcribe will run for: 11 clips (62.6 min)": row 3's Gate A work dir exists only on the human's machine,
+  where it is 10 clips (58.9 min) as planned.
+- `smol-toml` is BSD-3-Clause (the plan said MIT).
+- `check:vega` runs its own `node --test` file first, then the check; fixtures are generated from the committed apps/vega files in a temp dir.
+
+§3.5 results (feed N5 when its trigger is met): npm install OK (771 packages, 34 s, 425 MB); `tsc` OK; `react-native bundle --platform kepler`
+OK without the SDK (1 287 modules, one React 19.2.0, 90 s cold). So "typecheck and bundle without the SDK" works; the open part is building
+the `.vpkg` and running. Friction logs written: N1, N2, N4, N6 (N6 records the fix in f67fd9e). N3, N5, N7, N8 stay on the trigger list.

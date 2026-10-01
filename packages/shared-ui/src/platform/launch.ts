@@ -3,7 +3,7 @@ import type { CatalogItem, LaunchIntent } from '@moizp/vega-media-kit'
 
 /**
  * Launch intents from outside the app: Fire OS Android deep links (apps/expo LaunchBridge) and the Vega Content Launcher handler
- * (apps/vega/platform/contentLauncher.template.ts). The kit has no public way to feed an intent in yet (TODO(KIT-E1)), so the
+ * (apps/vega/src/platform/contentLauncher.ts). The kit has no public way to feed an intent in yet (TODO(KIT-E1)), so the
  * platform entries hand Root a LaunchSource, the same pattern as RemoteSource.
  * https://developer.amazon.com/docs/vega/0.21/content-launcher-overview.html · https://developer.amazon.com/docs/catalog/integrate-with-launcher.html
  */

@@ -33,6 +33,8 @@ jobs:
       - run: python3 -m venv "$GITHUB_WORKSPACE/app/.venv-lemma" && "$GITHUB_WORKSPACE/app/.venv-lemma/bin/pip" install --quiet simplemma==2.0.0
       - run: pnpm typecheck
       - run: pnpm lint:words
+      # apps/vega is outside the workspace and needs no Vega SDK for these static checks (docs/plans/LING-008.md §3.5)
+      - run: pnpm check:vega
       - run: pnpm test
         env:
           LINGO_PYTHON: ${{ github.workspace }}/app/.venv-lemma/bin/python

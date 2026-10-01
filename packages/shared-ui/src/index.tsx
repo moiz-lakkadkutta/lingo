@@ -8,6 +8,7 @@ export type { PlusStore, StoreProduct, StoreReceipt, PurchaseOutcome } from './p
 export { noStore } from './plus/types'
 export { createLaunchBus, noLaunches, parseLaunchUri, launchUri } from './platform/launch'
 export type { LaunchSource } from './platform/launch'
+export type { LaunchIntent } from '@moizp/vega-media-kit'
 export { mapFireOsPurchase, mapFireOsError, mapVegaPurchase, mapVegaUpdates, isPlusReceipt } from './plus/amazon'
 export type { VegaCode, FireOsPurchaseLike } from './plus/amazon'
 export { Root } from './app/Root'

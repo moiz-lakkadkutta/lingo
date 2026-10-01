@@ -1,4 +1,4 @@
-# fire os expo template has no tv event handler
+# Fire OS: the plain Expo / React Native template has no TV event handler
 
 Task attempted: Receive remote keys (D-pad, Select, Play/Pause, Rewind, Fast Forward, Menu) in the Fire OS app
 (`apps/expo`) for the LING-003 player.
@@ -17,7 +17,7 @@ Workaround (planned, LING-003 G3): alias `"react-native": "npm:react-native-tvos
 regenerate the native project.
 Suggestion: Ship the Fire OS starter on `react-native-tvos` with `@react-native-tvos/config-tv` already configured, or say in
 the Fire TV React Native docs that plain RN cannot receive media keys.
-Environment: macOS 26.2, Node 22.19.0, Expo SDK 54, react-native 0.81.0, Fire TV Stick.
+Environment: Platform: Fire OS. macOS 26.2, Node 22.19.0, Expo SDK 54, react-native 0.81.0, Fire TV Stick.
 Links:
   - Expo, building for TV: https://docs.expo.dev/guides/building-for-tv/
   - react-native-tvos README: https://github.com/react-native-tvos/react-native-tvos#readme

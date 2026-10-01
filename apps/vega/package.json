@@ -1,0 +1,46 @@
+{
+  "name": "@lingo/vega",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lingo for Vega OS (experimental). An npm project outside the pnpm workspace: see README.md.",
+  "scripts": {
+    "start": "react-native start",
+    "typecheck": "tsc --noEmit",
+    "copy-fonts": "node scripts/copy-fonts.mjs",
+    "prebuild:release": "node scripts/copy-fonts.mjs",
+    "prebuild:debug": "node scripts/copy-fonts.mjs",
+    "build:release": "react-native build-kepler --build-type Release",
+    "build:debug": "react-native build-kepler --build-type Debug",
+    "bundle:check": "react-native bundle --platform kepler --dev false --entry-file index.js --bundle-output build/check/index.bundle --assets-dest build/check"
+  },
+  "dependencies": {
+    "@amazon-devices/kepler-media-content-launcher": "~2.0.22",
+    "@amazon-devices/keplerscript-appstore-iap-lib": "~2.13.0",
+    "@amazon-devices/react-native-kepler": "~4.0.1",
+    "@amazon-devices/react-native-svg": "~3.0.9000000001",
+    "@amazon-devices/react-native-w3cmedia": "~2.3.2",
+    "react": "19.2.0",
+    "react-native": "0.83.0"
+  },
+  "devDependencies": {
+    "@amazon-devices/kepler-cli-platform": "~0.22.14",
+    "@babel/core": "^7.25.2",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "^20.0.0",
+    "@react-native/babel-preset": "0.83.0",
+    "@react-native/metro-config": "0.83.0",
+    "@react-native/typescript-config": "0.83.0",
+    "@types/react": "^19.2.0",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "kepler": {
+    "projectType": "application",
+    "appName": "Lingo",
+    "targets": ["tv"],
+    "os": ["vega"],
+    "api": 0.1
+  }
+}

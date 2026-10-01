@@ -2,3 +2,5 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'infra'
+  # npm project with its own lockfile and React 19.2 / RN for Vega 0.83 (docs/plans/LING-008.md §3.2); checked by `pnpm check:vega`
+  - '!apps/vega'

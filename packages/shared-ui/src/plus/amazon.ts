@@ -1,6 +1,6 @@
 /**
  * Pure mappers from Amazon store responses to PlusStore shapes. The platform stores (apps/expo/src/fireosStore.ts,
- * apps/vega/iap/vegaStore.template.ts) are thin wrappers over these, so the device-only code paths stay tested.
+ * apps/vega/src/iap/vegaStore.ts) are thin wrappers over these, so the device-only code paths stay tested.
  * Vega IAP lib 2.13.0 types (PurchaseResponseCode, Receipt.isCancelled/cancelDate, userData.userId):
  * https://developer.amazon.com/docs/vega/0.22/vega-iap-overview.html
  * react-native-iap 16.7.x (Amazon flavour): purchaseToken is the Amazon receiptId, userIdAmazon the RVS user id.
