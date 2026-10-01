@@ -1,4 +1,5 @@
 import type { Level } from '@lingo/contracts'
+import { BANDS, NEXT, highlightFloor } from '@lingo/contracts'
 import { rankOf } from './names'
 /**
  * Frequency-aware highlights: 1–2 words per cue whose rank is at or above the floor of the band above the clip level, lowest rank first
@@ -7,8 +8,7 @@ import { rankOf } from './names'
  * Level ≈ band: A1 < 1000, A2 < 2000, B1 < 4000, B2 < 8000 (approximate CEFR; say so in the UI). `Level` is the contracts enum (one source of truth).
  */
 export type { Level }
-export const BANDS: Record<Level, [number, number]> = { A1: [0, 1000], A2: [1000, 2000], B1: [2000, 4000], B2: [4000, 8000] }
-export const NEXT: Record<Level, Level> = { A1: 'A2', A2: 'B1', B1: 'B2', B2: 'B2' }
+export { BANDS, NEXT, highlightFloor }
 /** `name` is computed by names.ts (undefined = not a name); the caller passes a case-insensitive rank fn. */
 export interface Token { word: string; lemma: string; name?: boolean }
 /** coverageRank when no token is ranked. */
@@ -46,8 +46,6 @@ export function isNumeral(word: string): boolean {
 /** Tokens that count towards clip level / coverage and may be highlighted: not a name, no digits, not a number word. */
 export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.word) && !isNumeral(t.word) }
 
-/** The lowest rank a highlight may have for a clip at `level`: the floor of the band above it. */
-export function highlightFloor(level: Level): number { return BANDS[NEXT[level]][0] }
 
 export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
   const lo = highlightFloor(level)
