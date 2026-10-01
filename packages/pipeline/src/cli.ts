@@ -1,6 +1,11 @@
 import { Command } from 'commander'
 import { prepare } from './prepare'
-import { fixtureDeps } from './fixtureDeps'
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fixtureDeps, fixtureSend } from './fixtureDeps'
+import { createAi } from './ai/index'
+import { DEFAULT_PER_CLIP, runSpotCheck } from './spotCheck'
 import type { Lang } from './types'
 
 /**
@@ -31,5 +36,25 @@ Examples (LING-001: one native per clip — en for the German clip, de for the E
     const lang = o.lang as Lang
     const deps = o.fixture ? { ...fixtureDeps(lang), log: (m: string) => console.log(m) } : undefined
     await prepare({ slug: o.clip, source: o.source, lang, natives: String(o.native).split(',').map((s) => s.trim()).filter(Boolean), workRoot: o.work, publish: o.publish, ai: o.ai }, deps)
+  })
+program.command('spot-check')
+  .description('LING-002 quality check: gloss the clip highlights (widening to --per-clip words) and build its quiz with Nova Lite, then write a rubric sheet with blank score columns. Accepts a --no-ai clip.json.')
+  .requiredOption('--clip-json <path>', 'clip.json written by prepare, e.g. work/demo-de/clip.json')
+  .option('--per-clip <n>', 'gloss rows for this clip', String(DEFAULT_PER_CLIP))
+  .option('--out <md>', 'markdown rubric sheet', 'work/spot-check.md')
+  .option('--append', 'append to --out instead of overwriting (second clip)')
+  .option('--fixture', 'offline: stub Nova answers (fixtureSend) and a throwaway cache; no AWS calls, output is not a real spot check')
+  .addHelpText('after', `
+Examples:
+  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --out work/spot-check.md
+  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-en/clip.json --out work/spot-check.md --append
+  $ pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --fixture`)
+  .action(async (o: { clipJson: string; perClip: string; out: string; append?: boolean; fixture?: boolean }) => {
+    const perClip = Number(o.perClip)
+    if (!Number.isInteger(perClip) || perClip < 1) throw new Error(`--per-clip must be a positive integer, got ${o.perClip}`)
+    const log = (m: string) => console.log(m)
+    const ai = o.fixture ? createAi({ send: fixtureSend(), cacheDir: await mkdtemp(join(tmpdir(), 'lingo-spot-fixture-')), log }) : undefined
+    const r = await runSpotCheck({ clipJson: o.clipJson, perClip, out: o.out, append: o.append, ai, log })
+    console.log(`\n${await readFile(r.files.markdown, 'utf8')}`)
   })
 await program.parseAsync()
