@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Animated, Pressable, StyleSheet, type ViewStyle } from 'react-native'
+import { Animated, Pressable, StyleSheet, type View, type ViewStyle } from 'react-native'
+import '../tvProps'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 
@@ -13,15 +14,22 @@ export interface FocusableProps {
   style?: ViewStyle
   hasTVPreferredFocus?: boolean
   testID?: string
+  /** The underlying Pressable, for nextFocus* node handles. */
+  focusRef?: React.Ref<View>
+  nextFocusUp?: number
+  nextFocusDown?: number
 }
 
 /** Focus is a physical change: outline + 1.04 scale in 150 ms. Selected is a persistent accent ring. Never colour alone. */
-export function Focusable({ children, onPress, onFocus, label, hint, selected, style, hasTVPreferredFocus, testID }: FocusableProps) {
+export function Focusable({ children, onPress, onFocus, label, hint, selected, style, hasTVPreferredFocus, testID, focusRef, nextFocusUp, nextFocusDown }: FocusableProps) {
   const [focused, setFocused] = useState(false)
   const scale = React.useRef(new Animated.Value(1)).current
   const animate = (to: number) => Animated.timing(scale, { toValue: to, duration: tokens.motion.focusMs, useNativeDriver: true }).start()
   return (
     <Pressable
+      ref={focusRef}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
       onPress={onPress}
       onFocus={() => { setFocused(true); animate(tokens.motion.focusScale); onFocus?.() }}
       onBlur={() => { setFocused(false); animate(1) }}

@@ -272,4 +272,15 @@ describe('player machine', () => {
     expect(tracked.phase).toBe('sheet')
     expect(tracked.cueIndex).toBe(2)
   })
+
+  it('slower from the sheet toggles the rate with the same gate and keeps the sheet open', () => {
+    const sheet = at(4.5, { phase: 'sheet' })
+    const slower = { type: 'action', action: 'slower', now: NOW } as const
+    const [s, fx] = reduce(sheet, slower, ctx)
+    expect(s.phase).toBe('sheet')
+    expect(s.rate).toBe(0.75)
+    expect(fx).toEqual([{ kind: 'rate', r: 0.75 }])
+    expect(reduce(sheet, slower, { ...ctx, plus: false })).toEqual([sheet, []])
+    expect(reduce(sheet, { type: 'action', action: 'replay', now: NOW }, ctx)).toEqual([sheet, []])
+  })
 })

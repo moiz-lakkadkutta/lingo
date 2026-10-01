@@ -74,6 +74,13 @@ function seekKey(s: PlayerState, e: KeyEvent, ctx: PlayerCtx): Result | null {
   return null
 }
 
+/** Toggle 1× ↔ 0.75× only where the adapter can honour it and the learner has Plus; otherwise nothing (the UI shows the upsell line). */
+function slower(s: PlayerState, now: number, ctx: PlayerCtx): Result {
+  if (!ctx.caps.rate || !ctx.plus) return [s, []]
+  const r: 1 | 0.75 = s.rate === 1 ? 0.75 : 1
+  return [chrome({ ...s, rate: r }, now, ctx), [{ kind: 'rate', r }]]
+}
+
 function playing(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   switch (e.type) {
     case 'position': return track(s, e.s, e.now, ctx, true)
@@ -124,12 +131,7 @@ function explain(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
     case 'action':
       if (e.action === 'replay') return [backToStage(s, e.now, ctx), [{ kind: 'seek', s: seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0 }, { kind: 'play' }]]
       if (e.action === 'resume') return [backToStage(s, e.now, ctx), [{ kind: 'play' }]]
-      // slower: the card shows the upsell line itself when the rate is not available (free tier or Vega).
-      if (ctx.caps.rate && ctx.plus) {
-        const r: 1 | 0.75 = s.rate === 1 ? 0.75 : 1
-        return [chrome({ ...s, rate: r }, e.now, ctx), [{ kind: 'rate', r }]]
-      }
-      return [s, []]
+      return slower(s, e.now, ctx)
     case 'back':
     case 'sheetClose': return [backToStage(s, e.now, ctx), [{ kind: 'play' }]]
     case 'playerState':
@@ -149,6 +151,7 @@ function sheet(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
     case 'back':
     case 'sheetClose': return [backToStage(s, e.now, ctx), []]
     case 'position': return track(s, e.s, e.now, ctx, false)
+    case 'action': return e.action === 'slower' ? slower(s, e.now, ctx) : [s, []] // the sheet's Speed row
     case 'playerState':
       if (e.s === 'paused') return [toExplain(s, e.now, ctx), []]
       if (e.s === 'ended') return ended(s)
