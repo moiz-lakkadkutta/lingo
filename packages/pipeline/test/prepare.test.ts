@@ -185,6 +185,38 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(r.clip.source.transcribeJob).toBeNull() // no transcript.json in this work dir
     expect(r.clip.cues.map((c) => c.text)).toEqual(clip.cues.map((c) => c.text))
   })
+  it('with reuse: takes transcript.json and mezz.mp4 from the work dir and calls neither transcribe, aws s3 cp nor ffmpeg', async () => {
+    const slug = `rerun-${lang}`
+    const first = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, fixtureDeps(lang))
+    await writeFile(`${workRoot}/${slug}/mezz.mp4`, '') // the fixture exec double does not write the mezzanine
+    const d = fixtureDeps(lang)
+    const transcribe = vi.fn(d.transcribe); d.transcribe = transcribe
+    const log = vi.fn(); d.log = log
+    const r = await prepare({ slug, source: 's3://unused', lang, natives: [native], workRoot, publish: false, reuse: true }, d)
+    expect(transcribe).not.toHaveBeenCalled()
+    expect(d.calls.map((c) => c.cmd)).toEqual(['ffprobe', 'packager'])
+    expect(r.clip.source.transcribeJob).toBe(first.clip.source.transcribeJob)
+    expect(r.clip.cues).toEqual(first.clip.cues)
+    expect(log.mock.calls.some(([m]) => /transcript reused/.test(m))).toBe(true)
+  })
+  it('logs a timing line per step', async () => {
+    const d = fixtureDeps(lang)
+    const log = vi.fn(); d.log = log
+    await prepare({ slug: `timed-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    const timed = log.mock.calls.map(([m]) => m as string).filter((m) => /^\[\d+\.\d s\] /.test(m))
+    expect(timed.length).toBeGreaterThanOrEqual(6)
+    for (const step of ['media', 'transcribed', 'segmented', 'translated', 'lemmatized', 'highlights', 'packaged']) expect(timed.some((m) => m.includes(step)), step).toBe(true)
+  })
+  it('prints every warning through deps.log', async () => {
+    const d = fixtureDeps(lang)
+    d.translate = async (t) => t.toUpperCase() + ' ' + 'x'.repeat(60)
+    const log = vi.fn(); d.log = log
+    const r = await prepare({ slug: `warned-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)
+    const lines = log.mock.calls.map(([m]) => m as string)
+    expect(r.clip.warnings.length).toBeGreaterThan(0)
+    for (const w of r.clip.warnings) expect(lines).toContain(`warning: ${w}`)
+    expect(lines.some((m) => /^warning: native /.test(m))).toBe(true)
+  })
   it('native lines are wrapped at 56 and a 15-char-longer translation produces no layout warning', async () => {
     const d = fixtureDeps(lang)
     d.translate = async (t) => t.toUpperCase() + ' ab ab ab ab ab'

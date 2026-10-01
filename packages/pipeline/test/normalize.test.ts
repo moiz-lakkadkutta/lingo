@@ -2,8 +2,14 @@ import { ffmpegNormalizeArgs, ffprobeArgs, normalize } from '../src/steps/normal
 
 describe('ffmpegNormalizeArgs', () => {
   it('1080p H.264 crf 20 + stereo AAC 192k', () => {
-    expect(ffmpegNormalizeArgs('w/source.mp4', 'w/mezz.mp4')).toEqual(['-y', '-i', 'w/source.mp4', '-vf', 'scale=-2:1080', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-ac', '2', '-b:a', '192k', 'w/mezz.mp4'])
+    expect(ffmpegNormalizeArgs('w/source.mp4', 'w/mezz.mp4')).toEqual(['-hide_banner', '-loglevel', 'error', '-nostats', '-y', '-i', 'w/source.mp4', '-vf', 'scale=-2:1080', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-ac', '2', '-b:a', '192k', 'w/mezz.mp4'])
     expect(ffprobeArgs('w/source.mp4')).toEqual(['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', 'w/source.mp4'])
+  })
+})
+describe('ffmpeg is quiet (docs/decisions/0008 decision 12)', () => {
+  it('-hide_banner -loglevel error -nostats precede -y', () => {
+    const a = ffmpegNormalizeArgs('s', 'd')
+    expect(a.slice(0, a.indexOf('-y'))).toEqual(['-hide_banner', '-loglevel', 'error', '-nostats'])
   })
 })
 describe('normalize', () => {

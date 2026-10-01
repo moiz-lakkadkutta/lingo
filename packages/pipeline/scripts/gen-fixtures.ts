@@ -12,15 +12,24 @@ import { segmentWithReport, wrap2 } from '../src/segment'
 import { wordsFromTranscribe } from '../src/steps/transcribe'
 import { lemmaKey, pythonLemmatizer, type LemmaInput, type LemmaResult } from '../src/lemmatize'
 import { TranscribeJson, type Lang } from '../src/types'
-import { FREQ_TOKEN } from '../src/freq'
 
 const here = dirname(fileURLToPath(import.meta.url))
 export const FIXTURES = resolve(here, '..', 'test', 'fixtures')
 
-/** Every generated Transcribe fixture: the two 60-second single-speaker dialogues and the overlapping-speaker dialogue (docs/decisions/0007 M3). */
-export const FIXTURE_SETS: Array<{ name: string; lang: Lang }> = [{ name: '60s', lang: 'de' }, { name: '60s', lang: 'en' }, { name: 'overlap', lang: 'de' }]
+/**
+ * Every Transcribe fixture: the two 60-second single-speaker dialogues and the overlapping-speaker dialogue (docs/decisions/0007 M3) are
+ * generated from dialogue files; `given` sets are committed real Transcribe output (test/fixtures/real/README.md, docs/decisions/0008) —
+ * only their lemma tables are generated.
+ */
+export const FIXTURE_SETS: Array<{ name: string; lang: Lang; given?: boolean }> = [
+  { name: '60s', lang: 'de' }, { name: '60s', lang: 'en' }, { name: 'overlap', lang: 'de' },
+  { name: 'real/friedlaender', lang: 'de', given: true }, { name: 'real/voa01', lang: 'en', given: true },
+]
 export const dialogueFile = (name: string, lang: Lang) => (name === '60s' ? `dialogue-${lang}.txt` : `dialogue-${name}-${lang}.txt`)
-export const lemmaFile = (name: string, lang: Lang) => (name === '60s' ? `lemmas-${lang}.json` : `lemmas-${name}-${lang}.json`)
+const withDir = (name: string, file: string) => (name.includes('/') ? `${dirname(name)}/${file}` : file)
+const base = (name: string) => name.split('/').pop()!
+export const lemmaFile = (name: string, lang: Lang) => (name === '60s' ? `lemmas-${lang}.json` : withDir(name, `lemmas-${base(name)}-${lang}.json`))
+export const transcribeFile = (name: string, lang: Lang) => withDir(name, `transcribe-${base(name)}-${lang}.json`)
 
 type Item = { type: 'pronunciation' | 'punctuation'; id: number; alternatives: Array<{ content: string; confidence: string }>; start_time?: string; end_time?: string; speaker_label?: string }
 type SpeakerSegment = { start_time: string; end_time: string; speaker_label: string; items: Array<{ start_time: string; end_time: string; speaker_label: string }> }
@@ -109,7 +118,7 @@ export function fixtureVocabulary(t: TranscribeJson, lang: Lang, extra: LemmaInp
   const seen = new Map<string, LemmaInput>()
   const cues = segmentWithReport(wordsFromTranscribe(t)).cues.map((s) => ({ ...s, text: wrap2(s.text) }))
   for (const w of [...tokenizeCues(cues).map((t) => ({ word: t.word, sentenceInitial: t.sentenceInitial })), ...extra]) {
-    if (!FREQ_TOKEN.test(w.word) && !/^\p{N}+$/u.test(w.word)) continue
+    // every token prepare() asks the lemmatizer for (tokenizeCues keeps any token with a letter or digit: "17,5", "N's")
     seen.set(lemmaKey(w.word, w.sentenceInitial), w)
   }
   return [...seen.values()]
@@ -126,11 +135,12 @@ export function stringify(o: unknown): string { return JSON.stringify(o, null, 2
 
 async function main() {
   const args = process.argv.slice(2)
-  for (const { name, lang } of FIXTURE_SETS) {
-    const dialogue = await readFile(resolve(FIXTURES, dialogueFile(name, lang)), 'utf8')
-    const t = transcribeFixtureFromDialogue(dialogue, lang, name)
-    if (args.includes('--transcribe')) {
-      await writeFile(resolve(FIXTURES, `transcribe-${name}-${lang}.json`), stringify(t))
+  for (const { name, lang, given } of FIXTURE_SETS) {
+    const t = given
+      ? TranscribeJson.parse(JSON.parse(await readFile(resolve(FIXTURES, transcribeFile(name, lang)), 'utf8')))
+      : transcribeFixtureFromDialogue(await readFile(resolve(FIXTURES, dialogueFile(name, lang)), 'utf8'), lang, name)
+    if (args.includes('--transcribe') && !given) {
+      await writeFile(resolve(FIXTURES, transcribeFile(name, lang)), stringify(t))
       const words = wordsFromTranscribe(t)
       console.log(`transcribe-${name}-${lang}.json: ${words.length} words, ${Math.max(...words.map((w) => w.end)).toFixed(2)} s`)
     }

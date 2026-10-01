@@ -6,7 +6,8 @@ import type { PrepareDeps } from '../types'
 
 export function ffprobeArgs(src: string): string[] { return ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', src] }
 export function ffmpegNormalizeArgs(src: string, dst: string): string[] {
-  return ['-y', '-i', src, '-vf', 'scale=-2:1080', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-ac', '2', '-b:a', '192k', dst]
+  // quiet: no banner, errors only, no progress stats (https://ffmpeg.org/ffmpeg.html#Generic-options, https://ffmpeg.org/ffmpeg.html#Main-options)
+  return ['-hide_banner', '-loglevel', 'error', '-nostats', '-y', '-i', src, '-vf', 'scale=-2:1080', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-ac', '2', '-b:a', '192k', dst]
 }
 
 /** The source's own extension, lower-cased (`.webm`, `.mkv`, …); `.mp4` when the key has none. */

@@ -30,6 +30,7 @@ export function packagerArgs(o: { work: string; lang: Lang; natives: string[] })
     '--segment_duration', '4',
     '--default_language', L,
     '--hls_master_playlist_output', `${O}/master.m3u8`,
+    '--quiet', // "reduces output verbosity" (no INFO lines)
   ]
 }
 

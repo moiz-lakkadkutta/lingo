@@ -1,0 +1,314 @@
+{
+  "1400": {
+    "lemma": "1400",
+    "known": false
+  },
+  "00|si": {
+    "lemma": "00",
+    "known": false
+  },
+  "A": {
+    "lemma": "A",
+    "known": true
+  },
+  "An": {
+    "lemma": "a",
+    "known": true
+  },
+  "Ana": {
+    "lemma": "Ana",
+    "known": true
+  },
+  "Ana|si": {
+    "lemma": "Ana",
+    "known": true
+  },
+  "Anna": {
+    "lemma": "Anna",
+    "known": true
+  },
+  "Anna|si": {
+    "lemma": "anna",
+    "known": true
+  },
+  "Apartment": {
+    "lemma": "apartment",
+    "known": true
+  },
+  "Apartment|si": {
+    "lemma": "apartment",
+    "known": true
+  },
+  "Are|si": {
+    "lemma": "be",
+    "known": true
+  },
+  "English": {
+    "lemma": "English",
+    "known": true
+  },
+  "Fast": {
+    "lemma": "fast",
+    "known": true
+  },
+  "Here's|si": {
+    "lemma": "here",
+    "known": false
+  },
+  "Hi|si": {
+    "lemma": "hi",
+    "known": true
+  },
+  "I": {
+    "lemma": "I",
+    "known": true
+  },
+  "I'm": {
+    "lemma": "I'm",
+    "known": true
+  },
+  "I'm|si": {
+    "lemma": "I'm",
+    "known": true
+  },
+  "Irving": {
+    "lemma": "Irving",
+    "known": false
+  },
+  "I|si": {
+    "lemma": "I",
+    "known": true
+  },
+  "Let's": {
+    "lemma": "let",
+    "known": false
+  },
+  "Let's|si": {
+    "lemma": "let",
+    "known": false
+  },
+  "Listen": {
+    "lemma": "listen",
+    "known": true
+  },
+  "Listen|si": {
+    "lemma": "listen",
+    "known": true
+  },
+  "N": {
+    "lemma": "n",
+    "known": true
+  },
+  "N's": {
+    "lemma": "n",
+    "known": true
+  },
+  "Nice": {
+    "lemma": "Nice",
+    "known": true
+  },
+  "Nice|si": {
+    "lemma": "nice",
+    "known": true
+  },
+  "Now": {
+    "lemma": "now",
+    "known": true
+  },
+  "No|si": {
+    "lemma": "no",
+    "known": true
+  },
+  "Pete": {
+    "lemma": "Pete",
+    "known": true
+  },
+  "Record": {
+    "lemma": "record",
+    "known": true
+  },
+  "Say": {
+    "lemma": "say",
+    "known": true
+  },
+  "Slow|si": {
+    "lemma": "slow",
+    "known": true
+  },
+  "Speak": {
+    "lemma": "speak",
+    "known": true
+  },
+  "Speak|si": {
+    "lemma": "speak",
+    "known": true
+  },
+  "Street": {
+    "lemma": "street",
+    "known": true
+  },
+  "Then|si": {
+    "lemma": "then",
+    "known": true
+  },
+  "Well|si": {
+    "lemma": "well",
+    "known": true
+  },
+  "Yes|si": {
+    "lemma": "yes",
+    "known": true
+  },
+  "a": {
+    "lemma": "a",
+    "known": true
+  },
+  "again": {
+    "lemma": "again",
+    "known": true
+  },
+  "am": {
+    "lemma": "be",
+    "known": true
+  },
+  "and": {
+    "lemma": "and",
+    "known": true
+  },
+  "apartment": {
+    "lemma": "apartment",
+    "known": true
+  },
+  "are": {
+    "lemma": "be",
+    "known": true
+  },
+  "hi": {
+    "lemma": "hi",
+    "known": true
+  },
+  "how": {
+    "lemma": "how",
+    "known": true
+  },
+  "is": {
+    "lemma": "be",
+    "known": true
+  },
+  "it": {
+    "lemma": "it",
+    "known": true
+  },
+  "learn": {
+    "lemma": "learn",
+    "known": true
+  },
+  "listen": {
+    "lemma": "listen",
+    "known": true
+  },
+  "meet": {
+    "lemma": "meet",
+    "known": true
+  },
+  "my": {
+    "lemma": "my",
+    "known": true
+  },
+  "name": {
+    "lemma": "name",
+    "known": true
+  },
+  "new": {
+    "lemma": "new",
+    "known": true
+  },
+  "nice": {
+    "lemma": "nice",
+    "known": true
+  },
+  "of": {
+    "lemma": "of",
+    "known": true
+  },
+  "or": {
+    "lemma": "or",
+    "known": true
+  },
+  "piqued": {
+    "lemma": "pique",
+    "known": true
+  },
+  "practice": {
+    "lemma": "practice",
+    "known": true
+  },
+  "rented": {
+    "lemma": "rent",
+    "known": true
+  },
+  "room": {
+    "lemma": "room",
+    "known": true
+  },
+  "rooms": {
+    "lemma": "room",
+    "known": true
+  },
+  "say": {
+    "lemma": "say",
+    "known": true
+  },
+  "set": {
+    "lemma": "set",
+    "known": true
+  },
+  "speech": {
+    "lemma": "speech",
+    "known": true
+  },
+  "spell": {
+    "lemma": "spell",
+    "known": true
+  },
+  "that": {
+    "lemma": "that",
+    "known": true
+  },
+  "there": {
+    "lemma": "there",
+    "known": true
+  },
+  "to": {
+    "lemma": "to",
+    "known": true
+  },
+  "try": {
+    "lemma": "try",
+    "known": true
+  },
+  "two": {
+    "lemma": "two",
+    "known": true
+  },
+  "welcome": {
+    "lemma": "welcome",
+    "known": true
+  },
+  "with": {
+    "lemma": "with",
+    "known": true
+  },
+  "you": {
+    "lemma": "you",
+    "known": true
+  },
+  "your": {
+    "lemma": "your",
+    "known": true
+  },
+  "yourself": {
+    "lemma": "yourself",
+    "known": true
+  }
+}

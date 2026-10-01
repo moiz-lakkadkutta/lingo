@@ -12,5 +12,6 @@ exports[`packagerArgs > de clip with native en yields video + one audio + exactl
   "de",
   "--hls_master_playlist_output",
   "work/demo-de/hls/master.m3u8",
+  "--quiet",
 ]
 `;

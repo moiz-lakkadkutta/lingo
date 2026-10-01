@@ -46,6 +46,8 @@ export interface PrepareInput {
   cloudfrontDomain?: string
   /** path of a corrected WebVTT for the target track; skips Transcribe + segmentation (docs/decisions/0007) */
   cues?: string
+  /** reuse work/<slug>/{mezz.mp4,transcript.json} when present: no download, ffmpeg or Transcribe (re-measure after a pipeline change, docs/decisions/0008) */
+  reuse?: boolean
 }
 
 /** Every side effect of prepare() goes through this seam; tests use fixtureDeps(), the CLI uses defaultDeps(). */
