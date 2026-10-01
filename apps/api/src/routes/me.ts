@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { DueWord, FREE_SAVES_PER_DAY, LearnerSettingsPatch, ProgressStats, ReviewPost, ReviewResult, SaveWord, WordSavedPayload } from '@lingo/contracts'
 import { db } from '../lib/db'
-import { entitled } from '../lib/entitlement'
+import { entitled, savesSince } from '../lib/entitlement'
 import { notFound, ok, validate } from '../lib/http'
 import { sm2 } from '../lib/sm2'
 import { getIo } from '../lib/io'
@@ -14,8 +14,8 @@ import { computeStats } from '../lib/stats'
 export const me: Router = Router()
 
 me.get('/', async (req, res, next) => { try { const l = await learner(req); ok(res, { ...l, plus: await entitled(l.id) }) } catch (e) { next(e) } })
-/** Settings only (LearnerSettingsPatch): plus, level, streak and knownRank are never client-writable here. */
-me.put('/', validate(LearnerSettingsPatch, (r) => r.body), async (req, res, next) => { try { const l = await learner(req); ok(res, await db.learner.update({ where: { id: l.id }, data: (req as never as { valid: object }).valid })) } catch (e) { next(e) } })
+/** Settings only (LearnerSettingsPatch): plus, level, streak and knownRank are never client-writable here. plus in the answer is entitled(), as in GET /me. */
+me.put('/', validate(LearnerSettingsPatch, (r) => r.body), async (req, res, next) => { try { const l = await learner(req); const u = await db.learner.update({ where: { id: l.id }, data: (req as never as { valid: object }).valid }); ok(res, { ...u, plus: await entitled(l.id) }) } catch (e) { next(e) } })
 
 /** Save a word from the Explain card. Free tier: 20/day. Emits word:saved to the phone room. */
 me.post('/words', validate(SaveWord, (r) => r.body), async (req, res, next) => {
@@ -23,9 +23,7 @@ me.post('/words', validate(SaveWord, (r) => r.body), async (req, res, next) => {
     const l = await learner(req)
     const { highlightId, sessionCode } = (req as never as { valid: { highlightId: string; sessionCode?: string } }).valid
     if (!(await entitled(l.id))) {
-      const today = new Date(); today.setHours(0, 0, 0, 0)
-      const n = await db.savedWord.count({ where: { learnerId: l.id, createdAt: { gte: today } } })
-      if (n >= FREE_SAVES_PER_DAY) return ok(res, { limit: true, saved: null })
+      if ((await savesSince(l.id, new Date())) >= FREE_SAVES_PER_DAY) return ok(res, { limit: true, saved: null })
     }
     const saved = await db.savedWord.upsert({ where: { learnerId_highlightId: { learnerId: l.id, highlightId } }, create: { learnerId: l.id, highlightId }, update: {}, include: { highlight: { include: { cue: { include: { clip: true } } } } } })
     if (sessionCode) {

@@ -45,6 +45,7 @@ model Clip {
   quiz QuizItem[]
   progress Progress[]
   sessions Session[]
+  quizAttempts QuizAttempt[]
 }
 model Cue {
   id String @id @default(cuid() )
@@ -93,7 +94,6 @@ model Learner {
   learning Lang @default(de)
   native String @default("en")
   level Level @default(A2)
-  knownRank Int @default(1000)
   plus Boolean @default(false)
   streak Int @default(0)
   /// UTC day (YYYY-MM-DD) of the last study activity: a graded review or a saved word (LING-006).
@@ -103,6 +103,8 @@ model Learner {
   nativeLine NativeLine @default(always)
   autoPause Boolean @default(false)
   cueScale Float @default(1)
+  levelChangedAt DateTime?
+  quizAttempts QuizAttempt[]
   words SavedWord[]
   progress Progress[]
   sessions Session[]
@@ -166,4 +168,16 @@ model Progress {
   completed Boolean @default(false)
   updatedAt DateTime @updatedAt
   @@id([learnerId, clipId])
+}
+/// One finished TV quiz (PUT /me/level source quiz); the level rule reads the attempts since levelChangedAt.
+model QuizAttempt {
+  id String @id @default(cuid())
+  learnerId String
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  clipId String
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  correct Int
+  total Int
+  at DateTime @default(now())
+  @@index([learnerId, at])
 }

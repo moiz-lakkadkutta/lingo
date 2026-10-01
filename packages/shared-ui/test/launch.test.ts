@@ -2,7 +2,7 @@ import type { Catalog } from '@lingo/contracts'
 import type { LaunchIntent } from '@moizp/vega-media-kit'
 import { catalogItems, createLaunchBus, launchUri, noLaunches, parseLaunchUri } from '../src/platform/launch'
 
-const card = (slug: string, posterUrl: string | null = null) => ({ slug, title: `T ${slug}`, level: 'A2' as const, durationS: 60, posterUrl, resumeS: null })
+const card = (slug: string, posterUrl: string | null = null) => ({ slug, title: `T ${slug}`, level: 'A2' as const, durationS: 60, posterUrl, resumeS: null, completed: false, attribution: '' })
 
 describe('launch intents', () => {
   it('parseLaunchUri reads lingo://clip/<slug> and an optional t in seconds', () => {

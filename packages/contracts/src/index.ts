@@ -1,16 +1,21 @@
 import { z } from 'zod'
 import { Lang, Level } from './base'
 export { Lang, Level } from './base'
+export { LEVELS, BANDS, NEXT, highlightFloor } from './base'
 export * from './prepared'
 export * from './ai'
 export * from './review'
 export * from './iap'
-export const ClipCard = z.object({ slug: z.string(), title: z.string(), level: Level, durationS: z.number(), posterUrl: z.string().url().nullable(), resumeS: z.number().nullable() })
+export * from './tv'
+export const ClipCard = z.object({ slug: z.string(), title: z.string(), level: Level, durationS: z.number(), posterUrl: z.string().url().nullable(), resumeS: z.number().nullable(), completed: z.boolean().default(false), attribution: z.string().default('') })
 export const Catalog = z.object({ continue: z.array(ClipCard), justRight: z.array(ClipCard), harder: z.array(ClipCard), fresh: z.array(ClipCard) })
 export const HighlightDto = z.object({ id: z.string(), word: z.string(), lemma: z.string(), rank: z.number().int(), gloss: z.string(), grammar: z.string(), example: z.string(), level: Level })
 export const CueDto = z.object({ index: z.number().int(), startS: z.number(), endS: z.number(), text: z.string(), native: z.string(), highlights: z.array(HighlightDto) })
 export const QuizItemDto = z.object({ id: z.string(), kind: z.enum(['meaning', 'cloze']), prompt: z.string(), options: z.array(z.string()).length(4), answer: z.number().int().min(0).max(3), cueIndex: z.number().int().nullable() })
-export const ClipDetail = ClipCard.extend({ attribution: z.string(), manifestUrl: z.string().url(), sourceLang: Lang, cues: z.array(CueDto), quiz: z.array(QuizItemDto), wordsYoullMeet: z.array(HighlightDto) })
+export const ClipDetail = ClipCard.extend({ manifestUrl: z.string().url(), sourceLang: Lang, cues: z.array(CueDto), quiz: z.array(QuizItemDto), wordsYoullMeet: z.array(HighlightDto) })
+export const ClipReady = ClipDetail.extend({ status: z.literal('ready') })
+export const ClipPreparing = ClipCard.extend({ status: z.literal('preparing'), etaMin: z.number().int().positive() })
+export const ClipResponse = z.discriminatedUnion('status', [ClipReady, ClipPreparing])
 export const NativeLine = z.enum(['always', 'onPause', 'never'])
 /** Cue size 100–150 % (Settings and the ▲ sheet). */
 export const CueScale = z.number().min(1).max(1.5)
@@ -83,4 +88,4 @@ export interface ServerToClientEvents {
 }
 export interface SocketData { code?: string; role?: 'tv' | 'phone'; phoneName?: string }
 export type SessionDto = z.infer<typeof SessionDto>; export type JoinPayload = z.infer<typeof JoinPayload>; export type SessionStatePayload = z.infer<typeof SessionStatePayload>; export type PhoneConnectedPayload = z.infer<typeof PhoneConnectedPayload>; export type PhoneDisconnectedPayload = z.infer<typeof PhoneDisconnectedPayload>; export type WordSavedPayload = z.infer<typeof WordSavedPayload>; export type QuizStartPayload = z.infer<typeof QuizStartPayload>; export type QuizResultPayload = z.infer<typeof QuizResultPayload>; export type SessionErrorPayload = z.infer<typeof SessionErrorPayload>
-export type Catalog = z.infer<typeof Catalog>; export type ClipDetail = z.infer<typeof ClipDetail>; export type CueDto = z.infer<typeof CueDto>; export type HighlightDto = z.infer<typeof HighlightDto>; export type LearnerDto = z.infer<typeof LearnerDto>; export type LearnerSettingsPatch = z.infer<typeof LearnerSettingsPatch>; export type NativeLine = z.infer<typeof NativeLine>; export type QuizItemDto = z.infer<typeof QuizItemDto>; export type DueWord = z.infer<typeof DueWord>
+export type Catalog = z.infer<typeof Catalog>; export type ClipCard = z.infer<typeof ClipCard>; export type ClipDetail = z.infer<typeof ClipDetail>; export type ClipReady = z.infer<typeof ClipReady>; export type ClipPreparing = z.infer<typeof ClipPreparing>; export type ClipResponse = z.infer<typeof ClipResponse>; export type CueDto = z.infer<typeof CueDto>; export type HighlightDto = z.infer<typeof HighlightDto>; export type LearnerDto = z.infer<typeof LearnerDto>; export type LearnerSettingsPatch = z.infer<typeof LearnerSettingsPatch>; export type NativeLine = z.infer<typeof NativeLine>; export type QuizItemDto = z.infer<typeof QuizItemDto>; export type DueWord = z.infer<typeof DueWord>

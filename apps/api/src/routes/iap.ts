@@ -4,6 +4,7 @@ import { db } from '../lib/db'
 import { acceptsSku, entitled, isActive, plusStatus, purchaseFields } from '../lib/entitlement'
 import { env } from '../lib/env'
 import { ok, validate } from '../lib/http'
+import { learner } from '../lib/learner'
 import { logger } from '../lib/logger'
 import type { RvsClient } from '../lib/rvs'
 
@@ -13,10 +14,6 @@ import type { RvsClient } from '../lib/rvs'
  * https://developer.amazon.com/docs/in-app-purchasing/iap-implement-iap.html · https://developer.amazon.com/docs/in-app-purchasing/rvs-cloud-sandbox.html
  * https://developer.amazon.com/docs/vega/0.22/rvs-cloud.html
  */
-const learner = (deviceId: unknown) => {
-  const id = String(deviceId ?? 'anon')
-  return db.learner.upsert({ where: { deviceId: id }, create: { deviceId: id }, update: { lastActive: new Date() } })
-}
 
 export function iapRouter(deps: { rvs: RvsClient; now: () => Date }): Router {
   const r = Router()
@@ -24,7 +21,7 @@ export function iapRouter(deps: { rvs: RvsClient; now: () => Date }): Router {
   r.post('/verify', validate(VerifyReceipt, (q) => q.body), async (req, res, next) => {
     try {
       const body = (req as never as { valid: VerifyReceipt }).valid
-      const l = await learner(req.header('x-device-id'))
+      const l = await learner(req)
       const now = deps.now()
       const answer = async (outcome: VerifyResult['outcome'], fulfil: boolean) => {
         const plus = await entitled(l.id, { now })
@@ -59,7 +56,7 @@ export function iapRouter(deps: { rvs: RvsClient; now: () => Date }): Router {
 
   r.get('/status', async (req, res, next) => {
     try {
-      const l = await learner(req.header('x-device-id'))
+      const l = await learner(req)
       ok(res, await plusStatus(l.id, deps))
     } catch (e) { next(e) }
   })
