@@ -8,6 +8,12 @@ describe('alignNative (docs/decisions/0007 M4)', () => {
     expect(translate).toHaveBeenCalledWith('Genau.', 'de', 'en')
     expect(out[0]!.en).toBe('-[Genau.]\n-[Aber was?]')
   })
+  it('keeps a 50-char translation on one line (native budget 56, docs/decisions/0007 M4)', async () => {
+    const fifty = 'The costs were never really the problem for us all'
+    expect(fifty.length).toBe(50)
+    const out = await alignNative([{ index: 0, startS: 0, endS: 3, text: 'Die Kosten waren nie das Problem.' }], 'de', ['en'], async () => fifty)
+    expect(out[0]!.en).toBe(fifty)
+  })
   it('wraps a long single-line translation into two lines of ≤ 56', async () => {
     const long = 'This translation runs a good deal longer than the German line it came from, about a hundred chars.'
     expect(long.length).toBeGreaterThan(84)

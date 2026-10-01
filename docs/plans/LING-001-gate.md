@@ -13,12 +13,13 @@ assertions (two tests gain *additional* assertions, listed in §7).
 2. Manual correction is a WebVTT file: `prepare --cues <file.vtt>` skips Transcribe + segmentation and runs the same gate.
 3. Tokens come from the final cue text (`tokenizeCues`), never from the timed words, in both modes.
 4. Speaker change flushes a group. Fallback order for a short/fast cue: same-speaker merge forward, same-speaker merge backward,
-   interjection drop (+ rejoin), two-speaker cue with next, two-speaker cue with previous, tiny drop, else gate finding.
+   interjection drop (+ rejoin), two-speaker cue with next, two-speaker cue with previous (both only when both turns end with
+   `[.!?…,;:]` — review M1), tiny drop, else gate finding.
 5. Two-speaker cue = Netflix form: exactly two lines, each `-` + text, one speaker per line, ≤ 42 chars per line (hyphen included).
 6. Overlapping words of the next cue cut this cue at `nextStart − 0.08`; `timing()` does it, not the final trim.
 7. Native track: `wrap2(text, 56)`, lint limits `{ cps: 26, lines: 2, lineLength: 56, minDuration: 1 }`, findings are warnings.
 8. M5 is app-side (LING-005 follow-up); this ticket changes nothing for it except the TASKS.md line in §9.
-9. Constants: `MAX_LINE = 42`, `NATIVE_LINE = 56`, `GAP = 0.08`, `EXTEND = 0.5`, `MIN_S = 1`, `MAX_S = 7`, `CPS = 20`, tiny cue = ≤ 2 words.
+9. Constants: `MAX_LINE = 42`, `NATIVE_LINE = 56`, `GAP = 0.08`, `EXTEND = 0.5`, `MIN_S = 1`, `MAX_S = 7`, `CPS = 20`, tiny cue = ≤ 2 words that fit one 42-char line (review fix: a single long compound is never tiny).
 
 ## 1. Files
 

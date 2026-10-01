@@ -7,7 +7,7 @@ import { prepare } from '../src/prepare'
 import { fixtureDeps } from '../src/fixtureDeps'
 import { BANDS, NEXT } from '../src/highlights'
 import { isDualText } from '../src/segment'
-import { checkVtt, cuesToVtt, LINT_LIMITS } from '../src/vtt'
+import { checkVtt, cuesToVtt, LINT_LIMITS, NATIVE_LINT_LIMITS } from '../src/vtt'
 import { parseVtt, lintCues } from '@moizp/vega-media-kit/core'
 import { TranscribeJson, type Lang } from '../src/types'
 
@@ -82,9 +82,11 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
   it('both VTT files round-trip through parseVtt and pass lintCues with zero findings', async () => {
     for (const code of [lang, native]) {
       const vtt = await readFile(result.files.vtt[code]!, 'utf8')
-      const { cues, findings } = checkVtt(vtt, code)
+      // the target track lints at 2 × 42 / 20 cps, the native track at its own budget 2 × 56 / 26 cps (docs/decisions/0007 M4)
+      const limits = code === lang ? LINT_LIMITS : NATIVE_LINT_LIMITS
+      const { cues, findings } = checkVtt(vtt, code, limits)
       expect(findings).toEqual([])
-      expect(lintCues(cues, LINT_LIMITS)).toEqual([])
+      expect(lintCues(cues, limits)).toEqual([])
       expect(cues.map((c) => c.id)).toEqual(clip.cues.map((c) => `c${c.index}`))
       expect(cues.map((c) => Math.round(c.start * 1000))).toEqual(clip.cues.map((c) => c.startMs))
       expect(cues.map((c) => Math.round(c.end * 1000))).toEqual(clip.cues.map((c) => c.endMs))
@@ -183,7 +185,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(r.clip.source.transcribeJob).toBeNull() // no transcript.json in this work dir
     expect(r.clip.cues.map((c) => c.text)).toEqual(clip.cues.map((c) => c.text))
   })
-  it('native lines are wrapped at 56 and a 15-char-longer translation produces no warning', async () => {
+  it('native lines are wrapped at 56 and a 15-char-longer translation produces no layout warning', async () => {
     const d = fixtureDeps(lang)
     d.translate = async (t) => t.toUpperCase() + ' ab ab ab ab ab'
     const r = await prepare({ slug: `long-${lang}`, source: 's3://unused', lang, natives: [native], workRoot, publish: false }, d)

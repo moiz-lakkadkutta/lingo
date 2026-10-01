@@ -4,7 +4,7 @@
  * (the 1 s minimum is a hard floor and is not capped), but never past two frames before the next cue's first word.
  * A cue that still reads too fast or is shorter than 1 s is fixed in this order: same-speaker merge forward, same-speaker merge
  * backward, interjection drop (+ rejoin of the interrupted clause), two-speaker cue with the next cue, two-speaker cue with the
- * previous cue, drop of a tiny (≤ 2 words on one line) cue; anything else is left for the quality gate.
+ * previous cue (both only when both turns end with punctuation), drop of a tiny (≤ 2 words that fit one 42-char line) cue; anything else is left for the quality gate.
  * Two-speaker cue = Netflix "Dual Speakers": exactly two lines, each `-` + text, one speaker per line, ≤ 42 chars per line.
  * https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide
  */
@@ -47,6 +47,7 @@ const lastEndOf = (g: Word[]) => Math.max(...g.map((w) => w.end))
 /** A tiny cue (back-channel, interjection): ≤ 2 words that fit one line. A single long word is content, never tiny. */
 const tiny = (g: Word[]) => g.length <= TINY && joinWords(g).length <= MAX_LINE
 const endsSentence = (g: Word[]) => /[.!?…]$/.test(g.at(-1)!.text)
+const endsPunct = (g: Word[]) => /[.!?…,;:]$/.test(g.at(-1)!.text)
 
 /** Timing of one word group given the next group's first word start (undefined for the last group). */
 function timing(group: Word[], nextStart: number | undefined): { s: number; e: number } {
@@ -94,8 +95,11 @@ export function segmentWithReport(words: Word[]): SegmentReport {
   /** same-speaker merge of i and i+1: the pair fits 2×42 and ≤ 7 s */
   const canMerge = (i: number) => sameSpeaker(groups[i]!, groups[i + 1]!) && single(groups[i]!) && single(groups[i + 1]!)
     && fits2(render(pair(i))) && (() => { const { s, e } = mergedTiming(i); return e - s <= MAX_S })()
-  /** two-speaker cue of i and i+1: must be fully good, because it is never merged again */
-  const canDual = (i: number) => differentSpeakers(groups[i]!, groups[i + 1]!) && single(groups[i]!) && single(groups[i + 1]!)
+  /**
+   * two-speaker cue of i and i+1: must be fully good, because it is never merged again. Both turns must end with punctuation:
+   * a turn that stops mid-clause ("my new" | "apartment.") is a speaker-label glitch, not a dialogue exchange.
+   */
+  const canDual = (i: number) => differentSpeakers(groups[i]!, groups[i + 1]!) && endsPunct(groups[i]!) && endsPunct(groups[i + 1]!) && single(groups[i]!) && single(groups[i + 1]!)
     && fits2(render(pair(i)))
     && (() => { const { s, e } = mergedTiming(i); return e - s <= MAX_S && e - s >= MIN_S - 1e-9 && chars(render(pair(i))) / (e - s) <= CPS })()
   const isInterjection = (i: number) => tiny(groups[i]!) && i > 0 && i + 1 < n()

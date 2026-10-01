@@ -170,6 +170,35 @@ describe('segment: speakers (docs/decisions/0007)', () => {
     expect(segs[0]!.text).toBe('-Nein, nein, nein, warte mal kurz!\n-Okay, okay.')
     for (const s of segs) { expect(cps(s)).toBeLessThanOrEqual(20); expect(s.endS - s.startS).toBeGreaterThanOrEqual(1) }
   })
+  it('never builds a two-speaker cue across a mid-clause speaker-label glitch (VOA cue 35: "-my new\\n-apartment.")', () => {
+    // "my new" labelled spk_3, "apartment." spk_0 with zero gap; once at the clip start, once after another speaker's sentence
+    for (const before of [[], say('spk_1', 'Welcome back to the show.', 0)]) {
+      const glitch = say('spk_3', 'my new', before.length ? endOf(before) + 0.45 : 0.4)
+      const apartment: W[] = [{ start: endOf(glitch), end: endOf(glitch) + 0.5, text: 'apartment.', speaker: 'spk_0' }]
+      const after = say('spk_0', 'It is small but really nice.', endOf(apartment) + 0.45)
+      const { cues, dropped } = segmentWithReport([...before, ...glitch, ...apartment, ...after])
+      expect(cues.some((c) => isDualText(c.text))).toBe(false)
+      expect(cues.some((c) => c.text.split('\n').some((l) => l === '-my new'))).toBe(false)
+      expect(dropped.map((d) => d.text)).toEqual(['my new']) // reported, restorable through dropped.vtt
+    }
+  })
+  it('a short cue overlapped 0.12 s by the next speaker is cut in timing() and becomes a clean two-speaker cue', () => {
+    const a = say('spk_0', 'Das stimmt doch.', 0)
+    const b = say('spk_1', 'Das glaube ich dir sofort, wirklich.', endOf(a) - 0.12)
+    const { cues, dropped } = segmentWithReport([...a, ...b])
+    expect(cues.map((c) => c.text)).toEqual(['-Das stimmt doch.\n-Das glaube ich dir sofort, wirklich.'])
+    expect(dropped).toEqual([])
+    expect(qualityGate(cues.map((s) => ({ ...s, text: wrap2(s.text) })))).toEqual([])
+  })
+  it('does not drop a tiny cue as an interjection when its neighbours are two different speakers', () => {
+    const a = say('spk_0', LONG_A, 0)
+    const ja = say('spk_1', 'Ja.', endOf(a) + 0.02)
+    const c = say('spk_2', 'Die Kosten waren dabei eigentlich nie das allergrößte Problem für uns alle.', endOf(ja) + 0.02)
+    const { cues, dropped } = segmentWithReport([...a, ...ja, ...c])
+    expect(dropped.some((d) => d.reason === 'interjection')).toBe(false)
+    expect(dropped.map((d) => [d.text, d.reason])).toEqual([['Ja.', 'unplaceable']])
+    expect(cues.length).toBe(2)
+  })
   it('a two-speaker cue is never merged again', () => {
     const words: W[] = [
       { start: 0, end: 0.3, text: 'Ja.', speaker: 'spk_0' },

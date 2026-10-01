@@ -101,16 +101,22 @@ Facts the decisions rest on:
    token after such punctuation inside the cue. `tokenizeWords` stays for callers that have words only.
 4. **Speaker policy in the segmenter.** A speaker change (both labels present and different) always flushes the group.
    The merge pass, in order, for a cue that is too short or too fast: same-speaker merge forward, same-speaker merge backward,
-   drop an interjection (≤ 2 words, previous and next group share a speaker that differs from this one) and rejoin the
+   drop an interjection (a tiny cue whose previous and next group share a speaker that differs from this one) and rejoin the
    interrupted sentence when it can be rejoined, two-speaker cue with the next group, two-speaker cue with the previous group,
-   drop a ≤ 2-word cue, else leave it for the gate. A two-speaker cue is final (never merged again), has exactly two lines of
+   drop a tiny cue, else leave it for the gate. A *tiny* cue has ≤ 2 words **and** fits one 42-char line (a single long
+   compound is content, never tiny). A two-speaker cue is built only when **both** turns end with punctuation
+   (`. ! ? … , ; :`): a turn that stops mid-clause is a speaker-label glitch, not an exchange — the real VOA transcript
+   produced `-my new` / `-apartment.` from a one-word label flip (LING-001 review M1). A two-speaker cue is final (never merged again), has exactly two lines of
    `-` + text, each ≤ 42 chars, ≤ 7 s, ≤ 20 cps and ≥ 1 s. Words of the following cue that overlap this cue's tail cut the
    cue at two frames before the next cue starts (`timing()` owns this; the final gap trim becomes a no-op safety).
    Every drop is recorded in `clip.json.warnings` as `dropped cue <start>–<end> "<text>" (<reason>)` and in `dropped.vtt`,
    so the spot check sees it and the human can restore it via the VTT path.
 5. **Native limits: 2 × 56, cps 26, warnings only.** `wrap2(text, maxLine = 42)` gains the parameter; `alignNative` wraps at
    `NATIVE_LINE = 56` and translates two-speaker cues line by line; `checkVtt` takes a limits argument; native findings stay
-   in `warnings`. The target track keeps 2 × 42 / 20 cps / 1–7 s as a hard gate.
+   in `warnings`. The target track keeps 2 × 42 / 20 cps / 1–7 s as a hard gate. Outcome (LING-001 review M3): the native
+   wrap is plain `wrap2(text, 56)` — a native line of 43–56 chars stays on one line — and the native VTT is linted with the
+   native limits everywhere, tests included. An attempt to prefer the 2 × 42 layout whenever it fits was reverted: it wrapped
+   almost every line at 42 and made the 56 budget unused.
 6. **M5 is app-side**, in the API so TV and phone agree: `GET /clips/:slug` returns a cue's highlights only when
    `rank ≥ BANDS[NEXT[learner.level]][0]` (A1 → 1000, A2 → 2000, B1 → 4000, B2 → 4000), and `wordsYoullMeet` is built from the
    filtered set. `BANDS`/`NEXT` move from `packages/pipeline/src/highlights.ts` to `packages/contracts/src/base.ts` when that
@@ -128,7 +134,8 @@ Facts the decisions rest on:
 - Real clips with ordinary interview overlap pass without human work; what remains for the human is sustained speech above
   20 cps, which no verbatim caption can satisfy — the standard subtitling answer is condensing, and the VTT path is exactly
   that. Expect a handful of cues per 6-minute interview clip; the spot check budget (PLAN §5) absorbs it.
-- A dropped interjection means a second of audio with no caption. Bounded to ≤ 2 words, always logged, always restorable.
+- A dropped interjection means a second of audio with no caption. Bounded to tiny cues (≤ 2 words on one 42-char line), always
+  logged, always restorable.
 - `segment()` keeps its signature and behaviour on unlabelled input (every existing test passes unchanged);
   `segmentWithReport()` is the new entry point `prepare()` uses.
 - `prepare()` gains one optional input (`cues`), the CLI one option (`--cues`), `checkVtt` one optional argument,
