@@ -96,6 +96,8 @@ model Learner {
   knownRank Int @default(1000)
   plus Boolean @default(false)
   streak Int @default(0)
+  /// UTC day (YYYY-MM-DD) of the last study activity: a graded review or a saved word (LING-006).
+  lastStudyDay String?
   lastActive DateTime?
   firstRunDone Boolean @default(false)
   nativeLine NativeLine @default(always)
