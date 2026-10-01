@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { LearnerDto, ReviewPost, SaveWord, WordSavedPayload } from '@lingo/contracts'
+import { LearnerSettingsPatch, ReviewPost, SaveWord, WordSavedPayload } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { ok, validate } from '../lib/http'
 import { sm2 } from '../lib/sm2'
@@ -9,7 +9,8 @@ export const me: Router = Router()
 const learner = async (h: unknown) => db.learner.upsert({ where: { deviceId: String(h ?? 'anon') }, create: { deviceId: String(h ?? 'anon') }, update: { lastActive: new Date() } })
 
 me.get('/', async (req, res, next) => { try { ok(res, await learner(req.header('x-device-id'))) } catch (e) { next(e) } })
-me.put('/', validate(LearnerDto.partial(), (r) => r.body), async (req, res, next) => { try { const l = await learner(req.header('x-device-id')); ok(res, await db.learner.update({ where: { id: l.id }, data: (req as never as { valid: object }).valid })) } catch (e) { next(e) } })
+/** Settings only (LearnerSettingsPatch): plus, level, streak and knownRank are never client-writable here. */
+me.put('/', validate(LearnerSettingsPatch, (r) => r.body), async (req, res, next) => { try { const l = await learner(req.header('x-device-id')); ok(res, await db.learner.update({ where: { id: l.id }, data: (req as never as { valid: object }).valid })) } catch (e) { next(e) } })
 
 /** Save a word from the Explain card. Free tier: 20/day. Emits word:saved to the phone room. */
 me.post('/words', validate(SaveWord, (r) => r.body), async (req, res, next) => {

@@ -37,7 +37,11 @@ export function initialState(startAt: number): PlayerState {
 }
 
 const chrome = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState => ({ ...s, chromeUntil: now + ctx.chromeMs })
-/** In a gap between lines the card explains the line that just ended, so cueIndex is never null while a cue is shown. */
+/**
+ * In a gap between lines the card explains the line that just ended, so cueIndex is never null while a cue is shown.
+ * Before the first line there is nothing to explain: cueIndex stays null, no card renders, and Player.tsx keeps the stage
+ * focusable with a hint so Select (or Play) resumes. That is the only way into explain with cueIndex null.
+ */
 const toExplain = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =>
   chrome({ ...s, phase: 'explain', wordIdx: 0, cueIndex: s.cueIndex ?? lastStartedCue(ctx.cues, s.positionS) }, now, ctx)
 /**
@@ -112,7 +116,10 @@ function slower(s: PlayerState, now: number, ctx: PlayerCtx): Result {
 function playing(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   switch (e.type) {
     case 'position': return track(s, e.s, e.now, ctx, true)
-    case 'stageSelect': return [toExplain(s, e.now, ctx), [{ kind: 'pause' }]]
+    case 'stageSelect':
+      // Select asks for the line under the playhead; before the first line there is none, so keep playing and show the chrome.
+      if (s.cueIndex === null && lastStartedCue(ctx.cues, s.positionS) === null) return [chrome(s, e.now, ctx), []]
+      return [toExplain(s, e.now, ctx), [{ kind: 'pause' }]]
     case 'back': return [s, [{ kind: 'exit', positionS: s.positionS }]]
     case 'playerState':
       if (e.s === 'paused') return [toExplain(s, e.now, ctx), []]
@@ -157,6 +164,8 @@ function holding(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
 function explain(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   switch (e.type) {
     case 'focusWord': return [{ ...s, wordIdx: e.idx }, []]
+    // Only reachable with no card (paused before the first line): the stage keeps focus and Select resumes.
+    case 'stageSelect': return s.cueIndex === null ? [backToStage(s, e.now, ctx), [{ kind: 'play' }]] : [s, []]
     case 'action':
       if (e.action === 'replay') {
         const [n, fx] = seekTo(backToStage(s, e.now, ctx), seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, ctx)

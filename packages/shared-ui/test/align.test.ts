@@ -35,3 +35,24 @@ describe('alignHighlights', () => {
     expect(a.lines[0]!.map((s) => s.highlightIdx)).toEqual([null, 1])
   })
 })
+
+describe('alignHighlights: two-speaker cues (mirrors pipeline tokenizeCues)', () => {
+  it('matches -Wirklich? and -Genau. at the start of speaker lines, keeping the displayed dash', () => {
+    const a = alignHighlights('-Wirklich? Das glaube ich.\n-Genau.', [{ word: 'Wirklich' }, { word: 'Genau' }])
+    expect(a.unmatched).toEqual([])
+    expect(a.lines[0]![0]).toEqual({ text: '-Wirklich?', highlightIdx: 0 })
+    expect(a.lines[1]![0]).toEqual({ text: '-Genau.', highlightIdx: 1 })
+  })
+  it('matches a lowercase -wirklich case-insensitively too', () => {
+    expect(alignHighlights('-wirklich?\n-Ja.', [{ word: 'Wirklich' }]).unmatched).toEqual([])
+  })
+  it('strips the speaker dash only at the start of a line, not inside it', () => {
+    const a = alignHighlights('Schick die E-Mail -heute.', [{ word: 'E-Mail' }, { word: 'heute' }])
+    expect(a.lines[0]![2]!.highlightIdx).toBe(0)
+    expect(a.unmatched).toEqual([1]) // the pipeline keeps "-heute" mid-line, so it never makes a highlight "heute" from it
+  })
+  it('strips other punctuation the pipeline strips («…», en dash, ellipsis)', () => {
+    const a = alignHighlights('–«Wirklich…» Na gut.', [{ word: 'Wirklich' }])
+    expect(a.unmatched).toEqual([])
+  })
+})

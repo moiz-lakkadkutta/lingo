@@ -81,6 +81,12 @@ model QuizItem {
   answer Int
   cueId String?
 }
+/// When the learner's own-language line shows under the target cue (Settings, ▲ sheet).
+enum NativeLine {
+  always
+  onPause
+  never
+}
 model Learner {
   id String @id @default(cuid() )
   deviceId String @unique
@@ -92,6 +98,9 @@ model Learner {
   streak Int @default(0)
   lastActive DateTime?
   firstRunDone Boolean @default(false)
+  nativeLine NativeLine @default(always)
+  autoPause Boolean @default(false)
+  cueScale Float @default(1)
   words SavedWord[]
   progress Progress[]
   sessions Session[]

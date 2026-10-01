@@ -129,7 +129,9 @@ export function Player(props: PlayerProps) {
   const [cueBlockH, setCueBlockH] = useState<number | null>(null)
   const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(24)
 
-  const stageActive = state.phase === 'playing' || state.phase === 'holding'
+  // Paused before the first line (machine.toExplain): no card, so the stage keeps focus and Select resumes.
+  const pausedNoCue = state.phase === 'explain' && !cue
+  const stageActive = state.phase === 'playing' || state.phase === 'holding' || pausedNoCue
   return (
     <View style={{ flex: 1, backgroundColor: tokens.color.stage }}>
       <KitPlayer
@@ -142,8 +144,8 @@ export function Player(props: PlayerProps) {
       />
       <Pressable
         key={state.stageKey}
-        aria-label={strings.player.stage}
-        hasTVPreferredFocus={state.phase === 'playing'}
+        aria-label={pausedNoCue ? strings.player.stagePaused : strings.player.stage}
+        hasTVPreferredFocus={state.phase === 'playing' || pausedNoCue}
         focusable={stageActive}
         pointerEvents={stageActive ? 'auto' : 'none'}
         onPress={() => dispatch({ type: 'stageSelect', now: Date.now() })}
@@ -164,7 +166,7 @@ export function Player(props: PlayerProps) {
         nextFocusDown={saveHandle}
         chipRefs={wordFocus === 'cue' ? chipRefs : undefined}
       />
-      <StatusLine parts={statusParts({ challenge, rate: state.rate })} visible={chromeVisible} />
+      <StatusLine parts={pausedNoCue ? [...statusParts({ challenge, rate: state.rate }), strings.player.pausedHint] : statusParts({ challenge, rate: state.rate })} visible={chromeVisible} />
       {explaining && cue ? (
         <Explain
           cue={cue}

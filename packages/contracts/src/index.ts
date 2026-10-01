@@ -9,7 +9,13 @@ export const HighlightDto = z.object({ id: z.string(), word: z.string(), lemma: 
 export const CueDto = z.object({ index: z.number().int(), startS: z.number(), endS: z.number(), text: z.string(), native: z.string(), highlights: z.array(HighlightDto) })
 export const QuizItemDto = z.object({ id: z.string(), kind: z.enum(['meaning', 'cloze']), prompt: z.string(), options: z.array(z.string()).length(4), answer: z.number().int().min(0).max(3), cueIndex: z.number().int().nullable() })
 export const ClipDetail = ClipCard.extend({ attribution: z.string(), manifestUrl: z.string().url(), sourceLang: Lang, cues: z.array(CueDto), quiz: z.array(QuizItemDto), wordsYoullMeet: z.array(HighlightDto) })
-export const LearnerDto = z.object({ learning: Lang, native: z.string(), level: Level, plus: z.boolean(), streak: z.number().int(), firstRunDone: z.boolean(), nativeLine: z.enum(['always', 'onPause', 'never']).default('always'), autoPause: z.boolean().default(false), cueScale: z.number().default(1) })
+export const NativeLine = z.enum(['always', 'onPause', 'never'])
+/** Cue size 100–150 % (Settings and the ▲ sheet). */
+export const CueScale = z.number().min(1).max(1.5)
+export const LearnerDto = z.object({ learning: Lang, native: z.string(), level: Level, plus: z.boolean(), streak: z.number().int(), firstRunDone: z.boolean(), nativeLine: NativeLine.default('always'), autoPause: z.boolean().default(false), cueScale: CueScale.default(1) })
+/** PUT /me body: only what the learner may change. Strict, so a forbidden key is a 400, not silently dropped.
+ *  plus is set only by /iap/verify, level only by PUT /me/level (LING-005), streak and knownRank only server-side. */
+export const LearnerSettingsPatch = z.object({ learning: Lang, native: z.string().min(1), firstRunDone: z.boolean(), nativeLine: NativeLine, autoPause: z.boolean(), cueScale: CueScale }).partial().strict()
 export const ReviewPost = z.object({ savedWordId: z.string(), grade: z.enum(['again', 'hard', 'good', 'easy']) })
 export const DueWord = z.object({ savedWordId: z.string(), word: z.string(), gloss: z.string(), example: z.string(), due: z.string(), reps: z.number().int() })
 // --- Session / realtime -------------------------------------------------------
@@ -69,4 +75,4 @@ export interface ServerToClientEvents {
 }
 export interface SocketData { code?: string; role?: 'tv' | 'phone'; phoneName?: string }
 export type SessionDto = z.infer<typeof SessionDto>; export type JoinPayload = z.infer<typeof JoinPayload>; export type SessionStatePayload = z.infer<typeof SessionStatePayload>; export type PhoneConnectedPayload = z.infer<typeof PhoneConnectedPayload>; export type PhoneDisconnectedPayload = z.infer<typeof PhoneDisconnectedPayload>; export type WordSavedPayload = z.infer<typeof WordSavedPayload>; export type QuizStartPayload = z.infer<typeof QuizStartPayload>; export type QuizResultPayload = z.infer<typeof QuizResultPayload>; export type SessionErrorPayload = z.infer<typeof SessionErrorPayload>
-export type Catalog = z.infer<typeof Catalog>; export type ClipDetail = z.infer<typeof ClipDetail>; export type CueDto = z.infer<typeof CueDto>; export type HighlightDto = z.infer<typeof HighlightDto>; export type LearnerDto = z.infer<typeof LearnerDto>; export type QuizItemDto = z.infer<typeof QuizItemDto>; export type DueWord = z.infer<typeof DueWord>
+export type Catalog = z.infer<typeof Catalog>; export type ClipDetail = z.infer<typeof ClipDetail>; export type CueDto = z.infer<typeof CueDto>; export type HighlightDto = z.infer<typeof HighlightDto>; export type LearnerDto = z.infer<typeof LearnerDto>; export type LearnerSettingsPatch = z.infer<typeof LearnerSettingsPatch>; export type NativeLine = z.infer<typeof NativeLine>; export type QuizItemDto = z.infer<typeof QuizItemDto>; export type DueWord = z.infer<typeof DueWord>

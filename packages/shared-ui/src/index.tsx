@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
-import type { Catalog, ClipDetail, HighlightDto, LearnerDto } from '@lingo/contracts'
+import type { Catalog, ClipDetail, HighlightDto, LearnerDto, LearnerSettingsPatch } from '@lingo/contracts'
 import { Rail, Screen, T } from './components'
 import { Home } from './screens/Home'
 import { Player } from './screens/Player'
@@ -8,6 +8,7 @@ import { Quiz } from './screens/Quiz'
 import { Summary } from './screens/Summary'
 import { Pair } from './screens/Pair'
 import { strings } from './strings'
+import { patchLearnerOptimistic } from './lib/learnerPatch'
 import { useSession } from './session/useSession'
 import type { SessionTransport } from './session/types'
 import { noRemote, type RemoteSource } from './remote/types'
@@ -51,11 +52,8 @@ export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport, re
     }
   }
   const savedIds = useMemo(() => new Set(saved.map((h) => h.id)), [saved])
-  /** Optimistic: the Player sees the change at once; a later /me reload corrects a failed PUT. */
-  const patchLearner = (p: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>) => {
-    setLearner((l) => ({ ...l, ...p }))
-    api('/me', { method: 'PUT', body: JSON.stringify(p) }).catch(() => {})
-  }
+  /** Optimistic: the Player sees the change at once; a failed PUT is logged and rolled back (lib/learnerPatch). */
+  const patchLearner = (p: LearnerSettingsPatch) => { void patchLearnerOptimistic({ put: (body) => api('/me', { method: 'PUT', body: JSON.stringify(body) }), setLearner }, p) }
   const onPlus = () => setRoute({ name: 'settings' }) // LING-005/007 own the Plus screen
   const rail = <Rail expanded={false} current={route.name} items={[{ key: 'home', label: strings.rail.watch }, { key: 'quiz', label: strings.rail.review }, { key: 'words', label: strings.rail.words }, { key: 'pair', label: 'Pair' }, { key: 'settings', label: strings.rail.settings }]} onSelect={(k) => setRoute({ name: k as 'home' })} />
   if (offline) return <Screen><View style={{ flex: 1, justifyContent: 'center' }} accessibilityLiveRegion="polite"><T variant="title">{strings.offline}</T></View></Screen>
