@@ -32,7 +32,14 @@ vi.mock('react-native', () => {
     ScrollView: host('ScrollView'),
     Pressable: host('Pressable'),
     Animated: { View: host('Animated.View'), Text: host('Animated.Text'), Value, timing: anim, spring: anim, parallel: anim, sequence: anim },
-    BackHandler: { addEventListener: () => ({ remove: () => {} }) },
+    // Records listeners so tests can press Back (helpers.pressBack): RN calls the most recently added listener first.
+    BackHandler: (() => {
+      const listeners: Array<() => boolean | null | undefined> = []
+      return {
+        __listeners: listeners,
+        addEventListener: (_ev: string, fn: () => boolean | null | undefined) => { listeners.push(fn); return { remove: () => { const i = listeners.lastIndexOf(fn); if (i >= 0) listeners.splice(i, 1) } } },
+      }
+    })(),
     AccessibilityInfo: { announceForAccessibility: vi.fn(), isScreenReaderEnabled: async () => false },
     findNodeHandle: (r: unknown) => (r ? 1 : null),
   }

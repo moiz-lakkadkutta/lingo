@@ -22,3 +22,12 @@ export const blur = (n: ReactTestInstance) => { act(() => { n.props.onBlur?.() }
 /** The Animated.View inside a Focusable (its visual box). */
 export const box = (p: ReactTestInstance): Style => flat(p.findByType('Animated.View' as never).props.style)
 export const flush = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)) }) }
+import { BackHandler } from 'react-native'
+/** Press the hardware Back key: listeners run newest first until one returns true. Returns whether it was handled (false → the OS would exit). */
+export const pressBack = (): boolean => {
+  const ls = (BackHandler as unknown as { __listeners: Array<() => boolean | null | undefined> }).__listeners
+  let handled = false
+  act(() => { for (const fn of [...ls].reverse()) if (fn()) { handled = true; break } })
+  return handled
+}
+export const backListeners = () => (BackHandler as unknown as { __listeners: unknown[] }).__listeners.length
