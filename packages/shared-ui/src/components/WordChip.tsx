@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { Animated, Pressable, Text, View } from 'react-native'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
+import { tvFocusProps } from '../tvFocus'
 import { Check } from './Check'
 
 export interface WordChipProps {
@@ -36,7 +37,7 @@ export function WordChip({ text, highlighted, focusable, saved, label, onFocus, 
       onFocus={() => { fade(1); onFocus?.() }}
       onBlur={() => fade(0)}
       onPress={onPress}
-      nextFocusDown={nextFocusDown}
+      {...tvFocusProps({ nextFocusDown })}
       aria-label={focusable ? label : undefined}
       accessibilityRole={focusable ? 'button' : undefined}
       style={[{ outlineWidth: 0, flexDirection: 'row', alignItems: 'center' }, highlighted ? { backgroundColor: tokens.color.marker, paddingHorizontal: px(tokens.layout.wordPadX * userScale), borderRadius: 3 } : null]}

@@ -13,8 +13,8 @@ export function useRemoteKeys(source: RemoteSource, onEvent: (e: RemoteEvent) =>
     const tracker = createPressTracker(longPressMs)
     return source.subscribe((raw) => {
       const now = Date.now()
-      for (const { phase, key } of normalise(raw)) {
-        const ev = phase === 'down' ? tracker.down(key, now) : tracker.up(key, now)
+      for (const { phase, key, held } of normalise(raw)) {
+        const ev = phase === 'down' ? tracker.down(key, now, held) : tracker.up(key, now)
         if (ev) cb.current(ev)
       }
     })

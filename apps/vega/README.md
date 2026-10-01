@@ -1,6 +1,6 @@
 # Lingo — Vega OS
 
-This directory is created **on a Mac/Linux machine with the Vega SDK** using the Vega CLI (React Native for Vega 0.72):
+This directory is created **on a Mac/Linux machine with the Vega SDK** using the Vega CLI (React Native for Vega 0.72 per the docs; **unconfirmed**: the on-disk `@amazon-devices/react-native-kepler` typings are labelled rn0.83. Record the real version with `npm ls react-native` after `vega project create`; spike S2 in docs/plans/LING-003.md checks it):
 
 ```
 cd apps && vega project create vega --template hello-world   # exact command per Amazon's Vega docs for SDK 0.24

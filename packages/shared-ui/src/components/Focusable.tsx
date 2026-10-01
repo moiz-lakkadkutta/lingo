@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Animated, Pressable, StyleSheet, type View, type ViewStyle } from 'react-native'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
+import { tvFocusProps } from '../tvFocus'
 
 export interface FocusableProps {
   children: React.ReactNode
@@ -27,8 +28,7 @@ export function Focusable({ children, onPress, onFocus, label, hint, selected, s
   return (
     <Pressable
       ref={focusRef}
-      nextFocusUp={nextFocusUp}
-      nextFocusDown={nextFocusDown}
+      {...tvFocusProps({ nextFocusUp, nextFocusDown })}
       onPress={onPress}
       onFocus={() => { setFocused(true); animate(tokens.motion.focusScale); onFocus?.() }}
       onBlur={() => { setFocused(false); animate(1) }}

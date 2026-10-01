@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useTVEventHandler } from '@amazon-devices/react-native-kepler'
 import { Root, createRemoteBus, type RawRemoteEvent } from '@lingo/shared-ui'
 
@@ -9,7 +9,8 @@ import { Root, createRemoteBus, type RawRemoteEvent } from '@lingo/shared-ui'
 const remoteBus = createRemoteBus()
 
 function RemoteBridge({ emit }: { emit: (e: RawRemoteEvent) => void }) {
-  useTVEventHandler((e: { eventType: string; eventKeyAction?: number }) => emit({ eventType: e.eventType, eventKeyAction: e.eventKeyAction }))
+  const onEvent = useCallback((e: { eventType: string; eventKeyAction?: number }) => emit({ eventType: e.eventType, eventKeyAction: e.eventKeyAction }), [emit])
+  useTVEventHandler(onEvent)
   return null
 }
 
