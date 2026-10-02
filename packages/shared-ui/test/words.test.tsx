@@ -5,7 +5,7 @@ import type { LibraryWord } from '@lingo/contracts'
 import { createRemoteBus } from '../src/remote/types'
 import { Words, type WordsProps } from '../src/screens/Words'
 import { strings } from '../src/strings'
-import { byLabel, is, labels, preferred, press, pressBack, pressables, render, rerender, texts } from './helpers'
+import { byLabel, focus, is, labels, mountId, preferred, press, pressBack, pressables, render, rerender, texts } from './helpers'
 
 vi.mock('../src/components/MiniPlayer', async (orig) => ({ ...(await orig<object>()), MiniPlayer: (p: object) => React.createElement('MiniPlayer', p) }))
 
@@ -16,7 +16,7 @@ const w = (id: string, due: Date, o: Partial<LibraryWord> = {}): LibraryWord => 
 })
 const words = [w('a', new Date(2026, 8, 30)), w('b', new Date(2026, 9, 2, 9)), w('c', new Date(2026, 9, 20), { learned: true, intervalD: 30, clip: { slug: 'x', title: 'X', manifestUrl: null } })]
 const props = (over: Partial<WordsProps> = {}): WordsProps => ({ words: { state: 'ready', data: words }, filter: 'all', onFilter: vi.fn(), remote: createRemoteBus(), now, onReload: vi.fn(), onFindClip: vi.fn(), onFocusId: vi.fn(), ...over })
-const rowLabel = (x: LibraryWord, due: string) => strings.words.rowLabel(x.lemma, x.gloss, due, x.clip.title)
+const rowLabel = (x: LibraryWord, due: string) => strings.words.rowLabel(x.lemma, x.gloss, due, x.clip.title, x.clip.manifestUrl !== null)
 
 describe('Words', () => {
   it('lists lemma, gloss, due label and clip per row with a purpose label', () => {
@@ -80,5 +80,34 @@ describe('Words', () => {
     expect(r.root.findAll((n) => (n.type as unknown) === 'MiniPlayer')).toHaveLength(0)
     expect(pressBack()).toBe(false)
     expect(r.root.findAll((n) => is(n, 'Text') && n.props.children === strings.words.title)).toHaveLength(1)
+  })
+
+  it('M4: when the focused row leaves the list on a filter change, the rows remount with exactly one preferred row', () => {
+    const remote = createRemoteBus()
+    const r = render(<Words {...props({ remote })} />)
+    const b = byLabel(r, rowLabel(words[1]!, strings.words.dueTomorrow))
+    focus(b) // the learner moved to a word due tomorrow
+    const before = mountId(byLabel(r, rowLabel(words[0]!, strings.words.dueToday)))
+    rerender(r, <Words {...props({ remote, filter: 'due' })} />) // b is not due today
+    expect(labels(r)).toEqual([rowLabel(words[0]!, strings.words.dueToday)])
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([rowLabel(words[0]!, strings.words.dueToday)])
+    expect(mountId(byLabel(r, rowLabel(words[0]!, strings.words.dueToday)))).not.toBe(before) // a new mount, so Vega applies hasTVPreferredFocus
+  })
+  it('M4: the last focused row stays preferred when it is still in the new filter', () => {
+    const remote = createRemoteBus()
+    const r = render(<Words {...props({ remote })} />)
+    focus(byLabel(r, rowLabel(words[2]!, strings.words.dueIn(19))))
+    rerender(r, <Words {...props({ remote, filter: 'learned' })} />)
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([rowLabel(words[2]!, strings.words.dueIn(19))])
+    rerender(r, <Words {...props({ remote, filter: 'all' })} />)
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([rowLabel(words[2]!, strings.words.dueIn(19))])
+  })
+  it('L8: a row whose line cannot play does not promise playback', () => {
+    const r = render(<Words {...props()} />)
+    const c = words[2]!
+    const label = strings.words.rowLabel(c.lemma, c.gloss, strings.words.dueIn(19), c.clip.title, false)
+    expect(labels(r)).toContain(label)
+    expect(label).not.toMatch(/play/i)
+    expect(strings.words.rowLabel(c.lemma, c.gloss, 'x', c.clip.title, true)).toMatch(/Select to play the line/)
   })
 })

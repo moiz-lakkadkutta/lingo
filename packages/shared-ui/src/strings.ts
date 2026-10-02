@@ -29,7 +29,7 @@ export const strings = {
   words: { empty: 'Words you save while watching land here.', filters: ['All', 'Due today', 'Learned'],
     title: 'Words', hint: 'Left and right change the list. Select plays the line.', emptyDue: 'Nothing is due today.',
     emptyLearned: 'Words you know well show up here after a few reviews.', findClip: 'Find a clip to watch', dueToday: 'Due today', dueTomorrow: 'Due tomorrow',
-    dueIn: (n: number) => `Due in ${n} days`, rowLabel: (lemma: string, gloss: string, due: string, clip: string) => `${lemma}: ${gloss}. ${due}. From ${clip}. Select to play the line.`,
+    dueIn: (n: number) => `Due in ${n} days`, rowLabel: (lemma: string, gloss: string, due: string, clip: string, playable: boolean) => `${lemma}: ${gloss}. ${due}. From ${clip}.${playable ? ' Select to play the line.' : ''}`,
     filterLabel: (name: string, count: number) => `${name}: ${count} words`, noLine: 'This line isn\u2019t available yet.' },
   pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code or type it in the Lingo app.', later: 'Later', connected: (name: string) => `${name} connected`, qrLabel: (code: string) => `QR code to pair your phone, code ${code.split('').join(' ')}`, waiting: 'Getting a code…', defaultPhone: 'Your phone', continue: 'Continue' },
   firstRun: { learning: "I'm learning", speak: 'I speak', placement: 'Did you understand this line?', yes: 'Yes', mostly: 'Mostly', no: 'No',

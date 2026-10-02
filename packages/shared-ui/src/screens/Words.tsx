@@ -30,7 +30,10 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
   const list = all ? filterWords(all, filter, now) : []
   const [playing, setPlaying] = useState<{ word: LibraryWord; key: number } | null>(null)
   const [noLine, setNoLine] = useState(false)
-  const pref = useRef<string | null | undefined>(undefined)
+  // Preferred row per filter (review-005 M4): the last focused row if it is still listed, else the first. The list is keyed by filter, so
+  // the rows remount and the one preferred row takes focus on Fire OS and on Vega (which applies hasTVPreferredFocus on mount only).
+  const lastFocused = useRef<string | undefined>(initialFocus)
+  const pref = useRef<{ filter: WordsFilter; id: string | null } | null>(null)
 
   const live = useRef({ filter, all, now, onFilter }); live.current = { filter, all, now, onFilter }
   useRemoteKeys(remote, (e: RemoteEvent) => {
@@ -79,16 +82,17 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
     body = <StateMessage title={EMPTY[filter]} actions={[{ label: strings.words.findClip, text: strings.words.findClip, onPress: onFindClip }]} />
   } else {
     const ids = list.map((x) => `word:${x.savedWordId}`)
-    if (pref.current === undefined) pref.current = pickPreferred(initialFocus, ids, ids[0]!)
+    if (pref.current?.filter !== filter) pref.current = { filter, id: pickPreferred(lastFocused.current, ids, ids[0]!) }
+    const preferredId = pref.current.id
     body = (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(12), paddingVertical: px(8) }}>
+      <ScrollView key={filter} showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(12), paddingVertical: px(8) }}>
         {list.map((x) => {
           const id = `word:${x.savedWordId}`
           const due = dueLabel(x.due, now)
           return (
             <Focusable
-              key={x.savedWordId} label={strings.words.rowLabel(x.lemma, x.gloss, due, x.clip.title)} hasTVPreferredFocus={pref.current === id}
-              onFocus={() => onFocusId(id)}
+              key={x.savedWordId} label={strings.words.rowLabel(x.lemma, x.gloss, due, x.clip.title, x.clip.manifestUrl !== null)} hasTVPreferredFocus={preferredId === id}
+              onFocus={() => { lastFocused.current = id; onFocusId(id) }}
               onPress={() => {
                 if (!x.clip.manifestUrl) { setPlaying(null); setNoLine(true); return }
                 setNoLine(false)
