@@ -6,6 +6,7 @@ import { createApi, type Api } from '../api/client'
 import { endpoints, type Endpoints } from '../api/endpoints'
 import { useResource } from '../data/resource'
 import { patchLearnerOptimistic } from '../lib/learnerPatch'
+import { savePlacement } from '../lib/placementSave'
 import { createFocusMemory, type FocusMemory, type FocusMemoryProps } from '../nav/focusMemory'
 import { canPop, initialNav, navReduce, routeKey, top, type NavAction, type Route, type WordsFilter } from '../nav/stack'
 import { noRemote, type RemoteSource } from '../remote/types'
@@ -141,7 +142,7 @@ function RouteView({ route, ctx }: { route: Route; ctx: Ctx }) {
         <FirstRun
           learner={learner} session={session}
           onProfile={(p) => { void ctx.patchLearner(p); ctx.memory.forget('home'); ctx.setCatalog(null) }}
-          onLevel={(level) => { ctx.setLearner((l) => ({ ...l, level })); ctx.ep.putLevel({ source: 'placement', level }).catch(() => {}) }}
+          onLevel={(level) => { void savePlacement({ put: (lv) => ctx.ep.putLevel({ source: 'placement', level: lv }), setLearner: ctx.setLearner }, level) }}
           onDone={() => { void ctx.patchLearner({ firstRunDone: true }); nav({ type: 'reset', route: { name: 'home' } }) }}
         />
       )
