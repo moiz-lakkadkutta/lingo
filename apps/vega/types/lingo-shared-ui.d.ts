@@ -1,5 +1,5 @@
 // What apps/vega/src imports from @lingo/shared-ui, copied from packages/shared-ui/src/index.tsx, remote/types.ts, plus/types.ts,
-// plus/amazon.ts, platform/launch.ts and the kit's LaunchIntent (re-exported by shared-ui).
+// plus/amazon.ts, platform/launch.ts, platform/deviceId.ts and the kit's LaunchIntent (re-exported by shared-ui).
 // Why a declaration and not the source: shared-ui is written and typechecked against react-native-tvos 0.81 in its own package;
 // typechecking its source against RN for Vega 0.83 types would report tvOS-only props (nextFocus*). Metro bundles the real source.
 // Keep in sync when RootProps, PlusStore or the Vega mappers change (pnpm check:vega compares the exported names).
@@ -37,8 +37,15 @@ declare module '@lingo/shared-ui' {
   export interface LaunchSource { subscribe(cb: (i: LaunchIntent) => void): () => void }
   export function createLaunchBus(): LaunchSource & { emit(i: LaunchIntent): void }
 
+  // Per-install device id (review-005 H1, platform/deviceId.ts)
+  export interface IdStore {
+    get(key: string): string | null | undefined | Promise<string | null | undefined>
+    set(key: string, value: string): void | Promise<void>
+  }
+  export function useDeviceId(store: IdStore, newUuid?: () => string): string | null
+
   export interface RootProps {
-    apiBaseUrl: string; scale: number; deviceId?: string; transport?: unknown; remote?: RemoteSource
+    apiBaseUrl: string; scale: number; deviceId: string; transport?: unknown; remote?: RemoteSource
     plusStore?: PlusStore; launches?: LaunchSource
   }
   export function Root(props: RootProps): JSX.Element

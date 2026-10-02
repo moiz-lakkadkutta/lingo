@@ -31,7 +31,7 @@ import { useSession } from '../session/useSession'
 import { strings } from '../strings'
 import { nextClip, progressBody } from './selectors'
 
-export interface RootProps { apiBaseUrl: string; scale: number; deviceId?: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource; /** Amazon IAP store from the platform entry (LING-007); defaults to noStore. */ plusStore?: PlusStore; /** Deep links / Content Launcher intents from the platform entry (LING-007); defaults to noLaunches. */ launches?: LaunchSource }
+export interface RootProps { apiBaseUrl: string; scale: number; /** Per-install id from the platform entry (platform/deviceId.ts useDeviceId); the API's learner key. Required: no shared default (review-005 H1). */ deviceId: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource; /** Amazon IAP store from the platform entry (LING-007); defaults to noStore. */ plusStore?: PlusStore; /** Deep links / Content Launcher intents from the platform entry (LING-007); defaults to noLaunches. */ launches?: LaunchSource }
 
 const defaultLearner: LearnerDto = { learning: 'de', native: 'en', level: 'A2', plus: false, streak: 0, firstRunDone: false, nativeLine: 'always', autoPause: false, cueScale: 1 }
 type Boot = 'loading' | 'ready' | 'offline'
@@ -54,7 +54,7 @@ interface Ctx {
  * route, and one component per route (only the top route is mounted). Screens own their own listeners (Player, Words, First run), added
  * after Root's and therefore run first.
  */
-export function Root({ apiBaseUrl, scale, deviceId = 'dev-device', transport, remote = noRemote, plusStore = noStore, launches = noLaunches }: RootProps) {
+export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote, plusStore = noStore, launches = noLaunches }: RootProps) {
   const [nav, dispatchNav] = useReducer(navReduce, initialNav({ name: 'home' }))
   const navRef = useRef(nav); navRef.current = nav
   const memory = useRef(createFocusMemory()).current

@@ -98,9 +98,15 @@ importers:
       '@moizp/vega-media-kit':
         specifier: link:../../../vega-media-kit
         version: link:../../../vega-media-kit
+      '@react-native-async-storage/async-storage':
+        specifier: 2.2.0
+        version: 2.2.0(react-native-tvos@0.81.5-2)
       expo:
         specifier: ~54.0.0
         version: 54.0.37(@babel/core@7.29.7)(react-native-tvos@0.81.5-2)(react@19.1.0)(typescript@5.9.3)
+      expo-crypto:
+        specifier: ~15.0.9
+        version: 15.0.9(expo@54.0.37(@babel/core@7.29.7)(react-native-tvos@0.81.5-2)(react@19.1.0)(typescript@5.9.3))
       expo-font:
         specifier: ~14.0.0
         version: 14.0.12(expo@54.0.37(@babel/core@7.29.7)(react-native-tvos@0.81.5-2)(react@19.1.0)(typescript@5.9.3))(react-native-tvos@0.81.5-2)(react@19.1.0)
@@ -6831,6 +6837,11 @@ snapshots:
     dependencies:
       '@prisma/debug': 6.19.3
 
+  '@react-native-async-storage/async-storage@2.2.0(react-native-tvos@0.81.5-2)':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: react-native-tvos@0.81.5-2(@babel/core@7.29.7)(@react-native/metro-config@0.87.1(@babel/core@7.29.7))(@types/react@19.3.0)(react-native-tvos@0.81.5-2)(react@19.1.0)
+
   '@react-native-async-storage/async-storage@2.2.0(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.87.1(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.1.0))':
     dependencies:
       merge-options: 3.0.4
@@ -8424,6 +8435,11 @@ snapshots:
       react-native: 0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.87.1(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
+
+  expo-crypto@15.0.9(expo@54.0.37(@babel/core@7.29.7)(react-native-tvos@0.81.5-2)(react@19.1.0)(typescript@5.9.3)):
+    dependencies:
+      base64-js: 1.5.1
+      expo: 54.0.37(@babel/core@7.29.7)(react-native-tvos@0.81.5-2)(react@19.1.0)(typescript@5.9.3)
 
   expo-crypto@15.0.9(expo@54.0.37(@babel/core@7.29.7)(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.87.1(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)):
     dependencies:

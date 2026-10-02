@@ -9,7 +9,7 @@ Vega-specific code lives in `src/` only:
 
 | File | What it does |
 |---|---|
-| `src/App.tsx` | Entry. Its `RemoteBridge` is the only place `@amazon-devices/react-native-kepler` is imported: `useTVEventHandler` feeds shared-ui's `RemoteSource` ([Vega TVEventHandler](https://developer.amazon.com/docs/react-native-vega/0.72/using_tveventhandler.html)). Passes `plusStore` and `launches` into shared-ui's `Root`. |
+| `src/App.tsx` | Entry. Its `RemoteBridge` is the only place `@amazon-devices/react-native-kepler` is imported: `useTVEventHandler` feeds shared-ui's `RemoteSource` ([Vega TVEventHandler](https://developer.amazon.com/docs/react-native-vega/0.72/using_tveventhandler.html)). Passes `plusStore` and `launches` into shared-ui's `Root`, and the per-install `deviceId` (created once by shared-ui's `useDeviceId`, kept in MMKV through `@amazon-devices/react-native-mmkv` ~1.0.11, the stable release published after its `rn83-alpha` 1.0.11-rn-83 tag; react-native-mmkv is on [Amazon's supported list](https://developer.amazon.com/docs/vega-api/0.24/supported-libraries.html)). |
 | `src/iap/vegaStore.ts` | Lingo Plus `PlusStore` over `@amazon-devices/keplerscript-appstore-iap-lib` (LING-007). |
 | `src/platform/contentLauncher.ts` | Content Launcher handler over `@amazon-devices/kepler-media-content-launcher`; feeds shared-ui's `LaunchSource` (LING-007). |
 | `src/config.ts` | The API base URL. |

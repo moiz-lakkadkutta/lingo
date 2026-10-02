@@ -17,6 +17,7 @@
     "@amazon-devices/kepler-media-content-launcher": "~2.0.22",
     "@amazon-devices/keplerscript-appstore-iap-lib": "~2.13.0",
     "@amazon-devices/react-native-kepler": "~4.0.1",
+    "@amazon-devices/react-native-mmkv": "~1.0.11",
     "@amazon-devices/react-native-svg": "~3.0.9000000001",
     "@amazon-devices/react-native-w3cmedia": "~2.3.2",
     "react": "19.2.0",

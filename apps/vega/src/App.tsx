@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { useTVEventHandler } from '@amazon-devices/react-native-kepler'
-import { Root, createLaunchBus, createRemoteBus, type RawRemoteEvent } from '@lingo/shared-ui'
+import { MMKV } from '@amazon-devices/react-native-mmkv'
+import { Root, createLaunchBus, createRemoteBus, useDeviceId, type IdStore, type RawRemoteEvent } from '@lingo/shared-ui'
 import { API_BASE_URL } from './config'
 import { createVegaStore } from './iap/vegaStore'
 import { registerLingoContentLauncher } from './platform/contentLauncher'
@@ -17,6 +18,10 @@ const plusStore = createVegaStore()
 // the catalog, so the handler accepts any well-formed lingo_slug (TODO(KIT-E2): answer from Root once the kit's callback can).
 const launchBus = createLaunchBus()
 registerLingoContentLauncher(launchBus.emit, () => null)
+// Per-install learner id (review-005 H1): created once, kept in MMKV (Amazon's Vega build of react-native-mmkv,
+// npm @amazon-devices/react-native-mmkv, README.kepler.md: `new MMKV()`, getString / set), sent as x-device-id.
+const kv = new MMKV({ id: 'lingo' })
+const idStore: IdStore = { get: (k) => kv.getString(k), set: (k, v) => kv.set(k, v) }
 
 function RemoteBridge({ emit }: { emit: (e: RawRemoteEvent) => void }) {
   const onEvent = useCallback((e: { eventType: string; eventKeyAction?: number }) => emit({ eventType: e.eventType, eventKeyAction: e.eventKeyAction }), [emit])
@@ -25,10 +30,11 @@ function RemoteBridge({ emit }: { emit: (e: RawRemoteEvent) => void }) {
 }
 
 export default function App() {
+  const deviceId = useDeviceId(idStore)
   return (
     <>
       <RemoteBridge emit={remoteBus.emit} />
-      <Root apiBaseUrl={API_BASE_URL} scale={1} remote={remoteBus} plusStore={plusStore} launches={launchBus} />
+      {deviceId && <Root apiBaseUrl={API_BASE_URL} scale={1} deviceId={deviceId} remote={remoteBus} plusStore={plusStore} launches={launchBus} />}
     </>
   )
 }

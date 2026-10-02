@@ -16,6 +16,9 @@ export const ALLOWED_IMPORTS = [
   'react', 'react-native', '@lingo/shared-ui', '@amazon-devices/react-native-kepler',
   // LING-007 platform bindings (versions as in AmazonAppDev/vega-video-sample, the RN for Vega 0.83 sample)
   '@amazon-devices/keplerscript-appstore-iap-lib', '@amazon-devices/kepler-media-content-launcher',
+  // review-005 H1: per-install device id storage. react-native-mmkv is on Amazon's supported list
+  // (https://developer.amazon.com/docs/vega-api/0.24/supported-libraries.html); Amazon's build is npm @amazon-devices/react-native-mmkv.
+  '@amazon-devices/react-native-mmkv',
 ]
 /** IAP lib versions where every call returns FAILED:
  *  https://community.amazondeveloper.com/t/using-amazon-devices-keplerscript-appstore-iap-lib-2-12-13-causes-in-app-purchases-to-fail/24746 */

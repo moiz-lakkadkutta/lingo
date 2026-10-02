@@ -47,6 +47,12 @@ afterEach(() => { vi.unstubAllGlobals() })
 const zugCard = strings.home.cardLabel('Title zug', 'A2', '3 min')
 
 describe('Root', () => {
+  it('H1: every request carries the per-install deviceId the entry passed', async () => {
+    const { srv } = await boot()
+    const sent = srv.fetchImpl.mock.calls.map((c) => ((c[1] as RequestInit | undefined)?.headers as Record<string, string>)['x-device-id'])
+    expect(sent.length).toBeGreaterThan(0)
+    expect(new Set(sent)).toEqual(new Set(['tv-1']))
+  })
   it('boots into first run when firstRunDone is false and into Home otherwise', async () => {
     const fr = await boot({ me: { firstRunDone: false } })
     expect(texts(fr.r)).toContain(strings.firstRun.learning)

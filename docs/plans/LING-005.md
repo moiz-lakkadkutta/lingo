@@ -749,11 +749,12 @@ Reset first: `psql $DATABASE_URL -c "update \"Learner\" set \"firstRunDone\"=fal
 12. Rail → Words: rows sorted by due; ◄► switches All / Due today / Learned and VoiceView speaks the list name and count; Select plays the line in the mini player; Back closes it, Back again leaves.
 13. Settings: ◄► changes each value and VoiceView speaks it; Subtitle size 150 % is visible in the Player; switching Learning language to English reloads Home with English clips.
 14. Pull the network: cold start shows "Can't reach Lingo…" with Try again focused, VoiceView reads it; reconnect, Select → Home.
-15. Repeat 4–6 and 12–13 on the VVD (Vega). Note any element that does not take `hasTVPreferredFocus` on remount or any row that does not scroll to the focused card.
+15. Two devices (review-005 H1): install on a second stick (or the stick plus the VVD) against the same API. The pairing codes differ, a purchase or level change on one does not show on the other, and `select "deviceId" from "Learner" order by "lastActive" desc limit 2` shows two `tv-<uuid>` ids. Reinstalling the app on one device gives it a new id (a new learner); restarting it keeps the id.
+16. Repeat 4–6 and 12–13 on the VVD (Vega). Note any element that does not take `hasTVPreferredFocus` on remount or any row that does not scroll to the focused card.
 
 ## 11. Risks
 
-- **ScrollView auto-scroll to the focused card on Vega** is unverified (Android TV does it natively). If step 15 fails, add `scrollTo` from each card's `onFocus` (`onLayout` x offset) in `Home`, behind no flag. Friction log either way.
+- **ScrollView auto-scroll to the focused card on Vega** is unverified (Android TV does it natively). If step 16 fails, add `scrollTo` from each card's `onFocus` (`onLayout` x offset) in `Home`, behind no flag. Friction log either way.
 - **Focus after data refresh**: Home refetches on every visit; if the focused card disappears from a row (e.g. Continue changes), Android picks a neighbour. Rows are keyed by slug so unchanged cards keep their native views.
 - **`AccessibilityInfo.announceForAccessibility`** exists on Vega (doc below) but Amazon recommends live regions first; we use both. Fire OS TalkBack/VoiceView behaviour with live regions on TV is a device check (step 12–14).
 - **Native names in Arabic/Persian script** need Noto Sans Arabic; fonts land in LING-008 (until then the system font renders them). Clips without a translation for the learner's language fall back to English native lines (`clips.ts`), and glosses are in one language only (LING-002) — say so in the LING-008 docs.
