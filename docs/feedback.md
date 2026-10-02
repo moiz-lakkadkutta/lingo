@@ -1,8 +1,8 @@
 # Product feedback — Lingo
 
 Required by the hackathon. Drafted from the repository's record on 2026-10-01 (LING-008); every claim cites a file, decision, friction
-log or measurement. **TBD by human** marks what only the human knows; the human edits and signs off in week 5. Features owned by
-LING-005/006/007 are pending until they merge.
+log or measurement. **TBD by human** marks what only the human knows; the human edits and signs off in week 5. LING-005/006/007 (TV screens,
+phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is done and reviewed, but not checked on a device yet.
 
 ## 1. Tools, APIs and SDKs used, and why
 
@@ -16,10 +16,15 @@ LING-005/006/007 are pending until they merge.
 - **Fire OS on the Fire TV Stick** through Expo SDK 54 + react-native-tvos 0.81, the pattern of Amazon's multi-TV sample (`apps/expo`, LING-003).
 - **Vega SDK docs, `@amazon-devices/react-native-kepler`, `@amazon-devices/react-native-w3cmedia`, `@amazon-devices/react-native-svg`**: read
   and planned against; `apps/vega` installs, typechecks and bundles without the SDK, but has not run on a device — experimental (apps/vega/README.md).
-- **Amazon Appstore IAP + App Tester, RVS; Content Launcher, Personalization, Media Controls**: pending <!-- LING-007: fill when merged -->.
-- **Amazon Polly**: list only if LING-005/006 ships "tap to hear" <!-- LING-005/006 -->.
+- **Amazon Appstore IAP and the Receipt Verification Service (RVS)**: one subscription, Lingo Plus, bought on the TV and verified on the
+  server before it is fulfilled (decision 0012). Fire OS uses `react-native-iap` ~16.7.2 with the Amazon store flavour and App Tester
+  (`apps/expo/src/fireosStore.ts`); Vega uses `@amazon-devices/keplerscript-appstore-iap-lib` ~2.13.0 (`apps/vega/src/iap/vegaStore.ts`);
+  the API calls the RVS Cloud Sandbox (`apps/api/src/lib/rvs.ts`). Code done; the App Tester and Vega Virtual Device sandbox runs: TBD by human.
+- **Content Launcher, Personalization, Media Controls**: a launch intent opens the clip (Fire OS deep link `lingo://clip/<slug>`,
+  `apps/expo/LaunchBridge.tsx`; Vega Content Launcher handler, `apps/vega/src/platform/contentLauncher.ts`). Personalization and Media
+  Controls go through `@moizp/vega-media-kit`, whose bindings are still no-ops (KIT-007). Not checked on a device.
 - Third party: Shaka Packager (HLS), ffmpeg, simplemma (lemmas), react-native-video (ExoPlayer on Fire OS), Socket.IO (TV ↔ phone),
-  Prisma/Postgres, pg-boss.
+  Prisma/Postgres, pg-boss, expo-speech (the phone's word audio is on-device TTS, not Amazon Polly; decision 0011 §10).
 
 ## 2. What worked well (setup, docs, performance, reliability)
 
@@ -42,7 +47,7 @@ LING-005/006/007 are pending until they merge.
 
 ## 3. What needs improvement
 
-One bullet per friction log (index: docs/friction/README.md). Requests with priorities: docs/feature-requests.md.
+One bullet per friction log, 23 in all (index: docs/friction/README.md). Requests with priorities: docs/feature-requests.md.
 
 Vega
 - Which React Native version: docs, npm dist-tags and the two samples disagree, and the version set moves together
@@ -51,6 +56,12 @@ Vega
   in this submission ([log](friction/2026-10-01-vega-shaka-is-a-patched-postinstall-build-and-videoplayer-is-a-class.md)).
 - No `playbackRate` in w3cmedia, `useTVEventHandler` cannot consume a key, `BackHandler` is silent behind a `Modal`
   ([log](friction/2026-10-01-vega-playbackrate-tveventhandler-backhandler-limits.md)).
+- `hasTVPreferredFocus` applies only on first mount, so focus memory has to remount views
+  ([log](friction/2026-10-02-vega-hastvpreferredfocus-applies-only-on-first-mount.md)).
+- Vega IAP: `getProductData` returns a Map with a price object, and the response enums are numbered differently from Fire OS
+  ([log](friction/2026-10-01-vega-iap-getproductdata-returns-a-map-with-a-price-object.md)).
+- Amazon developer docs were unreachable from a cloud dev container, so page-only facts stayed unverified
+  ([log](friction/2026-10-01-amazon-developer-docs-unreachable-from-a-cloud-dev-container.md)).
 
 Fire OS
 - The plain Expo / React Native template has no TV event handler; media keys need react-native-tvos and a native rebuild
@@ -78,6 +89,17 @@ Third party (not Amazon or AWS)
 - pnpm `link:` overrides and the Prisma client break in git worktrees ([log](friction/2026-10-01-pnpm-worktrees-break-link-override-and-prisma-client.md)).
 - Shaka Packager and ffmpeg flood stderr ([log](friction/2026-10-01-shaka-packager-and-ffmpeg-flood-stderr.md)).
 - VOA Learning English hides the 1080p MP4 in its player configuration ([log](friction/2026-10-01-voa-learning-english-hides-1080p-mp4.md)).
+- `expo install --check` and `expo-doctor` fail when api.expo.dev and reactnative.directory are unreachable
+  ([log](friction/2026-10-02-expo-api-and-react-native-directory-unreachable-so-expo-install-check-and-expo-doctor-fail.md)).
+- Importing Expo Google Fonts from the package index bundles every weight (about 11 MB of TTFs)
+  ([log](friction/2026-10-02-expo-google-fonts-index-import-bundles-every-weight.md)).
+- pino-http logs every supertest request in the API tests, headers included ([log](friction/2026-10-02-pino-http-logs-every-supertest-request.md)).
+- Prisma `migrate dev` without `--name` blocks on a prompt in a non-interactive shell
+  ([log](friction/2026-10-02-prisma-migrate-dev-without-a-name-blocks-in-a-non-interactive-shell.md)).
+- react-native-svg pulls React Native's Flow source into vitest, so render tests need a mock
+  ([log](friction/2026-10-02-react-native-svg-flow-source-breaks-vitest.md)).
+- react-test-renderer prints a deprecation warning per render under React 19
+  ([log](friction/2026-10-02-react-test-renderer-deprecation-warning-floods-react-19-test-output.md)).
 
 ## 4. Onboarding quality
 
