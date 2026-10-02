@@ -863,7 +863,7 @@ Follow-ups for TASKS.md (the orchestrator files them; not implemented here):
 - [ ] LING-005 (or new) · import processed clips into Postgres: Clip row from `content/clips.json` (title, license, attribution, sourceUrl)
   + `work/<slug>/clip.json` (level, cues, highlights, quiz, durationS, publishedBase) + poster key `published/<slug>/poster.jpg` (open question 6)
   - follow-up from LING-008: the Player renders a playback-unavailable message (and no `KitPlayer`) when `caps.playback === false`;
-    string per §3.4; render test. Until then, opening a clip on Vega reaches the kit's Vega adapter without Shaka (VVD step 8).
+    string per §3.4; render test. Done in the review fixes (M4): `strings.playbackOff`, packages/shared-ui/test/player.test.tsx.
   - follow-up from LING-008: make `Caps.playback` required once the Caps literals in shared-ui tests are updated (it is optional today to
     keep the change inside platformCaps.ts).
 - [ ] LING-006 · fonts on the phone: the same `expo-font` plugin entry in `apps/phone/app.json` (`../../packages/shared-ui/assets/fonts/*.ttf`).

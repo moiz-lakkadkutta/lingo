@@ -31,8 +31,9 @@ Recorded in docs/plans/LING-008.md §3.2; the orchestrator chose the defaults on
    kepler line, CI stays free of a second RN copy, and the Vega CLI is documented with npm. shared-ui is not an npm dependency here:
    Metro reaches it through `watchFolders`, and its own dependencies resolve from `packages/shared-ui/node_modules` (root `pnpm i`).
 3. **Shaka is stubbed** (empty module for the kit's adapters directory, `metro.config.js`) and playback is off on Vega (`caps.playback`).
-   Follow-up for LING-005: the Player should show a "video plays on Fire TV with Fire OS for now" message when `caps.playback === false`;
-   until then, opening a clip on Vega reaches the kit's Vega adapter and is expected to fail (VVD step 8).
+   With `caps.playback === false` the Player shows "Video plays on Fire TV with Fire OS for now." and a Back button instead of mounting
+   `KitPlayer` (render test: packages/shared-ui/test/player.test.tsx). Words and Quiz replay (`MiniPlayer`) still mount `KitPlayer`; see the
+   LING-008 follow-up in TASKS.md.
 4. **API URL** is one constant in `src/config.ts` (no dotenv plugin).
 5. **Package id** `dev.moizp.lingo` reuses the Fire OS application id for IAP continuity (vega-video-sample's manifest comment: an existing
    Fire TV app must reuse its application id for IAP items to keep applying). LING-007 relies on it.
@@ -89,7 +90,7 @@ needs a headless data-refresh service component Lingo does not have (escalation 
 5. Restart: still Plus. Cancel in App Tester, then press Restore: Plus is off.
 6. Content Launcher: launch external id `lingo_slug=<slug>` with the testing method from the
    [integration guide](https://developer.amazon.com/ja/docs/vega/0.24/content-launcher-integration-guide.html). The Player opens
-   the clip (until the Player's playback-unavailable message lands, see decision 3), and `journalctl` shows
+   the clip (the Player shows its playback-unavailable message, see decision 3), and `journalctl` shows
    `[lingo] content launcher: open <slug>`. An unknown slug answers `URL_NOT_AVAILABLE` and stays on Home.
 7. Media Controls / Personalization log `[vega-media-kit] … is a no-op on kepler` once. **Expected until KIT-007.**
 
@@ -114,7 +115,7 @@ Docs: [Vega IAP overview](https://developer.amazon.com/docs/vega/0.22/vega-iap-o
 | 5 | Set `src/config.ts` to the API host as seen from the VVD (try the host LAN IP first) and run `pnpm api` on the host | catalog loads | the address that worked |
 | 6 | D-pad around Home, rail, cards | focus = outline + 1.04 scale, 150 ms; Back works | pass/fail per item |
 | 7 | Pair screen | QR renders (react-native-svg alias) and the phone joins over websocket | pass/fail |
-| 8 | Open a clip | today: the kit's Vega adapter fails without Shaka (expected until the LING-005 follow-up in decision 3); after it: playback-unavailable message, Back returns | pass/fail + log |
+| 8 | Open a clip | playback-unavailable message ("Video plays on Fire TV with Fire OS for now."), no crash; Back returns | pass/fail + log |
 | 9 | Quiz (TV) | options focus, correct/incorrect states | pass/fail |
 | 10 | Spike S2 questions (a)–(e), docs/plans/LING-003.md §Spikes (TVEventHandler events and repeats, chip focus, `playbackRate`, preferred focus after remount, FF/Rewind names) | as written there | logs |
 | 11 | Logs | app logs visible (command per the SDK docs) | the command used |

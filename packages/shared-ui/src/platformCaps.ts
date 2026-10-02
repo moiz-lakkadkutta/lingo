@@ -6,7 +6,7 @@ export interface Caps {
   wordFocusIn: 'cue' | 'card'
   /**
    * false on Vega until KIT-010: the kit's Vega adapter does not play video yet (kit decision 0002); flip when it does.
-   * Optional so Caps literals elsewhere stay valid; absent means true. The Player's message for `playback === false` is a LING-005 follow-up.
+   * Optional so Caps literals elsewhere stay valid; absent means true. When false the Player shows strings.playbackOff instead of KitPlayer.
    */
   playback?: boolean
 }

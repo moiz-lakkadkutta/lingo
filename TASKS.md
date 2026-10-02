@@ -10,4 +10,5 @@
   - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today)
 - [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls
 - [ ] LING-008 · week 4 · Twelve clips, Vega build, polish, docs, feedback, ≥ 8 friction logs · freeze Oct 15
+  - follow-up from the LING-008 review (M4): once the kit's Vega adapter plays (KIT-010), set `caps.playback` true for kepler/vega in packages/shared-ui/src/platformCaps.ts and remove the playback-unavailable message (`PlaybackOff` in screens/Player.tsx, `strings.playbackOff`, test/player.test.tsx); until then `MiniPlayer` (Words, Quiz replay) still mounts KitPlayer on Vega and needs the same check
 - [ ] LING-009 · week 5 · Video (Save-word-to-phone moment with both screens in frame) + submission

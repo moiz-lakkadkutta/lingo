@@ -3,7 +3,7 @@ import { Animated, BackHandler, findNodeHandle, Pressable, View } from 'react-na
 import { KitPlayer } from '@moizp/vega-media-kit'
 import type { KitPlayerRef, RemoteEvent } from '@moizp/vega-media-kit'
 import type { ClipDetail, LearnerDto } from '@lingo/contracts'
-import { DualCue } from '../components'
+import { DualCue, Screen, StateMessage } from '../components'
 import { caps as platformCaps, type Caps } from '../platformCaps'
 import type { RemoteSource } from '../remote/types'
 import { useRemoteKeys } from '../remote/useRemoteKeys'
@@ -29,10 +29,29 @@ export interface PlayerProps {
 const REPORTED = new Set(['loading', 'ready', 'playing', 'paused', 'buffering', 'ended'])
 
 /**
+ * caps.playback === false (Vega OS until the kit's Vega adapter plays, KIT-010): an honest message instead of mounting KitPlayer, which
+ * would reach the Shaka stub and crash. Back (button or remote) leaves at the resume position.
+ */
+export function Player(props: PlayerProps) {
+  const caps = props.caps ?? platformCaps
+  if (caps.playback === false) return <PlaybackOff onBack={() => props.onBack(props.clip.resumeS ?? 0)} />
+  return <PlayerView {...props} caps={caps} />
+}
+
+function PlaybackOff({ onBack }: { onBack(): void }) {
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onBack(); return true })
+    return () => sub.remove()
+  }, [onBack])
+  const s = strings.playbackOff
+  return <Screen><StateMessage title={s.title} body={s.body} announceOnMount actions={[{ label: s.backLabel, text: s.back, onPress: onBack }]} /></Screen>
+}
+
+/**
  * Thin shell over the pure machine (screens/player/machine.ts): events in, effects out (LING-003, decision 0006).
  * Dual cues are rendered by DualCue from the clip payload, so highlights and native text always align.
  */
-export function Player(props: PlayerProps) {
+function PlayerView(props: PlayerProps) {
   const { clip, learner, challenge, savedIds, savedCount, remote, onSave, onPlus, onLearnerChange } = props
   const caps = props.caps ?? platformCaps
   const kit = useRef<KitPlayerRef>(null)

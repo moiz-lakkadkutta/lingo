@@ -64,4 +64,5 @@ export const strings = {
   },
   streak: { back: 'Welcome back', day: (n: number) => `Day ${n}` },
   offline: 'Can\u2019t reach Lingo. Check the network and press Select to retry.',
+  playbackOff: { title: 'Video plays on Fire TV with Fire OS for now.', body: 'Vega support is experimental, and its video player isn\u2019t ready yet.', back: 'Back', backLabel: 'Back to the previous screen' },
 }
