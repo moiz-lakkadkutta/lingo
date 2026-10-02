@@ -48,8 +48,8 @@
     - [ ] L10: EAS builds ship without the git-ignored PEM; document an EAS file secret.
     - [ ] L11 (nit): `LaunchBridge.tsx` sits at apps/expo/ rather than apps/expo/src/.
 - [ ] LING-008 · week 4 · Twelve clips, Vega build, polish, docs, feedback, ≥ 8 friction logs · freeze Oct 15 — code done 2026-10-02 (plan docs/plans/LING-008.md; decision 0013, RN 0.83 and npm outside the workspace pending human confirmation after `vega project create`; review docs/reviews/2026-10-02-ling-008.md, H1, H2 and M1–M5 fixed); waiting on the 12-clip batch run (plan §2.9), the VVD checklist (§3.6) and design QA (§7). Friction logs: 23 (docs/friction/README.md)
-  - follow-up from the LING-008 review (M4): once the kit's Vega adapter plays (KIT-010), set `caps.playback` true for kepler/vega in packages/shared-ui/src/platformCaps.ts and remove the playback-unavailable message (`PlaybackOff` in screens/Player.tsx, `strings.playbackOff`, test/player.test.tsx); until then `MiniPlayer` (Words, Quiz replay) still mounts KitPlayer on Vega and needs the same check
-  - [ ] follow-up: `MiniPlayer` (Words, Quiz replay) checks `caps.playback` on Vega and shows the playback message instead of mounting `KitPlayer` (decision 0013 §3).
+  - follow-up from the LING-008 review (M4): once the kit's Vega adapter plays (KIT-010), set `caps.playback` true for kepler/vega in packages/shared-ui/src/platformCaps.ts and remove the playback-unavailable message (`PlaybackOff` in screens/Player.tsx, the `off` branch in components/MiniPlayer.tsx, `strings.playbackOff`, test/player.test.tsx, test/miniPlayer.test.tsx)
+  - [x] follow-up: `MiniPlayer` (Words, Quiz replay) checks `caps.playback` on Vega and shows the playback message instead of mounting `KitPlayer` (decision 0013 §3) — done in the PR #2 review fixes (B-M2; test/miniPlayer.test.tsx).
   - [ ] follow-up (docs/plans/LING-008.md §14): make `Caps.playback` required once the Caps literals in the shared-ui tests are updated.
   - [ ] review lows left open (docs/reviews/2026-10-02-ling-008.md):
     - [ ] L3: a duration-check failure deletes the whole download (800 MB for row 1).
