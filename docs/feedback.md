@@ -30,12 +30,15 @@ LING-005/006/007 are pending until they merge.
   Whether it removed every switch on the 12 clips: TBD by human after the batch.
 - **Bedrock Converse with forced tool use and Zod validation** is cheap to run: the first real Gate C run cost $0.0024 for 37 calls across two
   clips (docs/spot-checks/2026-10-02-gate-c.md). Gloss quality is in answer 3, not here.
-- **Fire OS via the shared kit on the Fire TV Stick** (AFTSS, Fire OS 7.7.1.6): own HLS from CloudFront, two text tracks at once, seek to a cue
-  start with the first cue 10 ms later, 0.75× measured 15.43 s of media in 20.18 s wall (`../vega-media-kit/docs/device-matrix.md`;
-  Described's package — Lingo's own stick run is spike S1, add it when recorded).
+- **Fire OS via the shared kit on the Fire TV Stick** (AFTSS, Fire OS 7.7.1.6; `../vega-media-kit/docs/device-matrix.md`, Described's
+  package — Lingo's own stick run is spike S1, add it when recorded). Row "Seek / rate", Shaka's demo stream: a seek to 3.837 s showed the
+  first cue 10 ms later. Row "Own HLS via CloudFront": two text tracks at once, seek to 1 s, and 0.75× measured 15.43 s of media in 20.18 s
+  wall.
 - **CDK**: two stacks in two regions from one app; the media stack deployed (the root-user caveat is a friction log).
-- **Amazon's sample repos** gave working project shapes for both OSes (multi-TV sample, vega-video-sample); the Vega app's `npm install`,
-  `tsc` and `react-native bundle --platform kepler` all passed without the SDK on the first attempt (apps/vega/README.md).
+- **Amazon's sample repos** gave a starting point for both OSes. The multi-TV sample built and ran on the Fire TV Stick (device matrix).
+  From vega-video-sample, the Vega app is a project shape that installs, typechecks and bundles: `npm install`, `tsc` and
+  `react-native bundle --platform kepler` passed without the SDK (apps/vega/README.md). It has never run on a device or the Vega Virtual
+  Device.
 
 ## 3. What needs improvement
 

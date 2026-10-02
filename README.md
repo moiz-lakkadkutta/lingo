@@ -24,7 +24,8 @@ with [Described](https://github.com/moiz-lakkadkutta/described). MIT. Demo clips
 
 ## Run it (10 steps)
 
-Steps 1–6 need no AWS account and no device; they were run in a fresh clone on 2026-10-01 (Linux, Node 22).
+Steps 1–6 need no AWS account and no device. They were not all run as written here: the 2026-10-01 fresh-clone check (Linux, Node 22)
+had no Docker daemon, so step 3's `pnpm db:up` did not run and the database steps used a natively installed Postgres 16 instead.
 
 1. Prerequisites: Node 22 (`.nvmrc`), pnpm 9.15.9 (`corepack enable`), Docker, Python 3. Clone `lingo` and
    [`vega-media-kit`](https://github.com/moiz-lakkadkutta/vega-media-kit) side by side, then `cd vega-media-kit && pnpm i && pnpm build`.
