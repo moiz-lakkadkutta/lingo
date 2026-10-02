@@ -61,7 +61,7 @@ describe('FirstRun', () => {
     await toPlacement(r)
     await press(byLabel(r, F.skipLabel))
     expect(texts(r)).toContain('ABC234')
-    expect(labels(r)).toEqual([strings.pair.later])
+    expect(labels(r)).toEqual([strings.pair.laterLabel(true)])
     const before = mountId(pressables(r)[0]!)
     rerender(r, <FirstRun {...p} session={{ ...p.session, phone: 'Pixel 8' }} />)
     expect(labels(r)).toEqual([F.done])

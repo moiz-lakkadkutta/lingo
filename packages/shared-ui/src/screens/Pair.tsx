@@ -13,6 +13,8 @@ export interface PairProps { code: string | null; joinUrl: string | null; connec
  */
 export function Pair({ code, joinUrl, connected, onLater, embedded }: PairProps) {
   const text = connected ? (embedded ? strings.firstRun.done : strings.pair.continue) : strings.pair.later
+  // aria-label states the purpose, not the bare button text (review-005 L7); "Start watching" already does.
+  const label = connected ? (embedded ? strings.firstRun.done : strings.pair.continueLabel) : strings.pair.laterLabel(!!embedded)
   return (
     <View style={{ flex: 1, justifyContent: 'center', gap: px(24), maxWidth: px(1200) }}>
       <T variant="display">{strings.pair.title}</T>
@@ -31,7 +33,7 @@ export function Pair({ code, joinUrl, connected, onLater, embedded }: PairProps)
           </View>
         ) : null}
       </View>
-      <Button key="pair-action" label={text} text={text} primary={!!connected} preferred onPress={onLater} />
+      <Button key="pair-action" label={label} text={text} primary={!!connected} preferred onPress={onLater} />
     </View>
   )
 }
