@@ -8,6 +8,7 @@
   - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank
 - [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build
   - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today)
+  - [ ] follow-up from the LING-006 review (M1): the session code is still a long-lived bearer credential for the phone's read and review routes. Rotate the code when the TV selects "Pair a new phone" (and on "Use another TV"), or have the socket `join` issue a per-phone token that `/me/*` accepts instead of the code. The per-IP miss limiter is in-memory (one API process); move it to a shared store before running more than one instance, and set `trust proxy` behind a load balancer so `req.ip` is the client.
 - [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls
 - [ ] LING-008 · week 4 · Twelve clips, Vega build, polish, docs, feedback, ≥ 8 friction logs · freeze Oct 15
 - [ ] LING-009 · week 5 · Video (Save-word-to-phone moment with both screens in frame) + submission

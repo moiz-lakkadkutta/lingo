@@ -105,15 +105,19 @@ describe('learning routes', () => {
 
 describe('learner lookup shared with /me (LING-006) and Plus from entitled() (LING-007)', () => {
   const code = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
-  it('an x-session-code resolves the TV learner on the TV routes too, and an unknown code is a 404', async () => {
+  it('M1: the TV routes ignore x-session-code and use x-device-id only', async () => {
     const dev = fx.device(); const l = await fx.learner(dev)
-    const c = await savedWord(l.id, { lemma: 'paired' })
+    await savedWord(l.id, { lemma: 'paired' })
     const sc = code()
     await db.session.create({ data: { code: sc, learnerId: l.id } })
-    const r = await request(app).get('/me/library').set('x-session-code', sc.toLowerCase())
+    const other = fx.device()
+    const r = await request(app).get('/me/library').set('x-session-code', sc).set('x-device-id', other)
     expect(r.status).toBe(200)
-    expect(r.body.data.map((w: { clip: { slug: string } }) => w.clip.slug)).toEqual([c.slug])
-    expect((await request(app).get('/catalog').set('x-session-code', code())).status).toBe(404)
+    expect(r.body.data).toEqual([]) // the phone's own (empty) learner, not the TV's
+    expect((await request(app).get('/catalog').set('x-session-code', code())).status).toBe(200)
+    const before = await row(dev)
+    expect((await put('/level', other, { level: 'B2', source: 'settings' }).set('x-session-code', sc)).status).toBe(200)
+    expect((await row(dev)).level).toBe(before.level)
   })
   it('PUT /me answers plus from entitled(), not the cached column', async () => {
     const { env } = await import('../src/lib/env')

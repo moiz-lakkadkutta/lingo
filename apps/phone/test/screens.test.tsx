@@ -165,7 +165,7 @@ describe('Quiz', () => {
     expect(texts(r)).not.toContain('station')
     expect(grades(r)).toHaveLength(0)
     await press(card(r))
-    expect(card(r).props['aria-label']).toBe(strings.quiz.backLabel('Bahnhof', 'station'))
+    expect(card(r).props.accessible).toBeUndefined()
     expect(texts(r)).toEqual(expect.arrayContaining(['station', 'The train leaves the station.']))
     const mark = r.root.find((n) => n.props.testID === 'cue-mark')
     expect(textOf(mark)).toBe('Bahnhof')
@@ -195,7 +195,7 @@ describe('Quiz', () => {
     expect(grades(r).every((g) => g.props['aria-disabled'] === true)).toBe(true)
     act(() => { grades(r)[2]!.props.onPress?.() }) // a second tap while posting does nothing
     expect(review).toHaveBeenCalledTimes(1)
-    expect(review).toHaveBeenCalledWith(a.savedWordId, 'good')
+    expect(review).toHaveBeenCalledWith(a.savedWordId, 'good', expect.stringMatching(/^[A-Za-z0-9_-]{8,64}$/))
     await act(async () => { release() })
     await flush()
     expect(card(r).props['aria-label']).toBe(strings.quiz.frontLabel('Bahnhof'))
@@ -206,7 +206,7 @@ describe('Quiz', () => {
     const r = await mount(<QuizScreen {...quizProps({ api: fakeApi({ dueWords: vi.fn(async () => [dueWord({ word: 'Zug', gloss: 'train' })]), review }) })} />)
     await press(card(r)); await press(grades(r)[2]!); await flush()
     expect(texts(r)).toContain(strings.quiz.retry)
-    expect(card(r).props['aria-label']).toBe(strings.quiz.backLabel('Zug', 'train'))
+    expect(texts(r)).toContain('train') // still the back of the same card
     expect(grades(r).every((g) => g.props['aria-disabled'] === false)).toBe(true)
   })
   it('again brings the word back at the end and the repeat does not post', async () => {
@@ -218,7 +218,7 @@ describe('Quiz', () => {
     await gradeAs(r, 'Good')
     expect(card(r).props['aria-label']).toBe(strings.quiz.frontLabel('Zug'))
     await gradeAs(r, 'Good')
-    expect(api.review.mock.calls).toEqual([[a.savedWordId, 'again'], [b.savedWordId, 'good']])
+    expect(api.review.mock.calls.map((c) => c.slice(0, 2))).toEqual([[a.savedWordId, 'again'], [b.savedWordId, 'good']])
     expect(texts(r)).toContain(strings.quiz.doneTitle)
   })
   it('finishing calls onResult with first-pass correct and total and shows Sent to your TV when it returns true', async () => {
@@ -243,6 +243,42 @@ describe('Quiz', () => {
     const r = await mount(<QuizScreen {...quizProps({ onResult })} />)
     expect(texts(r)).toEqual([strings.quiz.emptyTitle, strings.quiz.emptyBody])
     expect(onResult).not.toHaveBeenCalled()
+  })
+})
+
+describe('LING-006 review fixes', () => {
+  it('M6: an open chip\'s label carries the gloss and the example', () => {
+    const w = saved({ word: 'Bahnhof', gloss: 'station', example: 'Am Bahnhof.' })
+    const closed = render(<LiveScreen {...liveProps({ saved: [w] })} />)
+    expect(chips(closed)[0]!.props['aria-label']).toBe(strings.live.chipLabel('Bahnhof'))
+    const open = render(<LiveScreen {...liveProps({ saved: [w], open: w.savedWordId })} />)
+    const label = chips(open)[0]!.props['aria-label'] as string
+    expect(label).toContain('station')
+    expect(label).toContain('Am Bahnhof.')
+  })
+  it('M6: the quiz back card exposes the cue, the native line and Hear it as reachable elements', async () => {
+    const w = dueWord({ word: 'Bahnhof', gloss: 'station', cueText: 'Der Zug fährt vom Bahnhof.', cueNative: 'The train leaves the station.' })
+    const r = await mount(<QuizScreen {...quizProps({ api: fakeApi({ dueWords: vi.fn(async () => [w]) }) })} />)
+    await press(card(r))
+    // nothing above them groups the subtree into one element
+    const grouped = r.root.findAll((n) => n.props.accessible === true && typeof n.type === 'string')
+    for (const g of grouped) expect(g.findAll((n) => is(n, 'Pressable') || n.props.testID === 'cue')).toHaveLength(0)
+    expect(r.root.findAll((n) => is(n, 'Text') && n.props.testID === 'cue')).toHaveLength(1)
+    expect(texts(r)).toContain('The train leaves the station.')
+    expect(byLabel(r, strings.live.hearLabel('Bahnhof'))).toBeTruthy()
+  })
+  it('M5: a retry of the same card resends the same reviewId', async () => {
+    let fail = true
+    const review = vi.fn(async (savedWordId: string) => { if (fail) throw new Error('offline'); return { savedWordId, ease: 2.5, intervalD: 1, reps: 1, lapses: 0, due: '2026-10-02T08:00:00.000Z' } })
+    const [a, b] = [dueWord({ word: 'Zug' }), dueWord({ word: 'Bahnhof' })]
+    const r = await mount(<QuizScreen {...quizProps({ api: fakeApi({ dueWords: vi.fn(async () => [a, b]), review }) })} />)
+    await press(card(r)); await press(grades(r)[2]!); await flush()
+    fail = false
+    await press(grades(r)[0]!); await flush()
+    await press(card(r)); await press(grades(r)[2]!); await flush()
+    const ids = review.mock.calls.map((c) => (c as unknown as string[])[2])
+    expect(ids[0]).toBe(ids[1])
+    expect(ids[2]).not.toBe(ids[0])
   })
 })
 

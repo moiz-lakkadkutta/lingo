@@ -36,6 +36,12 @@ describe('phone api', () => {
     expect(a.calls[0]!.init.method).toBe('POST')
     expect(JSON.parse(a.calls[0]!.init.body as string)).toEqual({ savedWordId: 's1', grade: 'good' })
   })
+  it('M5: review sends the reviewId when given', async () => {
+    const result = { savedWordId: 's1', ease: 2.5, intervalD: 1, reps: 1, lapses: 0, due: '2026-10-02T08:00:00.000Z' }
+    const a = fake(200, ok(result))
+    await make(a.f).review('s1', 'good', 'rabcdefgh1')
+    expect(JSON.parse(a.calls[0]!.init.body as string)).toEqual({ savedWordId: 's1', grade: 'good', reviewId: 'rabcdefgh1' })
+  })
   it('an error envelope becomes ApiError with status and code', async () => {
     const a = fake(400, { success: false, error: { code: 'VALIDATION', message: 'grade: Invalid enum value' } })
     const e = await make(a.f).review('s1', 'good').catch((x: unknown) => x)

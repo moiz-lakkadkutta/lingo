@@ -89,4 +89,60 @@ describe('phone link', () => {
     link.leave()
     expect(link.sendQuizResult(2, 3)).toBe(false)
   })
+
+  it('M4: INTERNAL after a reconnect does not call onRefused; the join is re-sent after a backoff', () => {
+    vi.useFakeTimers()
+    try {
+      const { sockets, link, h } = setup()
+      link.join('ABC234'); const s = sockets[0]!
+      s.fire('connect'); s.fire('phone:connected', { code: 'ABC234', phoneName: 'Test phone' })
+      s.drop(); s.fire('connect')
+      s.fire('session:error', { code: 'INTERNAL', message: 'Something went wrong' })
+      expect(h.onRefused).not.toHaveBeenCalled()
+      expect(s.disconnect).not.toHaveBeenCalled()
+      expect(h.onTransport).toHaveBeenLastCalledWith(false)
+      const joins = () => s.sent.mock.calls.filter((c) => c[0] === 'join').length
+      expect(joins()).toBe(2)
+      vi.advanceTimersByTime(999); expect(joins()).toBe(2)
+      vi.advanceTimersByTime(1); expect(joins()).toBe(3)
+      expect(h.onTransport).toHaveBeenLastCalledWith(true)
+      // a second failure waits longer (2 s)
+      s.fire('session:error', { code: 'INTERNAL', message: 'Something went wrong' })
+      vi.advanceTimersByTime(1999); expect(joins()).toBe(3)
+      vi.advanceTimersByTime(1); expect(joins()).toBe(4)
+      s.fire('phone:connected', { code: 'ABC234', phoneName: 'Test phone' })
+      expect(h.onJoined).toHaveBeenCalledTimes(2)
+    } finally { vi.useRealTimers() }
+  })
+  it('M4: VALIDATION and RATE_LIMITED on a first join retry too and never refuse', () => {
+    vi.useFakeTimers()
+    try {
+      const { sockets, link, h } = setup()
+      link.join('ABC234'); const s = sockets[0]!; s.fire('connect')
+      s.fire('session:error', { code: 'RATE_LIMITED', message: 'Too many tries' })
+      s.fire('session:error', { code: 'VALIDATION', message: 'x' })
+      expect(h.onRefused).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(60_000)
+      expect(s.sent.mock.calls.filter((c) => c[0] === 'join').length).toBeGreaterThan(1)
+    } finally { vi.useRealTimers() }
+  })
+  it('M4: UNKNOWN_CODE after a reconnect is still a refusal', () => {
+    const { sockets, link, h } = setup()
+    link.join('ABC234'); const s = sockets[0]!
+    s.fire('connect'); s.fire('phone:connected', { code: 'ABC234', phoneName: 'Test phone' })
+    s.drop(); s.fire('connect')
+    s.fire('session:error', { code: 'UNKNOWN_CODE', message: 'No TV with that code' })
+    expect(h.onRefused).toHaveBeenCalledTimes(1)
+  })
+  it('M4: leave() cancels a pending join retry', () => {
+    vi.useFakeTimers()
+    try {
+      const { sockets, link } = setup()
+      link.join('ABC234'); const s = sockets[0]!; s.fire('connect')
+      s.fire('session:error', { code: 'INTERNAL', message: 'x' })
+      link.leave()
+      vi.advanceTimersByTime(60_000)
+      expect(s.sent.mock.calls.filter((c) => c[0] === 'join')).toHaveLength(1)
+    } finally { vi.useRealTimers() }
+  })
 })

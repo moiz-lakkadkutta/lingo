@@ -2,10 +2,12 @@ import { JoinPayload, QuizResultPayload, QuizStartPayload } from '@lingo/contrac
 import type { SessionErrorPayload } from '@lingo/contracts'
 import { db } from './lib/db'
 import { logger } from './lib/logger'
+import { codeMisses, type MissLimiter } from './lib/rateLimit'
 import type { LingoIo } from './server'
 
 const DEFAULT_PHONE = 'Your phone' // mirrors strings.pair.defaultPhone in shared-ui
 const noop = () => {}
+const UNKNOWN: SessionErrorPayload = { code: 'UNKNOWN_CODE', message: 'No TV with that code' }
 
 /** First phone socket's name in the room (first phone wins), else null. `except` skips a socket that is on its way out. Presence is derived from the room, not the DB (docs/decisions/0005-realtime-session.md). */
 export async function phoneIn(io: LingoIo, code: string, except?: string): Promise<string | null> {
@@ -17,7 +19,7 @@ export async function phoneIn(io: LingoIo, code: string, except?: string): Promi
 const validationMessage = (issues: { path: (string | number)[]; message: string }[]) => issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
 
 /** Rooms are session codes. TV and phone both join; the API emits word:saved into the room from POST /me/words only. */
-export function registerSockets(io: LingoIo): void {
+export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses): void {
   io.on('connection', (socket) => {
     const fail = (e: SessionErrorPayload): void => { socket.emit('session:error', e) }
     const guard = (fn: () => Promise<void> | void) => async () => {
@@ -25,11 +27,17 @@ export function registerSockets(io: LingoIo): void {
     }
 
     socket.on('join', (p) => guard(async () => {
+      // Same rules as x-session-code on /me (lib/learner.ts): a malformed and an unknown code get the same answer and count a miss per IP.
+      const ip = socket.handshake.address || 'unknown'
+      if (limiter.blocked(ip)) return fail({ code: 'RATE_LIMITED', message: 'Too many tries. Wait a minute and try again.' })
       const r = JoinPayload.safeParse(p)
-      if (!r.success) return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
+      if (!r.success) {
+        if (r.error.issues.some((i) => i.path[0] === 'code')) { limiter.miss(ip); return fail(UNKNOWN) }
+        return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
+      }
       const { code, role, deviceName } = r.data
       const session = await db.session.findUnique({ where: { code } })
-      if (!session) return fail({ code: 'UNKNOWN_CODE', message: 'No TV with that code' })
+      if (!session) { limiter.miss(ip); return fail(UNKNOWN) }
       socket.data = { code, role, phoneName: role === 'phone' ? (deviceName ?? DEFAULT_PHONE) : undefined }
       await socket.join(code)
       if (role === 'tv') {

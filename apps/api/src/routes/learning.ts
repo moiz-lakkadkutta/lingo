@@ -7,7 +7,7 @@ import { notFound, ok, validate } from '../lib/http'
 import { learner as resolveLearner } from '../lib/learner'
 import { levelAfterQuiz } from '../lib/levelRule'
 import { toLibraryWord } from '../lib/library'
-/** TV-only learner routes (LING-005), mounted at /me before the `me` router. Same learner lookup as /me (lib/learner.ts): the TV sends x-device-id; an x-session-code resolves to the paired TV's learner. */
+/** TV-only learner routes (LING-005), mounted at /me before the `me` router. Same learner lookup as /me (lib/learner.ts) with x-device-id only: an x-session-code is ignored here, so a paired phone can't change the TV's progress or level. */
 export const learning: Router = Router()
 const valid = <T>(req: unknown) => (req as { valid: T }).valid
 

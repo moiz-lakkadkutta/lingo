@@ -8,7 +8,7 @@ export class ApiError extends Error {
 export interface PhoneApi {
   me(): Promise<LearnerDto>                                  // GET /me
   dueWords(): Promise<DueWord[]>                             // GET /me/words?due=today
-  review(savedWordId: string, grade: Grade): Promise<ReviewResult> // POST /me/reviews
+  review(savedWordId: string, grade: Grade, reviewId?: string): Promise<ReviewResult> // POST /me/reviews (reviewId makes a retry safe)
   stats(): Promise<ProgressStats>                            // GET /me/stats
 }
 type Parser<T> = { parse(data: unknown): T }
@@ -37,7 +37,7 @@ export function createApi(baseUrl: () => string, identity: () => Identity, fetch
   return {
     me: () => call(LearnerDto, '/me'),
     dueWords: () => call(DueWord.array(), '/me/words?due=today'),
-    review: (savedWordId, grade) => call(ReviewResult, '/me/reviews', { method: 'POST', body: { savedWordId, grade } }),
+    review: (savedWordId, grade, reviewId) => call(ReviewResult, '/me/reviews', { method: 'POST', body: { savedWordId, grade, reviewId } }),
     stats: () => call(ProgressStats, '/me/stats'),
   }
 }
