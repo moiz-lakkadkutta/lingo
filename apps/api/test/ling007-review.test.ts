@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import request from 'supertest'
 import { createApp } from '../src/app'
 import { db } from '../src/lib/db'
@@ -121,21 +122,76 @@ describe('H1: Plus lapses on the server without the client', () => {
 describe('M2: production safety', () => {
   const ok = { LINGO_PLUS_MODE: 'iap', RVS_ENV: 'production', RVS_SHARED_SECRET: 'real-key' } as const
   const prod = { NODE_ENV: 'production', RVS_ENV: 'production', RVS_SHARED_SECRET: 'real-key' }
-  it('M2: outside production nothing is refused', () => {
-    expect(plusSafetyProblems({ LINGO_PLUS_MODE: 'demo', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' }, { NODE_ENV: 'test' })).toEqual([])
+  it('M2: in development and test nothing unsafe is refused', () => {
+    for (const NODE_ENV of ['test', 'development']) {
+      expect(plusSafetyProblems({ LINGO_PLUS_MODE: 'demo', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' }, { NODE_ENV, RVS_ENV: 'sandbox' })).toEqual([])
+      expect(assertPlusSafe({ LINGO_PLUS_MODE: 'iap', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' }, { NODE_ENV, RVS_ENV: 'sandbox' })).toEqual([])
+    }
   })
   it('M2: production refuses to start with sandbox RVS, the default secret or demo mode', () => {
-    expect(() => assertPlusSafe({ ...ok, RVS_ENV: 'sandbox' }, { NODE_ENV: 'production', RVS_SHARED_SECRET: 'real-key' })).toThrow(/RVS_ENV=sandbox \(default\)/)
+    expect(() => assertPlusSafe({ ...ok, RVS_ENV: 'sandbox' }, { NODE_ENV: 'production', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'real-key' })).toThrow(/RVS_ENV=sandbox/)
     expect(() => assertPlusSafe({ ...ok, RVS_SHARED_SECRET: 'sandbox' }, { NODE_ENV: 'production', RVS_ENV: 'production' })).toThrow(/RVS_SHARED_SECRET/)
     expect(() => assertPlusSafe({ ...ok, LINGO_PLUS_MODE: 'demo' }, prod)).toThrow(/demo/)
   })
   it('M2: production starts with real RVS settings or with Plus off', () => {
     expect(assertPlusSafe(ok, prod)).toEqual([])
-    expect(assertPlusSafe({ LINGO_PLUS_MODE: 'off', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' }, { NODE_ENV: 'production' })).toEqual([])
+    expect(assertPlusSafe({ LINGO_PLUS_MODE: 'off', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' }, {})).toEqual([])
   })
   it('M2: LINGO_ALLOW_UNSAFE_PLUS=true lets it start and returns the problems to log', () => {
     const problems = assertPlusSafe({ ...ok, LINGO_PLUS_MODE: 'demo' }, { ...prod, LINGO_ALLOW_UNSAFE_PLUS: 'true' })
     expect(problems).toHaveLength(1)
+  })
+})
+
+describe('PR2-A-M1: the Plus guard fails closed', () => {
+  const sandbox = { LINGO_PLUS_MODE: 'iap', RVS_ENV: 'sandbox', RVS_SHARED_SECRET: 'sandbox' } as const
+  it('PR2-A-M1: with Plus on, a missing RVS_ENV refuses to start in every NODE_ENV, even with LINGO_ALLOW_UNSAFE_PLUS', () => {
+    for (const NODE_ENV of [undefined, 'production', 'development', 'test']) {
+      expect(() => assertPlusSafe(sandbox, { NODE_ENV })).toThrow(/RVS_ENV set explicitly/)
+      expect(() => assertPlusSafe({ ...sandbox, LINGO_PLUS_MODE: 'demo' }, { NODE_ENV, LINGO_ALLOW_UNSAFE_PLUS: 'true' })).toThrow(/RVS_ENV set explicitly/)
+    }
+  })
+  it('PR2-A-M1: with NODE_ENV unset (a bare `node dist/index.js`), demo mode and sandbox RVS are refused', () => {
+    expect(() => assertPlusSafe({ ...sandbox, LINGO_PLUS_MODE: 'demo' }, { RVS_ENV: 'sandbox' })).toThrow(/demo/)
+    expect(() => assertPlusSafe(sandbox, { RVS_ENV: 'sandbox' })).toThrow(/RVS_ENV=sandbox/)
+    expect(() => assertPlusSafe(sandbox, { NODE_ENV: 'staging', RVS_ENV: 'sandbox' })).toThrow(/RVS_ENV=sandbox/)
+  })
+  it('PR2-A-M1: LINGO_ALLOW_UNSAFE_PLUS=true lets sandbox RVS start outside development and test, and reports why', () => {
+    expect(assertPlusSafe(sandbox, { RVS_ENV: 'sandbox', LINGO_ALLOW_UNSAFE_PLUS: 'true' })).toEqual([
+      expect.stringMatching(/RVS_ENV=sandbox/), expect.stringMatching(/RVS_SHARED_SECRET/),
+    ])
+  })
+  it('PR2-A-M1: Plus off needs no RVS_ENV', () => {
+    expect(assertPlusSafe({ ...sandbox, LINGO_PLUS_MODE: 'off' }, { NODE_ENV: 'production' })).toEqual([])
+  })
+  it('PR2-A-M1: the start script sets NODE_ENV=production and turbo passes NODE_ENV and PORT through', () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { scripts: Record<string, string> }
+    expect(pkg.scripts.start).toMatch(/^NODE_ENV=production /)
+    expect(pkg.scripts.dev).toMatch(/^NODE_ENV=development /)
+    const turbo = JSON.parse(readFileSync(new URL('../../../turbo.json', import.meta.url), 'utf8')) as { globalEnv: string[] }
+    expect(turbo.globalEnv).toEqual(expect.arrayContaining(['NODE_ENV', 'PORT', 'RVS_ENV', 'RVS_SHARED_SECRET', 'RVS_BASE', 'LINGO_PLUS_MODE', 'LINGO_ALLOW_UNSAFE_PLUS']))
+    expect(turbo.globalEnv).not.toContain('RVS_SECRET')
+  })
+  it('PR2-A-M1: .env.example documents every Plus variable', () => {
+    const example = readFileSync(new URL('../../../.env.example', import.meta.url), 'utf8')
+    for (const name of ['NODE_ENV', 'LINGO_PLUS_MODE', 'RVS_ENV', 'RVS_SHARED_SECRET', 'RVS_BASE', 'LINGO_ALLOW_UNSAFE_PLUS']) {
+      expect(example).toMatch(new RegExp(`^#? ?${name}=`, 'm'))
+    }
+  })
+})
+
+describe('PR2-A-L6: an RVS_BASE override is flagged in production', () => {
+  const ok = { LINGO_PLUS_MODE: 'iap', RVS_ENV: 'production', RVS_SHARED_SECRET: 'real-key' } as const
+  const prod = { NODE_ENV: 'production', RVS_ENV: 'production', RVS_SHARED_SECRET: 'real-key' }
+  it('PR2-A-L6: a sandbox or local RVS_BASE with RVS_ENV=production refuses to start', () => {
+    for (const RVS_BASE of ['https://appstore-sdk.amazon.com/sandbox', 'http://localhost:8080/RVSSandbox']) {
+      expect(() => assertPlusSafe({ ...ok, RVS_BASE }, { ...prod, RVS_BASE })).toThrow(/RVS_BASE/)
+    }
+  })
+  it('PR2-A-L6: the real production endpoint (with or without a trailing slash) is fine', () => {
+    for (const RVS_BASE of ['https://appstore-sdk.amazon.com', 'https://appstore-sdk.amazon.com/']) {
+      expect(assertPlusSafe({ ...ok, RVS_BASE }, { ...prod, RVS_BASE })).toEqual([])
+    }
   })
 })
 

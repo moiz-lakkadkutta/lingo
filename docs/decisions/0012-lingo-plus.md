@@ -37,9 +37,14 @@ open in a production deployment with default settings.
 5. **Re-verify on the server.** `refreshStale` re-verifies every not-cancelled purchase verified more than 24 h ago, on `GET /me` and
    `GET /iap/status`, at most once an hour per purchase and in parallel. The save gate and `/iap/verify` never wait on RVS. If RVS is
    never reached again, a row still lapses at `renewalDate + 3 days`, so Plus is bounded to one billing period plus grace (review H1).
-6. **Production safety.** With `NODE_ENV=production` the API refuses to start in mode `demo`, with sandbox RVS, or with the default
-   shared secret, unless `LINGO_ALLOW_UNSAFE_PLUS=true` (then each problem is logged at startup). Mode and `RVS_ENV` are logged once,
-   never the secret. Test receipts are refused when `RVS_ENV=production` (review M2).
+6. **Production safety (fails closed).** Whenever `LINGO_PLUS_MODE` is not `off`, `RVS_ENV` must be set explicitly (`sandbox` or
+   `production`); the API refuses to start without it, and no flag overrides that. Unless `NODE_ENV` is `development` or `test`
+   (an unset `NODE_ENV` counts as a deploy), the API also refuses to start in mode `demo`, with sandbox RVS, with the default shared
+   secret, or with `RVS_ENV=production` and an `RVS_BASE` other than `https://appstore-sdk.amazon.com`, unless
+   `LINGO_ALLOW_UNSAFE_PLUS=true` (then each problem is logged at startup). `apps/api` `start` sets `NODE_ENV=production` and `dev`
+   sets `development`; turbo passes `NODE_ENV` and `PORT` through (`globalEnv`). Every Plus variable is documented in `.env.example`.
+   Mode and `RVS_ENV` are logged once, never the secret. Test receipts are refused when `RVS_ENV=production` (review-007 M2;
+   PR #2 review A-M1 and A-L6, which found the first version keyed on `NODE_ENV=production` and so failed open).
 7. **Identity.** Plus belongs to the TV learner (`x-device-id`, decision 0014). `/iap/*` never resolves a learner from a session code,
    and `/iap/verify` without `x-device-id` is 400. A receipt posted by a second learner moves to that learner (the newest poster wins);
    RVS still requires the matching Amazon user id.

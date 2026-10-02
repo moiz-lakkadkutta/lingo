@@ -2,6 +2,8 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "DATABASE_URL",
+    "NODE_ENV",
+    "PORT",
     "AWS_REGION",
     "BEDROCK_REGION",
     "S3_BUCKET_MEDIA",
@@ -11,7 +13,6 @@
     "NOVA_LITE_MODEL_ID",
     "ADMIN_TOKEN",
     "RVS_BASE",
-    "RVS_SECRET",
     "RVS_ENV",
     "RVS_SHARED_SECRET",
     "LINGO_PLUS_MODE",
