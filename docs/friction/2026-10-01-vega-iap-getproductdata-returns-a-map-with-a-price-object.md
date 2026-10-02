@@ -1,4 +1,4 @@
-# vega iap getProductData returns a Map with a price object
+# Vega IAP: `getProductData` returns a Map with a price object, and the response enums are numbered differently
 
 Task attempted: Show the localized Lingo Plus price on Vega (LING-007, `apps/vega/src/iap/vegaStore.ts`).
 Steps:
@@ -12,7 +12,7 @@ Severity: Low. About 20 minutes; found by type-checking the template against the
 Workaround: `r.productData.get(sku)?.price.priceStr`, and an explicit `switch` per response enum.
 Suggestion: Show the Map and the `Price` object in the Vega IAP API reference examples, and say that the enums use different
 numbering.
-Environment: Linux container, @amazon-devices/keplerscript-appstore-iap-lib 2.13.0 typings (no device).
+Environment: Platform: Vega OS. Linux container, @amazon-devices/keplerscript-appstore-iap-lib 2.13.0 typings (no device).
 Links:
   - https://developer.amazon.com/docs/vega/0.22/vega-iap-overview.html
   - https://github.com/AmazonAppDev/vega-video-sample (src/iap/utils)
