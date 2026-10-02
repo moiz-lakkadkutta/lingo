@@ -5,8 +5,8 @@ Status: accepted (LING-007 plan §0, 2026-10-01; code done 2026-10-02 with revie
 App Tester / RVS sandbox run on both OSes; the cancel line's URL (amazon.com/appstoresubscriptions, plan Q3); the
 `AppstoreAuthenticationKey.pem` from the console (git-ignored; EAS builds do not carry it yet, review L10).
 Plan: docs/plans/LING-007.md §0. Review: docs/reviews/2026-10-02-ling-007.md (H1, M1–M5).
-Numbering: the plan and the code comments call this "decision 0009" (`apps/api/src/lib/env.ts`, `lib/entitlement.ts`, `routes/iap.ts`,
-`packages/contracts/src/iap.ts`, `packages/shared-ui/src/plus/flow.ts`). 0009 is taken by `0009-gloss-quality.md`, so this record is
+Numbering: the plan and the code comments call this "decision 0009" (`apps/api/src/lib/entitlement.ts`, `routes/iap.ts`,
+`apps/api/prisma/schema.prisma`, `packages/contracts/src/iap.ts`, `packages/shared-ui/src/plus/flow.ts`; `lib/env.ts` already says 0012). 0009 is taken by `0009-gloss-quality.md`, so this record is
 0012; the comments are to be renumbered (TASKS.md follow-up).
 
 ## Context

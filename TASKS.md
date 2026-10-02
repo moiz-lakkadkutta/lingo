@@ -2,9 +2,9 @@
 
 - [x] LING-001 · week 2 · Pipeline steps 1–6 on two clips (Transcribe → segment → Translate → lemmatize+rank → highlights) + segmenter fixtures — done 2026-10-02, Gate A in docs/decisions/0001; decisions 0003, 0004, 0007, 0008. Follow-ups: segmenter still fails fast acted dialogue without a --cues pass; highlights not checked against the dictionary (ASR 'sal' became a highlight).
   - [ ] follow-up: the segmenter on fast acted dialogue still needs a manual `--cues` pass (decision 0007 M2); decide whether condensing (0007 M2 option 4) is worth it once the 12-clip batch shows how many cues fail.
-  - [ ] follow-up: check highlights against the dictionary, so an ASR non-word ('sal' for "sale", confidence 0.158) never becomes a highlight, gloss or quiz item (proposed in `0009-gloss-quality.md` on `origin/feat/ling-001-pipeline`).
+  - [ ] follow-up: check highlights against the dictionary, so an ASR non-word ('sal' for "sale", confidence 0.158) never becomes a highlight, gloss or quiz item (proposed in docs/decisions/0009-gloss-quality.md).
 - [ ] LING-002 · week 2 · Explanations + quiz generation (Nova Lite, Zod-validated JSON), caching, spot check 30
-  - [ ] follow-up (Gate C): land the gloss-prompt fixes from docs/plans/LING-002-gate-c.md and decision `0009-gloss-quality.md` (both on `origin/feat/ling-001-pipeline`, not yet on this branch), re-run the spot check, and have the human score both clips (docs/spot-checks/2026-10-02-gate-c.md: en ≈ 6/15 glosses, ≈ 7/10 quiz items, not passing; de unscored). Then write friction log N7 (docs/plans/LING-008.md §6.2).
+  - [ ] follow-up (Gate C): land the gloss-prompt fixes from docs/plans/LING-002-gate-c.md and docs/decisions/0009-gloss-quality.md (both merged into this branch in 18d2cad), re-run the spot check, and have the human score both clips (docs/spot-checks/2026-10-02-gate-c.md: en ≈ 6/15 glosses, ≈ 7/10 quiz items, not passing; de unscored). Then write friction log N7 (docs/plans/LING-008.md §6.2).
 - [ ] LING-003 · week 2 · Player with dual cues + marker rendering + word focus; cue-wise seek; long-press replay; 0.75× — code done 2026-10-02 (decision 0006); waiting on device spikes S1 (docs/spikes/S1-fire-os-remote.md) and S2
   - [ ] follow-up from the pipeline review (docs/reviews/2026-10-01-pipeline-pr.md M2): on Fire OS a seek or rebuffer can open the Explain card, because the kit's adapter reports react-native-video's `isPlaying=false` as `'paused'` and drops `isSeeking`. Confirm in S1 (logcat), then fix in the kit (report `'buffering'` while seeking) or ignore `'paused'` in Player.tsx while a seek is pending; add a machine test.
   - [ ] follow-up: Alexa / Media Controls "stop" does nothing in the Player. `transportToKey` maps `stop` to the remote key `back` (packages/shared-ui/src/platform/transport.ts:12), but the Player machine handles Back only as its own `back` event from BackHandler, so a `key: 'back'` is dropped. Route it to the `back` event and add a test.
@@ -20,7 +20,7 @@
     - [ ] L4: `POST /me/words` emits `word:saved` to any room named in `sessionCode`, without checking it belongs to the learner.
     - [ ] L9: collapsed rail letters are ambiguous (Watch and Words are both "W").
     - [ ] L10: "on our side" error for a client cache miss; "Add to Continue" on a completed clip clears it; focus ring has no 3 px offset.
-- [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build — code done 2026-10-02 (plan docs/plans/LING-006.md; decision 0011, pending human confirmation on the Apple Developer membership and LAN cleartext vs HTTPS; review docs/reviews/2026-10-02-ling-006.md, M1–M6 fixed); waiting on the manual device steps (plan §Manual device steps) and the EAS builds
+- [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build — code done 2026-10-02 (plan docs/plans/LING-006.md; decision 0011, pending human confirmation on the Apple Developer membership and LAN cleartext vs HTTPS; review docs/reviews/2026-10-02-ling-006.md, M2–M6 fixed, M1 partly: scope, uniform 404 and rate limit done, code rotation still open below); waiting on the manual device steps (plan §Manual device steps) and the EAS builds
   - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today) — done in c331490, scoped to four routes in 9b98e2c (decision 0011).
   - [ ] follow-up from the LING-006 review (M1): the session code is still a long-lived bearer credential for the phone's read and review routes. Rotate the code when the TV selects "Pair a new phone" (and on "Use another TV"), or have the socket `join` issue a per-phone token that `/me/*` accepts instead of the code. The per-IP miss limiter is in-memory (one API process); move it to a shared store before running more than one instance, and set `trust proxy` behind a load balancer so `req.ip` is the client.
   - [ ] follow-up (docs/plans/LING-008.md §14): the phone loads its fonts at runtime from `@expo-google-fonts`; the plan asked for the same `expo-font` plugin entry as the TV (`../../packages/shared-ui/assets/fonts/*.ttf`). Decide and align.
@@ -36,14 +36,14 @@
     - [ ] L9: EAS scripts use `eas-cli@latest`; pin a major. Record the workspace install on the EAS builder in a friction log.
 - [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls — code done 2026-10-02 (plan docs/plans/LING-007.md; decision 0012, pending human confirmation on the console SKUs, cancel URL and PEM; review docs/reviews/2026-10-02-ling-007.md, H1 and M1–M5 fixed); waiting on the App Tester / RVS sandbox runs on the stick and the VVD (plan §Manual checklists A and B)
   - [ ] follow-up: kit escalations E1–E4 (plan §Escalations; human decision, kit ↔ app interface): E1 public `contentLauncher.dispatchIntent` (Vega bindings are no-ops, KIT-007); E2 `onLaunchIntent` must be able to answer SUCCESS or failure; E3 `reportPlayback` needs a playback state, namespace and profile; E4 the kit's Vega adapter must register Vega Media Controls itself, and `TransportControl` needs absolute seek. Code markers: `TODO(KIT-E1..E4)` in packages/shared-ui/src/platform.
-  - [ ] follow-up: renumber the "decision 0009" comments for Lingo Plus to 0012 (apps/api/src/lib/env.ts, lib/entitlement.ts, routes/iap.ts, packages/contracts/src/iap.ts, packages/shared-ui/src/plus/flow.ts); 0009 is the gloss-quality record.
+  - [ ] follow-up: renumber the "decision 0009" comments for Lingo Plus to 0012 (apps/api/src/lib/entitlement.ts, apps/api/src/routes/iap.ts, apps/api/prisma/schema.prisma:113, packages/contracts/src/iap.ts, packages/shared-ui/src/plus/flow.ts; apps/api/src/lib/env.ts done in the PR #2 review fixes); 0009 is the gloss-quality record.
   - [ ] review lows left open (docs/reviews/2026-10-02-ling-007.md):
     - [ ] L1: `.` and `..` survive `encodeURIComponent` in RVS path segments.
     - [ ] L2: the Vega Content Launcher answers SUCCESS for unknown slugs (`knownSlugs` is `() => null` in apps/vega/src/App.tsx).
     - [ ] L4: receipt takeover by anyone with another learner's receiptId and Amazon user id (accepted in decision 0012); consider logging takeovers.
     - [ ] L5: `plusStatus` can show a past end date while `plus` is true.
     - [ ] L6: a re-verify whose receiptId does not match does nothing silently and skips the `/verify` acceptance checks.
-    - [ ] L7: `turbo.json` still lists the old `RVS_SECRET`.
+    - [x] L7: `turbo.json` still lists the old `RVS_SECRET` — removed in the PR #2 review fixes (A-L5).
     - [ ] L8: the deep-link `t` has no upper bound.
     - [ ] L10: EAS builds ship without the git-ignored PEM; document an EAS file secret.
     - [ ] L11 (nit): `LaunchBridge.tsx` sits at apps/expo/ rather than apps/expo/src/.
@@ -61,3 +61,25 @@
     - [ ] L11: README "Status (2026-10-01)" heading sits above 2026-10-02 events.
 - [ ] LING-009 · week 5 · Video (Save-word-to-phone moment with both screens in frame) + submission — docs drafted 2026-10-01 (plan docs/plans/LING-009.md; docs/video-script.md, docs/submission.md, docs/submission-checklist.md, commit 92a010e); 32 placeholders pending (`grep -n PLACEHOLDER`). The claims register and status tables were refreshed against the merged LING-005..008 code on 2026-10-02 (PR #2 review C-M4: "Code done, not on device" where true); re-grade the rows again after the device checklists
   - [ ] follow-up (human decision): the AWS account ID is out of the tree (4174937) but still in git history (first in def541c). Decide whether to scrub the history before the repository goes public.
+- [ ] PR #2 review lows left open (docs/reviews/2026-10-02-pr2-a.md, docs/reviews/2026-10-02-pr2-b.md, docs/reviews/2026-10-02-pr2-c.md; the mediums and A-L1, A-L2, A-L5, A-L6, C-L1, C-L9 are fixed):
+    - [ ] A-L3: a request without `x-device-id` still falls back to the shared `'anon'` learner on every route but `/iap/verify` (`PUT /me`, `POST /me/words`, `PUT /me/level`, `PUT /me/progress`, `GET /iap/status`, `POST /sessions`).
+    - [ ] A-L4: concurrent saves can overrun the free-tier limit (check and insert are not atomic; probe ended at 21).
+    - [ ] B-L1: the shared-ui import rule is a deny-list, not the Vega-supported allowlist.
+    - [ ] B-L2: Alexa / Media Controls "stop" does nothing in the Player (same as the LING-003 follow-up above).
+    - [ ] B-L3: on Vega every Watch writes a progress row and puts the clip on Continue at 0:00.
+    - [ ] B-L4: Back on the offline screen pops a hidden stack; Retry then resets it, dropping a launch intent's Player.
+    - [ ] B-L5: a launch intent over a running Player drops the old clip's position and saved words.
+    - [ ] B-L6: `check:vega` compares names only, so the Vega declaration of `RootProps` and the mappers can drift in shape.
+    - [ ] B-L7: several focusables are labelled "Back", "Done", "Continue" or "Try again" rather than their purpose.
+    - [ ] B-L8: an `invalid` verify after a purchase shows the "pending" promise, which nothing keeps.
+    - [ ] B-L9: Plus "busy": the comment says focus parks on a view that cannot take focus.
+    - [ ] B-L10: `lint:words` does not cover `apps/vega/src` and `apps/expo`.
+    - [ ] C-L2: `segment.confirmed: false` stops only the cut; a later run without the flag uploads, transcribes and can publish it.
+    - [ ] C-L3: the cut writes straight to `_cuts/<slug>.mp4` with no `.part` file; a Ctrl-C can leave a partial cut that is skipped and uploaded.
+    - [ ] C-L4: the poster and its upload are not keyed on `posterAtS` and the segment.
+    - [ ] C-L5: a blocked step goes through the catch that deletes `step.output`, so a manifest problem can delete a good cut or poster.
+    - [ ] C-L6: `--work` and `--report` resolve against `packages/pipeline`, the manifest path against `INIT_CWD`.
+    - [ ] C-L7: the number-word rule treats the verb *achten* as an ordinal, so it is never highlighted.
+    - [ ] C-L8: the phone's retry after a lost answer reuses the `reviewId` even when the learner taps a different grade.
+    - [ ] C-L10: CI does not typecheck `apps/vega` (`npm ci && npx tsc --noEmit` there, or a recorded manual step).
+    - [ ] C-L11: `.env.example` still exports `POLLY_VOICE_*`, `S3_BUCKET_NOVA_INGEST` and `NOVA_PRO_MODEL_ID`, which docs/aws.md calls "declared, not used".
