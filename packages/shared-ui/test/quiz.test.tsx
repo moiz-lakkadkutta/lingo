@@ -4,7 +4,7 @@ import { Quiz, type QuizProps } from '../src/screens/Quiz'
 import { strings } from '../src/strings'
 import { tokens } from '../src/theme/tokens'
 import { clipReady, quizItem } from './fixtures'
-import { box, byLabel, flat, flush, is, labels, preferred, press, pressables, render, texts } from './helpers'
+import { blur, box, byLabel, flat, flush, focus, is, labels, preferred, press, pressables, render, texts } from './helpers'
 
 vi.mock('../src/components/MiniPlayer', async (orig) => ({ ...(await orig<object>()), MiniPlayer: (p: object) => React.createElement('MiniPlayer', p) }))
 
@@ -40,6 +40,26 @@ describe('Quiz', () => {
       expect(texts(r)).toContain(strings.quiz.right('zwei'))
       act(() => { vi.advanceTimersByTime(600) })
       expect(texts(r)).toContain(strings.quiz.progress(2, 2))
+    } finally { vi.useRealTimers() }
+  })
+  it('M2: the focused correct answer keeps its blue ring and check; focus is an extra outer ring plus the scale', async () => {
+    vi.useFakeTimers()
+    try {
+      const r = render(<Quiz {...props()} />)
+      const pick = byLabel(r, opt('zwei', 1))
+      focus(pick) // the learner moved focus here before pressing Select
+      await press(pick)
+      const right = byLabel(r, opt('zwei', 1))
+      expect(box(right)).toMatchObject({ borderColor: tokens.color.interactive, borderWidth: 3 })
+      expect(box(right).margin).toBeUndefined()
+      expect(right.findAll((n) => is(n, 'View') && n.props.testID === 'check')).toHaveLength(1)
+      const ring = right.findAll((n) => is(n, 'View') && n.props.testID === 'focus-ring')
+      expect(ring).toHaveLength(1)
+      expect(flat(ring[0]!.props.style)).toMatchObject({ position: 'absolute', borderColor: tokens.color.focus, borderWidth: tokens.focus.width })
+      expect(flat(ring[0]!.props.style).top).toBeLessThan(-3) // outside the 3 px blue ring
+      blur(right)
+      expect(byLabel(r, opt('zwei', 1)).findAll((n) => is(n, 'View') && n.props.testID === 'focus-ring')).toHaveLength(0)
+      expect(box(byLabel(r, opt('zwei', 1)))).toMatchObject({ borderColor: tokens.color.interactive, borderWidth: 3 })
     } finally { vi.useRealTimers() }
   })
   it('an incorrect pick shows a coral ring on the pick, the answer highlighted and a focused Continue', async () => {

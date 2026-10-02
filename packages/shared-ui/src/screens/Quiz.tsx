@@ -83,8 +83,8 @@ export function Quiz({ clip, onFinish, onNext, onAgain, onDone }: QuizProps) {
             return (
               <Focusable
                 key={k} label={strings.quiz.optionLabel(o, k + 1, item.options.length)} hasTVPreferredFocus={k === 0 && s.phase !== 'revealed'}
-                onPress={() => dispatch({ type: 'pick', k })} selected={st === 'correct'}
-                style={{ width: px(640), height: px(140), flexDirection: 'row', alignItems: 'center', gap: px(12), paddingHorizontal: px(28), backgroundColor: tokens.color.surface2, ...(st === 'picked' ? { borderColor: tokens.color.incorrect, borderWidth: px(3) } : {}) }}
+                onPress={() => dispatch({ type: 'pick', k })} selected={st === 'correct'} tone={st === 'correct' ? 'correct' : st === 'picked' ? 'incorrect' : undefined}
+                style={{ width: px(640), height: px(140), flexDirection: 'row', alignItems: 'center', gap: px(12), paddingHorizontal: px(28), backgroundColor: tokens.color.surface2 }}
               >
                 {st === 'correct' ? <Check size={px(32)} color={tokens.color.interactive} /> : null}
                 <T variant="body">{o}</T>
