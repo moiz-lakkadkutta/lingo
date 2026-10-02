@@ -23,7 +23,7 @@ const tv = async () => {
 const unknownCode = async () => { let c = newCode(); while (await db.session.findUnique({ where: { code: c } })) c = newCode(); return c }
 
 beforeAll(async () => {
-  const clip = await db.clip.create({ data: { slug: 'test-r6-' + rnd(), title: 'R6', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  const clip = await db.clip.create({ data: { slug: 'test-r6-' + rnd(), title: 'R6', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   clipId = clip.id
   const cue = await db.cue.create({ data: { clipId, index: 0, startMs: 0, endMs: 2000, text: 'Der Zug.', native: { en: 'The train.' } } })
   highlightId = (await db.highlight.create({ data: { cueId: cue.id, word: 'Zug', lemma: 'zug', rank: 100, gloss: 'train', grammar: 'noun', example: 'Der Zug.', level: 'A1' } })).id

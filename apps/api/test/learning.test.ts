@@ -50,7 +50,7 @@ describe('learning routes', () => {
   })
   it('PUT /me/level quiz records an attempt and moves up after two qualifying clips', async () => {
     const dev = fx.device(); await fx.learner(dev, { level: 'A2' })
-    const x = await fx.clip({ level: 'A2' }); const y = await fx.clip({ level: 'B1' })
+    const x = await fx.clip({ level: 'A2', quiz: 10 }); const y = await fx.clip({ level: 'B1', quiz: 10 })
     expect(await quiz(dev, x.slug, 9)).toEqual({ level: 'A2', changed: null })
     expect(await quiz(dev, y.slug, 10)).toEqual({ level: 'B1', changed: 'up' })
     const l = await row(dev)
@@ -60,7 +60,7 @@ describe('learning routes', () => {
   })
   it('PUT /me/level quiz only counts attempts since the last level change', async () => {
     const dev = fx.device(); await fx.learner(dev, { level: 'B1' })
-    const x = await fx.clip({ level: 'B1' }); const y = await fx.clip({ level: 'B1' })
+    const x = await fx.clip({ level: 'B1', quiz: 10 }); const y = await fx.clip({ level: 'B1', quiz: 10 })
     await quiz(dev, x.slug, 10)
     await new Promise((r) => setTimeout(r, 10))
     await put('/level', dev, { source: 'settings', level: 'B1' })
@@ -100,6 +100,66 @@ describe('learning routes', () => {
     const ws = LibraryWord.array().parse((await request(app).get('/me/library').set('x-device-id', dev)).body.data)
     expect(ws[0]!.clip.manifestUrl).toBeNull()
     expect(ws[0]!.cue.native).toBe('')
+  })
+})
+
+describe('LING-005 review M1: eligibility comes from the server', () => {
+  const sessionCode = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+  it('M1: PUT /me/level quiz on an unpublished clip is 404 and records nothing', async () => {
+    const dev = fx.device(); const l = await fx.learner(dev, { level: 'A2' })
+    for (const status of ['draft', 'ready']) {
+      const c = await fx.clip({ level: 'A2', status, quiz: 10 })
+      const r = await put('/level', dev, { source: 'quiz', clipSlug: c.slug, correct: 10, total: 10 })
+      expect(r.status).toBe(404)
+    }
+    expect(await db.quizAttempt.count({ where: { learnerId: l.id } })).toBe(0)
+  })
+  it('M1: a client total that disagrees with the clip quiz count is 409 QUIZ_MISMATCH and records nothing', async () => {
+    const dev = fx.device(); const l = await fx.learner(dev, { level: 'A2' })
+    const few = await fx.clip({ level: 'A2', quiz: 3 }); const none = await fx.clip({ level: 'A2' })
+    for (const c of [few, none]) {
+      const r = await put('/level', dev, { source: 'quiz', clipSlug: c.slug, correct: 10, total: 10 })
+      expect(r.status).toBe(409)
+      expect(r.body.error.code).toBe('QUIZ_MISMATCH')
+    }
+    expect(await db.quizAttempt.count({ where: { learnerId: l.id } })).toBe(0)
+  })
+  it('M1: the stored total is the server count, so a clip with fewer than 5 items never counts toward a level-up', async () => {
+    const dev = fx.device(); const l = await fx.learner(dev, { level: 'A2' })
+    const a = await fx.clip({ level: 'A2', quiz: 3 }); const b = await fx.clip({ level: 'A2', quiz: 3 })
+    expect(await quiz(dev, a.slug, 3, 3)).toEqual({ level: 'A2', changed: null })
+    expect(await quiz(dev, b.slug, 3, 3)).toEqual({ level: 'A2', changed: null })
+    expect((await db.quizAttempt.findMany({ where: { learnerId: l.id } })).map((x) => x.total)).toEqual([3, 3])
+  })
+  it('M1: reviewer probe — a session-code holder cannot move the TV level or progress through draft clips', async () => {
+    const tv = fx.device(); const l = await fx.learner(tv, { level: 'A2' })
+    const sc = sessionCode()
+    await db.session.create({ data: { code: sc, learnerId: l.id } })
+    const phone = fx.device()
+    const d1 = await fx.clip({ level: 'A2', status: 'draft' }); const d2 = await fx.clip({ level: 'A2', status: 'draft' })
+    const asPhone = (path: string, body: object) => put(path, phone, body).set('x-session-code', sc)
+    expect((await asPhone('/level', { source: 'quiz', clipSlug: d1.slug, correct: 10, total: 10 })).status).toBe(404)
+    expect((await asPhone('/level', { source: 'quiz', clipSlug: d2.slug, correct: 10, total: 10 })).status).toBe(404)
+    expect((await asPhone('/progress', { clipSlug: d1.slug, positionS: 5 })).status).toBe(404)
+    expect((await asPhone('/level', { source: 'settings', level: 'B2' })).status).toBe(200) // acts on the phone's own learner
+    const after = await db.learner.findUniqueOrThrow({ where: { id: l.id }, include: { progress: true, quizAttempts: true } })
+    expect(after.level).toBe('A2')
+    expect(after.progress).toHaveLength(0)
+    expect(after.quizAttempts).toHaveLength(0)
+  })
+  it('M1: PUT /me/progress 404s an unpublished clip', async () => {
+    const dev = fx.device()
+    for (const status of ['draft', 'ready']) {
+      const c = await fx.clip({ status })
+      expect((await put('/progress', dev, { clipSlug: c.slug, positionS: 5 })).status).toBe(404)
+    }
+  })
+  it('M1: settings and placement set the level directly, but only to a valid band', async () => {
+    const dev = fx.device(); await fx.learner(dev, { level: 'A2' })
+    expect((await put('/level', dev, { source: 'settings', level: 'C1' })).status).toBe(400)
+    expect((await put('/level', dev, { source: 'placement', level: 'Z9' })).status).toBe(400)
+    expect((await put('/level', dev, { source: 'settings', level: 'B2' })).body.data).toEqual({ level: 'B2', changed: 'set' })
+    expect((await row(dev)).level).toBe('B2')
   })
 })
 
