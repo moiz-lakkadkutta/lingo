@@ -8,8 +8,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prisma": "prisma",
-    "lint": "eslint src"
+    "prisma": "prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

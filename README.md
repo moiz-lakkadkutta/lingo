@@ -32,7 +32,7 @@ had no Docker daemon, so step 3's `pnpm db:up` did not run and the database step
 2. `cd lingo && pnpm i && pnpm db:generate`
 3. `cp .env.example .env && set -a && . ./.env && set +a && pnpm db:up && pnpm db:migrate` — the API and Prisma read the environment,
    not the root `.env` file, so export it in every shell you use.
-4. `python3 -m venv .venv-lemma && .venv-lemma/bin/pip install simplemma==2.0.0`, then `pnpm typecheck && pnpm test && pnpm lint:words && pnpm check:vega`
+4. `python3 -m venv .venv-lemma && .venv-lemma/bin/pip install simplemma==2.0.0`, then `pnpm typecheck && pnpm test && pnpm lint && pnpm lint:words && pnpm check:vega`
 5. Pipeline without AWS: `pnpm pipeline prepare --clip demo-de --source s3://unused --lang de --native en --fixture --no-publish` → `packages/pipeline/work/demo-de/`
 6. `pnpm api`, then `curl localhost:4000/health` → `{"success":true,…}`. Importing clips into the database: <!-- LING-005: clip import --> pending.
 7. (device) Fire OS, Fire TV Stick on `adb connect <ip>`: `cd apps/expo && EXPO_TV=1 npx expo prebuild --clean && EXPO_PUBLIC_API_URL=http://<lan-ip>:4000 pnpm --filter @lingo/expo android`
