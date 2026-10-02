@@ -29,8 +29,8 @@ const review = (h: Record<string, string>, body: object) => { const r = request(
 const stats = (h: Record<string, string>) => { const r = request(app).get('/me/stats'); for (const [k, v] of Object.entries(h)) r.set(k, v); return r }
 
 beforeAll(async () => {
-  clip = await db.clip.create({ data: { slug: 'test-l6-' + rnd(), title: 'Am Bahnhof', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
-  other = await db.clip.create({ data: { slug: 'test-l6-other-' + rnd(), title: 'Other', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  clip = await db.clip.create({ data: { slug: 'test-l6-' + rnd(), title: 'Am Bahnhof', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
+  other = await db.clip.create({ data: { slug: 'test-l6-other-' + rnd(), title: 'Other', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   const cue = await db.cue.create({ data: { clipId: clip.id, index: 2, startMs: 0, endMs: 2000, text: 'Der Zug fährt vom Bahnhof ab.', native: { en: 'The train leaves from the station.', tr: 'Tren istasyondan kalkıyor.' } } })
   const levels = ['A1', 'A2', 'B1', 'B2'] as const
   for (const [i, w] of ['Zug', 'fährt', 'Bahnhof', 'ab'].entries()) {

@@ -1,5 +1,5 @@
 import type { Learner } from '@prisma/client'
-import { SESSION_CODE_HEADER, SESSION_CODE_RE } from '@lingo/contracts'
+import { DEVICE_ID_HEADER, DEVICE_ID_RE, SESSION_CODE_HEADER, SESSION_CODE_RE } from '@lingo/contracts'
 import { db } from './db'
 import { AppError } from './http'
 import { codeMisses, type MissLimiter } from './rateLimit'
@@ -13,6 +13,16 @@ export interface LearnerOpts {
   limiter?: MissLimiter
 }
 const UNKNOWN = () => new AppError(404, 'UNKNOWN_CODE', 'No TV with that code')
+/**
+ * x-device-id, checked against DEVICE_ID_RE (PR #2 review A-L2: an unchecked 5 KB id overflowed the unique index and answered 500).
+ * Missing → 'anon' (review A-L3, tracked in TASKS.md). Malformed → 400 VALIDATION.
+ */
+export function deviceIdOf(req: Pick<HeaderSource, 'header'>): string {
+  const raw = req.header(DEVICE_ID_HEADER)
+  if (raw === undefined) return 'anon'
+  if (!DEVICE_ID_RE.test(raw)) throw new AppError(400, 'VALIDATION', `${DEVICE_ID_HEADER}: up to 128 letters, digits, ".", "_", ":" or "-"`)
+  return raw
+}
 /**
  * The learner a request acts for.
  * With allowCode and x-session-code present and non-empty: trim + uppercase; a malformed code and a well-formed code with no
@@ -33,6 +43,6 @@ export async function learner(req: HeaderSource, opts: LearnerOpts = {}): Promis
     if (!session) { limiter.miss(key); throw UNKNOWN() }
     return db.learner.update({ where: { id: session.learnerId }, data: { lastActive: new Date() } })
   }
-  const deviceId = String(req.header('x-device-id') ?? 'anon')
+  const deviceId = deviceIdOf(req)
   return db.learner.upsert({ where: { deviceId }, create: { deviceId }, update: { lastActive: new Date() } })
 }

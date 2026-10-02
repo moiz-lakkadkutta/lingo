@@ -33,6 +33,8 @@ export function meRouter(deps: { rvs: RvsClient; now?: () => Date }): Router {
     try {
       const l = await learner(req)
       const { highlightId, sessionCode } = (req as never as { valid: { highlightId: string; sessionCode?: string } }).valid
+      // Only a highlight on a published clip can be saved; an unknown id used to hit the foreign key and answer 500 (PR #2 review A-L1).
+      if (!(await db.highlight.findFirst({ where: { id: highlightId, cue: { clip: { status: 'published' } } }, select: { id: true } }))) throw notFound('Highlight')
       if (!(await entitled(l.id, { now: clock() }))) {
         if ((await savesSince(l.id, new Date())) >= FREE_SAVES_PER_DAY) return ok(res, { limit: true, saved: null })
       }

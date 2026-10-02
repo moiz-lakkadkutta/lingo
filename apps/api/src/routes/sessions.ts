@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { SessionDto } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { ok } from '../lib/http'
+import { deviceIdOf } from '../lib/learner'
 export const sessions: Router = Router()
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O/1/I
 export const newCode = () => Array.from(randomBytes(6), (b) => ALPHA[b % ALPHA.length]).join('')
@@ -19,7 +20,7 @@ export async function getOrCreateSession(deviceId: string): Promise<{ code: stri
 /** TV creates a session code (shown as text + QR); phone joins the Socket.IO room with the same code. */
 sessions.post('/', async (req, res, next) => {
   try {
-    const { code } = await getOrCreateSession(String(req.header('x-device-id') ?? 'anon'))
+    const { code } = await getOrCreateSession(deviceIdOf(req))
     ok(res, SessionDto.parse({ code, joinUrl: joinUrlFor(code) }), 201)
   } catch (e) { next(e) }
 })

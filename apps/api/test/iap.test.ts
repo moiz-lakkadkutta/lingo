@@ -35,7 +35,7 @@ const withMode = async (mode: typeof env.LINGO_PLUS_MODE, fn: () => Promise<void
 let clipId = ''
 let highlightIds: string[] = []
 beforeAll(async () => {
-  const clip = await db.clip.create({ data: { slug: 'test-iap-' + rnd(), title: 'IAP test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  const clip = await db.clip.create({ data: { slug: 'test-iap-' + rnd(), title: 'IAP test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   clipId = clip.id
   const cue = await db.cue.create({ data: { clipId, index: 0, startMs: 0, endMs: 2000, text: 'Viele Wörter.', native: { en: 'Many words.' } } })
   highlightIds = []

@@ -2,6 +2,10 @@ import { z } from 'zod'
 import { Level } from './base'
 /** Header the phone sends so /me/* resolves the TV's learner (the code is the pairing secret; docs/decisions/0005). */
 export const SESSION_CODE_HEADER = 'x-session-code'
+/** The per-install id (decision 0014: `tv-<uuid>` on the TV, `phone-<uuid>` on the phone). The API answers 400 VALIDATION for anything else (PR #2 review A-L2). */
+export const DEVICE_ID_HEADER = 'x-device-id'
+export const DEVICE_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/
+export const DeviceId = z.string().regex(DEVICE_ID_RE, 'up to 128 letters, digits, ".", "_", ":" or "-"')
 /** A word counts as known once it has survived the 1-day review: SM-2 interval ≥ 6 days. LING-005's "Learned" filter may reuse this. */
 export const KNOWN_MIN_INTERVAL_D = 6
 export const Grade = z.enum(['again', 'hard', 'good', 'easy'])

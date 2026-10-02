@@ -41,7 +41,7 @@ const askedFor = () => rvs.verify.mock.calls.map((c) => c[1] as string)
 let highlightId = ''
 let clipId = ''
 beforeAll(async () => {
-  const clip = await db.clip.create({ data: { slug: 'test-r7-' + rnd(), title: 'R7', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  const clip = await db.clip.create({ data: { slug: 'test-r7-' + rnd(), title: 'R7', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   clipId = clip.id
   const cue = await db.cue.create({ data: { clipId, index: 0, startMs: 0, endMs: 2000, text: 'Wort.', native: { en: 'Word.' } } })
   highlightId = (await db.highlight.create({ data: { cueId: cue.id, word: 'Wort', lemma: 'wort', rank: 100, gloss: 'word', grammar: '', example: '', level: 'A1' } })).id

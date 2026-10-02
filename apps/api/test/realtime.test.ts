@@ -35,7 +35,7 @@ beforeAll(async () => {
   const s = createServer(); server = s.server; io = s.io
   base = `http://127.0.0.1:${await listen(server)}`
   const slug = 'test-realtime-' + rnd()
-  clip = await db.clip.create({ data: { slug, title: 'Realtime test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  clip = await db.clip.create({ data: { slug, title: 'Realtime test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   const cue = await db.cue.create({ data: { clipId: clip.id, index: 0, startMs: 0, endMs: 2000, text: 'Der Zug fährt vom Bahnhof ab.', native: { en: 'The train leaves from the station.' } } })
   const words = ['Zug', 'fährt', 'Bahnhof', 'ab', 'Der']
   for (const [i, w] of words.entries()) {
