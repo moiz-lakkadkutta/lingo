@@ -30,6 +30,7 @@ import type { SessionHandle, SessionTransport } from '../session/types'
 import { useSession } from '../session/useSession'
 import { strings } from '../strings'
 import { nextClip, progressBody } from './selectors'
+import { cacheContext, createClipCache, type ClipCache } from './clipCache'
 
 export interface RootProps { apiBaseUrl: string; scale: number; /** Per-install id from the platform entry (platform/deviceId.ts useDeviceId); the API's learner key. Required: no shared default (review-005 H1). */ deviceId: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource; /** Amazon IAP store from the platform entry (LING-007); defaults to noStore. */ plusStore?: PlusStore; /** Deep links / Content Launcher intents from the platform entry (LING-007); defaults to noLaunches. */ launches?: LaunchSource }
 
@@ -41,7 +42,7 @@ type Score = { correct: number; total: number }
 interface Ctx {
   ep: Endpoints; learner: LearnerDto; setLearner: React.Dispatch<React.SetStateAction<LearnerDto>>; patchLearner(p: LearnerSettingsPatch): Promise<boolean>
   nav(a: NavAction): void; focus(r: Route): FocusMemoryProps; memory: FocusMemory
-  catalog: Catalog | null; setCatalog(c: Catalog | null): void; clips: Map<string, ClipReady>
+  catalog: Catalog | null; setCatalog(c: Catalog | null): void; clips: ClipCache
   session: SessionHandle; scale: number; remote: RemoteSource
   api: Api; plusStore: PlusStore; refreshMe(): void
   saved: HighlightDto[]; setSaved: React.Dispatch<React.SetStateAction<HighlightDto[]>>; lastPlayerSlug: React.MutableRefObject<string | null>
@@ -63,7 +64,7 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
   const [boot, setBoot] = useState<Boot>('loading')
   const [bootTick, setBootTick] = useState(0)
   const [catalog, setCatalog] = useState<Catalog | null>(null)
-  const clips = useRef(new Map<string, ClipReady>()).current
+  const clips = useRef(createClipCache()).current
   const [saved, setSaved] = useState<HighlightDto[]>([])
   const lastPlayerSlug = useRef<string | null>(null)
   const [tvQuiz, setTvQuiz] = useState<Record<string, Score>>({})
@@ -186,8 +187,9 @@ function HomeRoute({ ctx }: { ctx: Ctx }) {
 
 function ClipRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { ep, nav, clips } = ctx
-  const res = useResource(() => ep.clip(slug), [slug], clips.get(slug))
-  useEffect(() => { if (res.state === 'ready' && res.data.status === 'ready') clips.set(slug, res.data) }, [res.state, res.data, clips, slug])
+  const cc = cacheContext(ctx.learner)
+  const res = useResource(() => ep.clip(slug), [slug], clips.fresh(slug, cc))
+  useEffect(() => { if (res.state === 'ready' && res.data.status === 'ready') clips.set(slug, cc, res.data) }, [res.state, res.data, clips, slug, cc])
   return (
     <Clip
       clip={res} learner={ctx.learner} inContinue={!!ctx.catalog?.continue.some((c) => c.slug === slug)} onReload={res.reload} {...ctx.focus({ name: 'clip', slug })}
@@ -201,7 +203,8 @@ function ClipRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
 
 function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challenge: boolean }) {
   const { ep, nav, clips, learner, session, setSaved } = ctx
-  const cached = clips.get(slug)
+  const cc = cacheContext(learner)
+  const cached = clips.fresh(slug, cc) // stale native lines / highlights after a language or level change are refetched (review-005 M3)
   const res = useResource(() => (cached ? Promise.resolve(cached) : ep.clip(slug)), [slug], cached)
   // A new clip starts a new saved-words list; Watch again (same slug) keeps it for the Summary.
   useEffect(() => {
@@ -216,7 +219,7 @@ function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challen
     return <Screen><T accessibilityLiveRegion="polite">{strings.common.loading}</T></Screen>
   }
   const clip = data
-  if (!cached) clips.set(slug, clip)
+  if (!cached) clips.set(slug, cc, clip)
   const save = async (highlightId: string): Promise<'saved' | 'limit' | 'error'> => {
     try {
       const r = await ep.saveWord(highlightId, session.code ?? undefined)
@@ -236,12 +239,12 @@ function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challen
       onBack={(pos) => {
         const body = progressBody(slug, pos, clip.durationS)
         ep.putProgress(body).catch(() => {}) // fire and forget: leaving must never wait on the network
-        clips.set(slug, { ...clip, resumeS: body.completed ? null : pos, completed: !!body.completed })
+        clips.set(slug, cc, { ...clip, resumeS: body.completed ? null : pos, completed: !!body.completed })
         nav({ type: 'pop' })
       }}
       onEnd={() => {
         ep.putProgress({ clipSlug: slug, positionS: clip.durationS, completed: true }).catch(() => {})
-        clips.set(slug, { ...clip, resumeS: null, completed: true })
+        clips.set(slug, cc, { ...clip, resumeS: null, completed: true })
         nav({ type: 'replace', route: { name: 'summary', slug } })
       }}
     />
@@ -256,7 +259,7 @@ const goNext = (ctx: Ctx, slug: string) => {
 
 function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, session } = ctx
-  const clip = ctx.clips.get(slug)
+  const clip = ctx.clips.peek(slug)
   if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.back, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
   const pq = session.phoneQuiz
   return (
@@ -273,7 +276,7 @@ function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
 
 function QuizRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, ep } = ctx
-  const clip = ctx.clips.get(slug)
+  const clip = ctx.clips.peek(slug)
   if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.back, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
   const onFinish = async (r: Score): Promise<LevelResult | null> => {
     ctx.setTvQuiz((m) => ({ ...m, [slug]: r }))
@@ -319,7 +322,7 @@ function SettingsRoute({ ctx }: { ctx: Ctx }) {
     }
     const before = learner.level
     ctx.setLearner((l) => ({ ...l, level: a.level }))
-    ctx.memory.forget('home')
+    ctx.memory.forget('home'); ctx.setCatalog(null) // rows and their titles follow the new level (review-005 L1)
     ep.putLevel({ source: 'settings', level: a.level }).catch(() => {
       ctx.setLearner((l) => (l.level === a.level ? { ...l, level: before } : l))
       ctx.setSettingsStatus(strings.common.saveError)

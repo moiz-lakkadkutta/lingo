@@ -133,6 +133,58 @@ describe('Root', () => {
   })
 })
 
+describe('Root · clip cache (review-005 M3)', () => {
+  const clipFetches = (srv: ReturnType<typeof fakeServer>) => srv.fetchImpl.mock.calls
+    .filter((c) => String(c[0]).endsWith('/clips/zug'))
+    .map((c) => ((c[1] as RequestInit | undefined)?.headers as Record<string, string>)['x-native'])
+  const settingsRow = (r: ReturnType<typeof render>, name: string) => r.root.find((n) => is(n, 'Pressable') && String(n.props['aria-label']).startsWith(`${name}: `))
+  async function openClipThenSettings() {
+    const b = await boot()
+    await press(byLabel(b.r, zugCard)) // Clip fetches and caches zug for (de, en, A2)
+    await settle()
+    expect(pressBack()).toBe(true)
+    await settle()
+    await press(byLabel(b.r, strings.rail.label(strings.rail.settingsLabel)))
+    await settle()
+    return b
+  }
+  it('M3: after "I speak" changes, Watch refetches the clip with the new native language instead of playing the cached lines', async () => {
+    const { r, srv, remote } = await openClipThenSettings()
+    expect(clipFetches(srv)).toEqual(['en'])
+    focus(settingsRow(r, strings.settings.native))
+    act(() => remote.emit({ eventType: 'right' }))
+    await settle()
+    const native = (srv.calls.find((c) => c.path === '/me' && c.method === 'PUT')!.body as { native: string }).native
+    expect(native).not.toBe('en')
+    expect(pressBack()).toBe(true)
+    await settle()
+    await press(byLabel(r, strings.home.watchLabel('Title zug')))
+    await settle()
+    expect(clipFetches(srv)).toEqual(['en', native])
+    expect(r.root.find((n) => (n.type as unknown) === 'Player').props.clip.slug).toBe('zug')
+  })
+  it('M3: after a level change, Watch refetches the clip (highlights follow the level); without a change the cache is used', async () => {
+    const { r, srv, remote } = await openClipThenSettings()
+    expect(pressBack()).toBe(true)
+    await settle()
+    await press(byLabel(r, strings.home.watchLabel('Title zug')))
+    await settle()
+    expect(clipFetches(srv)).toHaveLength(1) // same context: cached
+    expect(pressBack()).toBe(true) // the mocked Player has no Back handler; Root pops
+    await settle()
+    await press(byLabel(r, strings.rail.label(strings.rail.settingsLabel)))
+    await settle()
+    focus(settingsRow(r, strings.settings.level))
+    act(() => remote.emit({ eventType: 'right' }))
+    await settle()
+    expect(pressBack()).toBe(true)
+    await settle()
+    await press(byLabel(r, strings.home.watchLabel('Title zug')))
+    await settle()
+    expect(clipFetches(srv)).toHaveLength(2)
+  })
+})
+
 describe('Root · Lingo Plus (LING-007 wiring)', () => {
   const status = (plus: boolean) => ({ mode: 'iap', plus, sku: 'lingo.plus.monthly', renewsAt: null, cancelsAt: null, freeSavesPerDay: 20, savesToday: 0 })
   function fakeStore(log: string[]): PlusStore {
