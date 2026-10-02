@@ -174,7 +174,7 @@ Paste the five required answers from docs/feedback.md and link the feature reque
 > - Feature requests, with priorities: https://github.com/moiz-lakkadkutta/lingo/blob/main/docs/feature-requests.md
 > - Friction logs: https://github.com/moiz-lakkadkutta/lingo/tree/main/docs/friction
 
-`[PLACEHOLDER: docs/feedback.md five answers and docs/feature-requests.md filled (both empty templates on 2026-10-01) · owner Scribe · due Oct 15 · ticket LING-008]`
+`[PLACEHOLDER: docs/feedback.md five answers and docs/feature-requests.md filled (drafted 2026-10-02; TBD-by-human items and sign-off remain) · owner Scribe · due Oct 15 · ticket LING-008]`
 
 ## 15. Claims register (not pasted; the Reviewer audits against this)
 
@@ -187,8 +187,8 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C3 | §3 | One or two marked words per line, approximate CEFR band from frequency | Built (pipeline) | decision 0008 §9; `packages/pipeline/src/highlights.ts` | No |
 | C4 | §3, §2 | Pause opens the Explain card: meaning, grammar note, line as example | Code done, not on device; gloss quality Gate C not yet passing | decision 0006; decision 0001 Gate C; LING-002/003 | No (spot-checked word only in the video) |
 | C5 | §3 | Saved word appears on the paired phone within a second | Built (< 1 s p95 in test) | decision 0005; `apps/api/test/realtime.test.ts` | No |
-| C6 | §3, §2 | Phone quizzes you; SM-2, server-side | Built (server + phone deck; no EAS build) | `apps/api/src/lib/sm2.ts`; `apps/phone/src/App.tsx`; LING-006 | No |
-| C7 | §3, §9 | Lingo Plus (sandbox): Challenge mode, unlimited saves, slower playback | Server only (RVS check); client flow Not built | `apps/api/src/routes/iap.ts`; LING-007 | **Yes** |
+| C6 | §3, §2 | Phone quizzes you; SM-2, server-side | Built (server, tests); phone deck Code done, not on device (no EAS build) | `apps/api/src/lib/sm2.ts`; `apps/phone/src/screens/QuizScreen.tsx`; decision 0011; LING-006 | No |
+| C7 | §3, §9 | Lingo Plus (sandbox): Challenge mode, unlimited saves, slower playback | Code done, not on device: client purchase and restore flow on both OSes, server RVS check; App Tester / VVD sandbox run pending | `packages/shared-ui/src/plus/flow.ts`; `apps/expo/src/fireosStore.ts`; `apps/vega/src/iap/vegaStore.ts`; `apps/api/src/routes/iap.ts`; decision 0012 | **Yes** |
 | C8 | §4 | Pipeline is a plain CLI, no agent framework | Built | docs/aws.md; `packages/pipeline` | No |
 | C9 | §4 | Transcribe with word timings | Built | decision 0001 Gate A; `packages/pipeline/src/*` | No |
 | C10 | §4 | Cues ≤ 42 × 2, ≤ 20 cps, 1–7 s, hard gate, no tolerance flag | Built | decision 0007 §1; source ¹ | No |
@@ -199,14 +199,14 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C15 | §4 | Shaka Packager; S3 + CloudFront; AWS CDK | Built | `infra/lib/media-stack.ts`, `infra/lib/nova-ingest-stack.ts` | No |
 | C16 | §4 | Express, Zod, Prisma, PostgreSQL, pg-boss, Socket.IO | Built | `apps/api` | No |
 | C17 | §4 | SM-2 as Anki documents | Built | `apps/api/src/lib/sm2.ts`; source ⁴ | No |
-| C18 | §4, §5 | 6-character session code, QR or typed; only typing in the system | Built (server, pairing); phone Join partly built | decision 0005; `apps/phone/src/App.tsx` | No |
-| C19 | §4, §11 | One `shared-ui` package for Fire OS and Vega, Vega-supported imports only | Built as code; Vega app **Not created** | CLAUDE.md; `packages/shared-ui`; `apps/vega/README.md` | **Yes** (Vega sentence) |
+| C18 | §4, §5 | 6-character session code, QR or typed; only typing in the system | Built (server, pairing); phone Join (QR or typed code) Code done, not on device | decision 0005; decision 0011; `apps/phone/src/screens/JoinScreen.tsx` | No |
+| C19 | §4, §11 | One `shared-ui` package for Fire OS and Vega, Vega-supported imports only | Built as code (import guard in CI); Vega app Code done, not on device: installs, typechecks and bundles, never run on the VVD, no video until KIT-010 | CLAUDE.md; `packages/shared-ui`; `apps/vega/README.md`; decision 0013 | **Yes** (Vega sentence) |
 | C20 | §4, §8 | Kit Vega adapter experimental, not device-verified | Built (honest status) | ../vega-media-kit README §Status | No |
 | C21 | §6 | 363,466 new integration-course participants in 2024; 146,176 (about 40 %) voluntary | Sourced number | source ⁶ | No |
 | C22 | §6 | 79 min of TV a day, ages 14–49, 2024 | Sourced number | source ⁷ (secondary report ⁷ᵃ) | No |
 | C23 | §6 | Peters & Webb 2018; Rodgers & Webb 2020; Montero Perez et al. 2017 | Sourced research, no effect sizes claimed | sources ⁸ ⁹ ¹⁰ | **Yes** (¹⁰ URL) |
 | C24 | §6 | Retrieval practice: 56 % vs 42 % after a week | Sourced number | source ¹¹ | No |
-| C25 | §7 | AWS Builder: every AWS call listed with purpose and cost | Partly: docs/aws.md lists Polly (not used in code) and unverified Nova prices | docs/aws.md; plan R5 | Fix in LING-008 (checklist) |
+| C25 | §7 | AWS Builder: every AWS call listed with purpose and cost | Built, with unverified prices: docs/aws.md lists Polly under "Declared, not used"; Nova Lite prices not yet checked against the pricing page | docs/aws.md; plan R5 | Price check (checklist) |
 | C26 | §8 | vega-media-kit MIT, npm `0.1.0-alpha.0`, release tag, upstream PR | Built (code); publish, tag and PR missing | ../vega-media-kit/package.json; `git tag` empty | **Yes** |
 | C27 | §8 | Kit verified on a Fire TV Stick (Fire OS): playback, two text tracks, seek, pause, 0.75× | Built (kit device matrix, 2026-09-26) | ../vega-media-kit/README.md §Status; ../vega-media-kit/docs/device-matrix.md | No |
 | C28 | §9 | Described: blind and low-vision viewers; video understanding + speech synthesis | Unverified in this checkout | Described README (not in this checkout); plan Q4 | **Yes** |
@@ -214,10 +214,10 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C30 | §11 | Fire OS moved to react-native-tvos; Vega key events observed, not consumed; native focus per word | Code done, not on device | decision 0006; friction `…fire-os-expo-template-has-no-tv-event-handler.md`, `…vega-playbackrate-tveventhandler-backhandler-limits.md` | No |
 | C31 | §11 | Vega `playbackRate` unsupported → 0.75× Fire OS only | Built (as a design decision, `caps.rate`) | decision 0006 §4 | No |
 | C32 | §11 | Nova Lite: no Bedrock structured outputs → forced tool use | Built | docs/aws.md; friction `…bedrock-nova-lite-temperature-structured-outputs-eol.md` | No |
-| C33 | §12 | Content Launcher, Personalization, TV quiz score, Vega devices: named as next steps only | Not built | plan §1 | No (must stay in What's next) |
+| C33 | §12 | Content Launcher voice search, Fire TV Personalization, Lingo on Vega devices: named as next steps only. The TV quiz and the phone's score on the TV are Code done, not on device: move them from §12 to §3 only once a device run shows them | Not built (voice search, Personalization, Vega devices) · Code done, not on device (TV quiz, score) | plan §1 | No (§12 placeholder) |
 | C34 | §13 | Video link | Not shot | — | **Yes** |
-| C35 | §14 | Feedback and feature requests filled | Empty templates | docs/feedback.md, docs/feature-requests.md | **Yes** |
-| C36 | — | **Never claim:** Content Launcher, Personalization, Amazon Polly, Nova Pro, Strands Agents, AgentCore, Lingo running on Vega, client IAP, TV quiz score from the phone, Kiro Crew / Devices Builder Tools MCP | Not built / Not used / Unconfirmed | plan §1, §6 check 8 | — |
+| C35 | §14 | Feedback and feature requests filled | Drafted (five answers, 23 friction bullets, prioritised requests); TBD-by-human items and the human's sign-off remain | docs/feedback.md, docs/feature-requests.md | **Yes** |
+| C36 | — | **Never claim:** Content Launcher voice search, Fire TV Personalization, Amazon Polly, Nova Pro, Strands Agents, AgentCore, Lingo playing video on Vega or running on the VVD, Kiro Crew / Devices Builder Tools MCP. Client IAP and the TV quiz score from the phone are code done, not on device: claim them only with a take or log that shows them working | Not built / Not used / Unconfirmed | plan §1, §6 check 8 | — |
 
 ## 16. Sources
 
