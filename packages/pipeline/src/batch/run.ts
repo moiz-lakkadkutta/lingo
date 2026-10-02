@@ -12,7 +12,7 @@ import type { PrepareInput } from '../types'
 import { checkLicence } from './licence'
 import { estimateBatch, type CostEstimate, type Phase } from './estimate'
 import type { BatchManifest } from './manifest'
-import { planBatch, renderStep, type BatchStep, type PlanOpts } from './plan'
+import { planBatch, renderStep, unreachedSteps, type BatchStep, type PlanOpts } from './plan'
 
 export interface RunDeps {
   exec(cmd: string, args: string[]): Promise<{ stdout: string }>
@@ -64,7 +64,8 @@ const NEEDS_BUCKET = new Set(['upload', 'prepare', 'publish-extra'])
 const reviewLines = (r: BatchRow) => r.warnings.filter((w) => w.startsWith('review:'))
 
 export function transcribeLine(steps: BatchStep[], m: BatchManifest): string {
-  const tr = steps.filter((s): s is Extract<BatchStep, { stage: 'prepare' }> => s.stage === 'prepare' && s.transcribe && !s.skip && !s.block)
+  const unreached = unreachedSteps(steps)
+  const tr = steps.filter((s): s is Extract<BatchStep, { stage: 'prepare' }> => s.stage === 'prepare' && s.transcribe && !s.skip && !s.block && !unreached.has(s))
   if (!tr.length) return 'Transcribe will run for: no clip'
   const min = tr.reduce((s, x) => s + (m.clips.find((c) => c.slug === x.slug)?.expectedDurationS ?? 0), 0) / 60
   return `Transcribe will run for: ${tr.map((x) => x.slug).join(', ')} (${min.toFixed(1)} min)`

@@ -218,6 +218,26 @@ describe('review LING-008 fixes (runBatch)', () => {
     expect(exec.calls.some((c) => c.cmd === 'ffmpeg' && c.args.at(-1)!.endsWith('poster.jpg'))).toBe(true)
   })
 
+  it('PR2-C-M1: after a segment edit, --stages prepare and --stages cut,prepare never transcribe the old S3 cut or record the new segment', async () => {
+    expect((await runBatch(manifestOf(), opts({ only: ['clip-1'] }), deps({}))).rows[0]!.status).toBe('ok')
+    const segFile = join(work, 'clip-1/.segment.json'), marker = join(work, 'clip-1/.batch-draft.json')
+    const before = { seg: await readFile(segFile, 'utf8'), marker: await readFile(marker, 'utf8') }
+    const edited = manifestOf({ segment: { in: '00:10', out: '04:10', confirmed: true } })
+    for (const stages of [['prepare'], ['cut', 'prepare']] as const) {
+      const inputs: PrepareInput[] = []
+      const r = await runBatch(edited, opts({ only: ['clip-1'], stages: [...stages] }), deps({ prepare: async (i) => { inputs.push(i); return fixturePrepare(i) } }))
+      expect(r.rows[0]).toMatchObject({ status: 'failed', failedStage: 'prepare' })
+      expect(r.rows[0]!.error).toMatch(/include the upload stage/)
+      expect(inputs).toHaveLength(0)
+      expect(await readFile(segFile, 'utf8')).toBe(before.seg)
+      expect(await readFile(marker, 'utf8')).toBe(before.marker)
+    }
+    // with the upload stage the new cut reaches S3 first, and prepare runs
+    const inputs: PrepareInput[] = []
+    const ok = await runBatch(edited, opts({ only: ['clip-1'], stages: ['cut', 'upload', 'prepare'] }), deps({ prepare: async (i) => { inputs.push(i); return fixturePrepare(i) } }))
+    expect(ok.rows[0]!.status).toBe('ok'); expect(inputs).toHaveLength(1)
+  })
+
   it('M5: --force-ai runs the final phase without publishing, so it needs no CLOUDFRONT_DOMAIN', async () => {
     const inputs: PrepareInput[] = []; const exec = fakeExec()
     const r = await runBatch(manifestOf(), opts({ phase: 'final', forceAi: true, only: ['clip-1'] }), deps({ exec, prepare: async (i) => { inputs.push(i); return fixturePrepare(i) } }))

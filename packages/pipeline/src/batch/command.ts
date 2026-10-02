@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { estimateBatch, renderEstimate } from './estimate'
 import { loadManifest, ManifestError, type BatchManifest, type ManifestProblem } from './manifest'
-import { GateCPendingError, planBatch, renderStep, STAGES, type BatchStep, type PlanOpts, type Stage } from './plan'
+import { GateCPendingError, planBatch, renderStep, STAGES, unreachedSteps, type BatchStep, type PlanOpts, type Stage } from './plan'
 import { runBatch, transcribeLine, type RunDeps } from './run'
 
 export interface BatchCliOpts {
@@ -64,13 +64,14 @@ function renderProblems(problems: ManifestProblem[]): string {
 
 function renderDryRun(m: BatchManifest, steps: BatchStep[], o: PlanOpts, label: string, deps: Pick<RunDeps, 'exists'>): string {
   const slugs = [...new Set(steps.map((s) => s.slug))]
+  const unreached = unreachedSteps(steps)
   const out = [`Dry run — ${label}: ${slugs.length} clips, phase ${o.phase}, gateC ${m.gateC}, work ${o.work}${o.bucket ? '' : ', S3_BUCKET_MEDIA unset (shown as $S3_BUCKET_MEDIA)'}`, '']
   if (o.phase === 'final' && o.forceAi) out.push(o.publish ? '--force-ai --publish: glosses and quiz items are written AND published to the CDN.' : '--force-ai: glosses and quiz items are written locally; nothing is published (add --publish to publish).', '')
   for (const slug of slugs) {
     const c = m.clips.find((x) => x.slug === slug)!
     out.push(`## ${slug} — ${c.lang} → ${c.natives.join(',')}, ${c.license}, ${c.segment.in}–${c.segment.out} (${c.expectedDurationS} s)${c.segment.confirmed ? '' : ', segment NOT confirmed'}`)
     for (const s of steps.filter((x) => x.slug === slug)) {
-      const state = s.block ? `BLOCKED: ${s.block}` : s.skip ? `skip: ${s.skip}` : s.stage === 'prepare' && s.transcribe ? 'run (calls Amazon Transcribe)' : 'run'
+      const state = unreached.has(s) ? 'not reached (an earlier step is BLOCKED)' : s.block ? `BLOCKED: ${s.block}` : s.skip ? `skip: ${s.skip}` : s.stage === 'prepare' && s.transcribe ? 'run (calls Amazon Transcribe)' : 'run'
       out.push(`  [${s.stage}] ${state}`, ...renderStep(s).split('\n').map((l) => `    ${l}`))
     }
     out.push('')

@@ -154,9 +154,15 @@ export function planBatch(m: BatchManifest, o: PlanOpts, fs: FsState, manifestPa
       const markerKey = JSON.stringify({ phase: o.phase, publish, source: input.source, segment: key, lang: c.lang, natives: c.natives, formality: c.formality, cues: cues ?? null, cuesHash, vttNote: vttNote ?? null })
       const marker = join(p.dir, `.batch-${o.phase}.json`)
       const done = !changed && fs.read?.(marker) === markerKey
+      // prepare reads the cut from S3: without the upload stage in this run, the uploaded cut must be for this segment, or prepare would
+      // transcribe the old cut and record the new segment (PR #2 review C-M1)
+      const staleUpload = !c.sourceS3 && !done && !stages.has('upload') && fs.read?.(p.uploaded) !== key
+        ? `S3 does not hold the cut for ${c.segment.in}–${c.segment.out} (${p.uploaded} does not match the segment): include the upload stage (e.g. --stages cut,upload,prepare) so prepare reads the new cut`
+        : undefined
+      const prepBlock = block ?? staleUpload
       steps.push({
         slug: c.slug, stage: 'prepare', input, region, transcribe: transcribes(c, o.work, fs), marker, markerKey, segment: { file: segFile, key },
-        ...(invalidate ? { invalidate } : {}), ...(done ? { skip: `prepared (${marker} matches)` } : {}), ...(block ? { block } : {}),
+        ...(invalidate ? { invalidate } : {}), ...(done ? { skip: `prepared (${marker} matches)` } : {}), ...(prepBlock ? { block: prepBlock } : {}),
       })
     }
     if (stages.has('poster')) {
@@ -177,6 +183,19 @@ export function planBatch(m: BatchManifest, o: PlanOpts, fs: FsState, manifestPa
       steps[0] = first as BatchStep
     }
     out.push(...steps)
+  }
+  return out
+}
+
+/**
+ * Steps the runner never reaches: everything after a clip's first BLOCKED step (run.ts stops the clip there). The dry run shows them as
+ * "not reached", and the "Transcribe will run for" line leaves their clips out (PR #2 review C-L1).
+ */
+export function unreachedSteps(steps: readonly BatchStep[]): Set<BatchStep> {
+  const blocked = new Set<string>(), out = new Set<BatchStep>()
+  for (const s of steps) {
+    if (blocked.has(s.slug)) out.add(s)
+    else if (s.block) blocked.add(s.slug)
   }
   return out
 }

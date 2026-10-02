@@ -1,4 +1,4 @@
-import { GateCPendingError, planBatch, renderStep, shellQuote, type BatchStep, type PlanOpts } from '../src/batch/plan'
+import { GateCPendingError, planBatch, renderStep, shellQuote, unreachedSteps, type BatchStep, type PlanOpts } from '../src/batch/plan'
 import { estimateBatch } from '../src/batch/estimate'
 import { segmentKey } from '../src/batch/manifest'
 import { transcribeLine } from '../src/batch/run'
@@ -169,6 +169,48 @@ describe('review LING-008 fixes (planBatch)', () => {
     expect(stepOf(planBatch(withCues, base, fs), 'prepare').block).toMatch(/re-time it to 00:10–04:10/)
     // a poster-only run cannot use the old mezzanine
     expect(stepOf(planBatch(edited, { ...base, stages: ['poster'] }, fs), 'poster').block).toMatch(/prepare stage first/)
+  })
+
+  describe('PR2-C-M1: prepare never runs on a stale S3 cut', () => {
+    const old = manifestOf()
+    const oldKey = segmentKey(old.clips[0]!)
+    const edited = manifestOf({ segment: { in: '00:10', out: '04:10', confirmed: true } })
+    const newKey = segmentKey(edited.clips[0]!)
+    const files = {
+      '/w/_sources/clip-1.mp4': '', '/w/_sources/clip-1.mp4.json': JSON.stringify({ url: old.clips[0]!.downloadUrl }),
+      '/w/_cuts/clip-1.mp4': '', '/w/_cuts/clip-1.cut.json': oldKey, '/w/_cuts/clip-1.uploaded': oldKey,
+      '/w/clip-1/transcript.json': '{}', '/w/clip-1/mezz.mp4': '', '/w/clip-1/.segment.json': oldKey,
+    }
+    it('PR2-C-M1: --stages prepare after a segment edit is blocked until the new cut is uploaded', () => {
+      const prep = stepOf(planBatch(edited, { ...base, stages: ['prepare'] }, fsWith(files)), 'prepare')
+      expect(prep.block).toMatch(/include the upload stage/)
+      expect(transcribeLine(planBatch(edited, { ...base, stages: ['prepare'] }, fsWith(files)), edited)).toBe('Transcribe will run for: no clip')
+    })
+    it('PR2-C-M1: --stages cut,prepare after a segment edit is blocked too (the cut is local, S3 still has the old one)', () => {
+      const steps = planBatch(edited, { ...base, stages: ['cut', 'prepare'] }, fsWith(files))
+      expect(stagesOf(steps)).toEqual(['cut', 'prepare (blocked)'])
+    })
+    it('PR2-C-M1: with the upload stage in the run, or once .uploaded matches the new segment, prepare runs', () => {
+      expect(stepOf(planBatch(edited, { ...base, stages: ['cut', 'upload', 'prepare'] }, fsWith(files)), 'prepare').block).toBeUndefined()
+      expect(stepOf(planBatch(edited, { ...base, stages: ['prepare'] }, fsWith({ ...files, '/w/_cuts/clip-1.uploaded': newKey })), 'prepare').block).toBeUndefined()
+    })
+    it('PR2-C-M1: a clip with sourceS3 (no batch upload) is never blocked by the upload marker', () => {
+      const s3 = manifestOf({ downloadUrl: null, sourceS3: 's3://$S3_BUCKET_MEDIA/clips/clip-1.mp4' })
+      expect(stepOf(planBatch(s3, { ...base, stages: ['prepare'] }, fsOf()), 'prepare').block).toBeUndefined()
+    })
+  })
+
+  it('PR2-C-L1: steps after a BLOCKED step are not reached, and their clip is left out of the Transcribe line', () => {
+    const m = manifestOf({ segment: { in: '00:00', out: '04:00', confirmed: false } })
+    const steps = planBatch(m, base, fsOf())
+    expect(stepOf(steps, 'cut').block).toMatch(/not confirmed/)
+    const unreached = unreachedSteps(steps)
+    expect(steps.filter((s) => s.slug === 'clip-1' && unreached.has(s)).map((s) => s.stage)).toEqual(['upload', 'prepare', 'poster'])
+    expect(transcribeLine(steps, m)).not.toMatch(/\bclip-1\b/)
+    // a manifest problem blocks the first step: nothing after it is reached either
+    const withProblem = planBatch(manifestOf(), { ...base, problems: [{ slug: 'clip-2', field: 'attribution', message: 'x' }] }, fsOf())
+    expect(transcribeLine(withProblem, manifestOf())).not.toMatch(/\bclip-2\b/)
+    expect(transcribeLine(withProblem, manifestOf())).toMatch(/\bclip-3\b/)
   })
 
   it('M1: a changed downloadUrl re-fetches; a source without its marker (an interrupted download) is fetched again', () => {
