@@ -22,3 +22,6 @@ export function manifestOf(first: Partial<BatchClip> = {}, opts: { gateC?: 'pend
 
 /** fsState over a set of absolute paths. */
 export const fsOf = (...paths: string[]) => { const s = new Set(paths); return { exists: (p: string) => s.has(p) } }
+
+/** fsState over files with contents (exists + read), for the marker checks. */
+export const fsWith = (files: Record<string, string>) => ({ exists: (p: string) => p in files, read: (p: string) => files[p] })

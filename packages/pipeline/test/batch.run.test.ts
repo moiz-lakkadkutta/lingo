@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { prepare } from '../src/prepare'
@@ -18,6 +18,7 @@ function fakeExec(failOn?: (cmd: string, args: string[]) => boolean) {
     if (failOn?.(cmd, args)) throw new Error(`${cmd} exited with code 1`)
     if (cmd === 'curl') { const out = args[args.indexOf('-o') + 1]!; await mkdir(dirname(out), { recursive: true }); await writeFile(out, 'src') }
     if (cmd === 'ffmpeg') { const out = args[args.length - 1]!; await mkdir(dirname(out), { recursive: true }); await writeFile(out, 'media') }
+    if (cmd === 'mv') await rename(args.at(-2)!, args.at(-1)!)
     if (cmd === 'ffprobe') return { stdout: args[args.length - 1]!.includes('/_cuts/') ? '240.04\n' : '600.0\n' }
     return { stdout: '' }
   }
@@ -171,3 +172,73 @@ describe('batch command', () => {
     expect(resolveManifestPath('/abs/clips.json', {}, '/x')).toBe('/abs/clips.json')
   })
 })
+
+describe('review LING-008 fixes (runBatch)', () => {
+  let work: string
+  let logs: string[]
+  const deps = (over: Partial<RunDeps>): RunDeps => ({ ...nodeRunDeps(), fetch: iaOk, exec: fakeExec(), prepare: fixturePrepare, log: (m) => logs.push(m), now: () => new Date('2026-10-05T10:00:00Z'), ...over })
+  const opts = (over: Partial<RunOpts> = {}): RunOpts => ({ phase: 'draft', work, manifestDir: '/m', bucket: 'lingo-media-dev-acct', region: 'eu-central-1', ...over })
+  beforeEach(async () => { work = await mkdtemp(join(tmpdir(), 'lingo-batch-')); logs = [] })
+  afterEach(async () => { await rm(work, { recursive: true, force: true }) })
+
+  it('H1: a manual-verified clip with a placeholder attribution runs no stage and reports failed', async () => {
+    const exec = fakeExec(); let prepared = 0
+    const m = manifestOf({ attribution: 'ZDF/Terra X/Jochen … — CC BY 4.0', licenceCheck: { kind: 'manual', url: 'https://schule.zdf.de/x', verifiedOn: '2026-10-03' } })
+    const r = await runBatch(m, opts({ only: ['clip-1'], problems: [{ slug: 'clip-1', field: 'attribution', message: 'attribution contains "…"' }] }), deps({ exec, prepare: async () => { prepared++ } }))
+    expect(r.rows[0]).toMatchObject({ slug: 'clip-1', status: 'failed', failedStage: 'verify' })
+    expect(r.rows[0]!.error).toMatch(/attribution/)
+    expect(exec.calls).toEqual([]); expect(prepared).toBe(0)
+  })
+
+  it('M1: an interrupted or short download stays a .part file and is fetched again next run', async () => {
+    const exec = fakeExec()
+    const short: RunDeps['exec'] = async (cmd, args) => (cmd === 'ffprobe' && args.at(-1)!.endsWith('.part') ? { stdout: '100\n' } : exec(cmd, args))
+    const r = await runBatch(manifestOf(), opts({ only: ['clip-1'], stages: ['fetch'] }), deps({ exec: short }))
+    expect(r.rows[0]).toMatchObject({ status: 'failed', failedStage: 'fetch' })
+    expect(exec.calls.map((c) => c.cmd)).toEqual(['curl']) // no mv after the failed probe
+    expect(existsSync(join(work, '_sources/clip-1.mp4'))).toBe(false); expect(existsSync(join(work, '_sources/clip-1.mp4.part'))).toBe(false)
+    const ok = await runBatch(manifestOf(), opts({ only: ['clip-1'], stages: ['fetch'] }), deps({ exec: fakeExec() }))
+    expect(ok.rows[0]!.status).toBe('ok')
+    expect(await readFile(join(work, '_sources/clip-1.mp4'), 'utf8')).toBe('src')
+  })
+
+  it('M1: editing the segment after a run re-cuts, re-uploads and re-prepares from a fresh transcript', async () => {
+    const first = await runBatch(manifestOf(), opts({ only: ['clip-1'] }), deps({}))
+    expect(first.rows[0]!.status).toBe('ok')
+    await writeFile(join(work, 'clip-1/transcript.json'), 'stale') // would make prepare --reuse fail to parse
+    const exec = fakeExec(); const inputs: PrepareInput[] = []
+    const edited = manifestOf({ segment: { in: '00:10', out: '04:10', confirmed: true } })
+    const second = await runBatch(edited, opts({ only: ['clip-1'] }), deps({ exec, prepare: async (i) => { inputs.push(i); return fixturePrepare(i) } }))
+    expect(second.rows[0]!.status).toBe('ok')
+    const cut = exec.calls.find((c) => c.cmd === 'ffmpeg' && c.args.at(-1)!.endsWith('/_cuts/clip-1.mp4'))!
+    expect(cut.args.slice(cut.args.indexOf('-ss'), cut.args.indexOf('-ss') + 4)).toEqual(['-ss', '10', '-to', '250'])
+    expect(exec.calls.some((c) => c.cmd === 'aws' && c.args[1] === 'cp')).toBe(true)
+    expect(inputs).toHaveLength(1); expect(inputs[0]!.reuse).toBeUndefined()
+    expect(await readFile(join(work, 'clip-1/transcript.json'), 'utf8')).not.toBe('stale')
+    expect(exec.calls.some((c) => c.cmd === 'ffmpeg' && c.args.at(-1)!.endsWith('poster.jpg'))).toBe(true)
+  })
+
+  it('M5: --force-ai runs the final phase without publishing, so it needs no CLOUDFRONT_DOMAIN', async () => {
+    const inputs: PrepareInput[] = []; const exec = fakeExec()
+    const r = await runBatch(manifestOf(), opts({ phase: 'final', forceAi: true, only: ['clip-1'] }), deps({ exec, prepare: async (i) => { inputs.push(i); return fixturePrepare(i) } }))
+    expect(r.rows[0]!.status).toBe('ok')
+    expect(inputs[0]).toMatchObject({ ai: true, publish: false })
+    expect(exec.calls.some((c) => c.args.join(' ').includes('/published/'))).toBe(false)
+    await expect(runBatch(manifestOf(), opts({ phase: 'final', forceAi: true, publish: true, only: ['clip-2'] }), deps({}))).rejects.toThrow(/CLOUDFRONT_DOMAIN/)
+  })
+
+  it('L5: a runBatch refusal prints one line, not a stack trace, and exits 1', async () => {
+    const { batchCommand } = await import('../src/batch/command')
+    const dir = await mkdtemp(join(tmpdir(), 'lingo-man-'))
+    try {
+      const path = join(dir, 'clips.json')
+      await writeFile(path, JSON.stringify(manifestOf()))
+      const out: string[] = []
+      const code = await batchCommand(path, { phase: 'draft', work, only: 'clip-1' }, deps({ log: (m) => out.push(m) }), {})
+      expect(code).toBe(1)
+      expect(out.join('\n')).toMatch(/^cannot run: S3_BUCKET_MEDIA is not set/m)
+      expect(out.join('\n')).not.toMatch(/\n\s+at /)
+    } finally { await rm(dir, { recursive: true, force: true }) }
+  })
+})
+

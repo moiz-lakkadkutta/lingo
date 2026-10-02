@@ -97,3 +97,13 @@ describe('batch manifest', () => {
     expect(isShareAlike(clipRow({ license: 'Public domain (US)' }))).toBe(false)
   })
 })
+
+describe('review LING-008 fixes (manifest)', () => {
+  it('L1: downloadUrl accepts https only', () => {
+    for (const bad of ['http://archive.org/x.mp4', 'file:///etc/passwd', 'ftp://x.org/a.mp4']) {
+      expect(BatchManifest.safeParse(manifestOf({ downloadUrl: bad })).success).toBe(false)
+    }
+    expect(BatchManifest.safeParse(manifestOf()).success).toBe(true)
+  })
+})
+

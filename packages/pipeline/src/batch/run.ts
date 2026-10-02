@@ -75,7 +75,7 @@ export async function runBatch(m: BatchManifest, o: RunOpts, deps: RunDeps): Pro
   const steps = planBatch(m, o, fsState)
   const live = steps.filter((s) => !s.skip && !s.block)
   if (!o.bucket && live.some((s) => NEEDS_BUCKET.has(s.stage))) throw new Error('S3_BUCKET_MEDIA is not set: the upload, prepare and publish-extra stages need it (the media bucket from the lingo-media-dev stack output, lingo-media-<stage>-<account>)')
-  if (o.phase === 'final' && !o.cloudfrontDomain && live.some((s) => s.stage === 'prepare' || s.stage === 'publish-extra')) throw new Error('CLOUDFRONT_DOMAIN is not set: the final phase publishes (the CdnDomain output of the lingo-media-dev stack)')
+  if (o.phase === 'final' && !o.cloudfrontDomain && live.some((s) => (s.stage === 'prepare' && s.input.publish) || s.stage === 'publish-extra')) throw new Error('CLOUDFRONT_DOMAIN is not set: the final phase publishes (the CdnDomain output of the lingo-media-dev stack)')
   const estimate = estimateBatch(m, fsState, { work: o.work, phases: o.phase === 'draft' ? ['draft', 'final'] : ['final'], ...(o.only ? { only: o.only } : {}) })
   deps.log(transcribeLine(steps, m))
   const label = o.manifestLabel ?? 'content/clips.json'
@@ -90,7 +90,8 @@ export async function runBatch(m: BatchManifest, o: RunOpts, deps: RunDeps): Pro
     const dir = join(o.work, clip.slug)
     let prepared = false
     for (const step of steps.filter((s) => s.slug === clip.slug)) {
-      if (step.skip) { deps.log(`[${clip.slug}] ${step.stage}: skip (${step.skip})`); if (step.stage === 'prepare') prepared = true; continue }
+      // block before skip: a blocked clip runs no stage, as the dry run says (review H1)
+      if (!step.block && step.skip) { deps.log(`[${clip.slug}] ${step.stage}: skip (${step.skip})`); if (step.stage === 'prepare') prepared = true; continue }
       try {
         if (step.block) throw new StageError(step.block)
         deps.log(`[${clip.slug}] ${step.stage}: ${renderStep(step).split('\n')[0]}`)
@@ -99,6 +100,8 @@ export async function runBatch(m: BatchManifest, o: RunOpts, deps: RunDeps): Pro
           if (!r.ok) throw new StageError(r.message)
           deps.log(`[${clip.slug}] verify: ${r.message}`)
         } else if (step.stage === 'prepare') {
+          for (const f of step.invalidate ?? []) if (deps.exists(f)) { await deps.rm(f); deps.log(`[${clip.slug}] prepare: removed ${f} (made from an earlier segment or source)`) }
+          await deps.writeFile(step.segment.file, step.segment.key)
           try { await deps.prepare(step.input) } catch (e) {
             const msg = (e as Error).message
             if (msg.startsWith('quality gate:')) {
@@ -110,16 +113,12 @@ export async function runBatch(m: BatchManifest, o: RunOpts, deps: RunDeps): Pro
           await deps.writeFile(step.marker, step.markerKey)
           prepared = true
         } else {
-          let stdout = ''
-          for (const c of step.cmds) stdout = (await deps.exec(c.cmd, c.args)).stdout
-          if (step.probe) {
-            const d = parseFloat(stdout.trim())
-            const file = step.cmds.at(-1)!.args.at(-1)!
-            if (!Number.isFinite(d)) throw new StageError(`ffprobe printed no duration for ${file}`)
-            if (step.probe.atLeast !== undefined && d < step.probe.atLeast) throw new StageError(`${file} is ${d.toFixed(1)} s, shorter than the segment out-point ${step.probe.atLeast} s`)
-            if (step.probe.expect !== undefined && Math.abs(d - step.probe.expect) > (step.probe.tolerance ?? 1)) throw new StageError(`${file} is ${d.toFixed(1)} s, expected ${step.probe.expect} s ± ${step.probe.tolerance ?? 1}`)
+          for (const c of step.cmds) {
+            const { stdout } = await deps.exec(c.cmd, c.args)
+            // check the duration as soon as ffprobe prints it, so a later cmd (fetch's rename of the .part file) runs only on a good file
+            if (c.cmd === 'ffprobe' && step.probe) checkProbe(step.probe, stdout, c.args.at(-1)!)
           }
-          if (step.marker) await deps.writeFile(step.marker, deps.now().toISOString())
+          if (step.marker) await deps.writeFile(step.marker, step.markerKey ?? deps.now().toISOString())
         }
       } catch (e) {
         row.status = 'failed'; row.failedStage = step.stage; row.error = (e as Error).message
@@ -141,6 +140,13 @@ export async function runBatch(m: BatchManifest, o: RunOpts, deps: RunDeps): Pro
   await deps.writeFile(`${base}.json`, JSON.stringify(report, null, 2) + '\n')
   await deps.writeFile(`${base}.md`, renderReportMd(report, m))
   return report
+}
+
+function checkProbe(probe: NonNullable<Extract<BatchStep, { cmds: unknown }>['probe']>, stdout: string, file: string): void {
+  const d = parseFloat(stdout.trim())
+  if (!Number.isFinite(d)) throw new StageError(`ffprobe printed no duration for ${file}`)
+  if (probe.atLeast !== undefined && d < probe.atLeast) throw new StageError(`${file} is ${d.toFixed(1)} s, shorter than the segment out-point ${probe.atLeast} s`)
+  if (probe.expect !== undefined && Math.abs(d - probe.expect) > (probe.tolerance ?? 1)) throw new StageError(`${file} is ${d.toFixed(1)} s, expected ${probe.expect} s ± ${probe.tolerance ?? 1}`)
 }
 
 /** Values from work/<slug>/clip.json and gate.json after prepare (§2.7). */

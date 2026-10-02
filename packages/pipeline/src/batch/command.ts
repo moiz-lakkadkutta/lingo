@@ -11,7 +11,7 @@ import { runBatch, transcribeLine, type RunDeps } from './run'
 
 export interface BatchCliOpts {
   phase: string; dryRun?: boolean; only?: string; stages?: string; work: string
-  allowUnconfirmed?: boolean; forceAi?: boolean; failFast?: boolean; report?: string
+  allowUnconfirmed?: boolean; forceAi?: boolean; publish?: boolean; failFast?: boolean; report?: string
 }
 
 /** pnpm runs the CLI inside packages/pipeline; a relative manifest path is taken from where the human typed it (INIT_CWD) first. */
@@ -29,6 +29,7 @@ export async function batchCommand(manifestArg: string, o: BatchCliOpts, deps: R
   const stages = list(o.stages)
   const badStages = (stages ?? []).filter((s) => !(STAGES as readonly string[]).includes(s))
   if (badStages.length) { log(`--stages: unknown ${badStages.join(', ')} (known: ${STAGES.join(', ')})`); return 2 }
+  if (o.publish && !o.forceAi) log('--publish only matters with --force-ai (the final phase publishes by default); ignored')
   const path = resolveManifestPath(manifestArg, env)
   let loaded: Awaited<ReturnType<typeof loadManifest>>
   try { loaded = await loadManifest(path, { exists: deps.exists }) } catch (e) { log(e instanceof ManifestError ? e.message : `cannot read the manifest: ${(e as Error).message}`); return 1 }
@@ -37,7 +38,7 @@ export async function batchCommand(manifestArg: string, o: BatchCliOpts, deps: R
   const opts: PlanOpts & { failFast?: boolean; report?: string; manifestLabel: string } = {
     phase: o.phase, work: resolve(o.work), manifestDir: dir, problems, manifestLabel: label,
     ...(stages ? { stages: stages as Stage[] } : {}), ...(list(o.only) ? { only: list(o.only) } : {}),
-    ...(o.allowUnconfirmed ? { allowUnconfirmed: true } : {}), ...(o.forceAi ? { forceAi: true } : {}),
+    ...(o.allowUnconfirmed ? { allowUnconfirmed: true } : {}), ...(o.forceAi ? { forceAi: true } : {}), ...(o.forceAi && o.publish ? { publish: true } : {}),
     ...(env.S3_BUCKET_MEDIA ? { bucket: env.S3_BUCKET_MEDIA } : {}), ...(env.CLOUDFRONT_DOMAIN ? { cloudfrontDomain: env.CLOUDFRONT_DOMAIN } : {}),
     region: env.AWS_REGION ?? 'eu-central-1',
     ...(o.failFast ? { failFast: true } : {}), ...(o.report ? { report: resolve(o.report).replace(/\.(json|md)$/, '') } : {}),
@@ -50,7 +51,8 @@ export async function batchCommand(manifestArg: string, o: BatchCliOpts, deps: R
   if (o.dryRun) { log(renderDryRun(manifest, steps, opts, label, deps)); return 0 }
   const fatal = problems.filter((p) => p.slug === null)
   if (fatal.length) { log('refusing to run: the manifest has problems that are not tied to one clip (above)'); return 1 }
-  const report = await runBatch(manifest, opts, deps)
+  let report: Awaited<ReturnType<typeof runBatch>>
+  try { report = await runBatch(manifest, opts, deps) } catch (e) { log(`cannot run: ${(e as Error).message}`); return 1 }
   log('')
   log((await deps.readFile(`${opts.report ?? resolve(opts.work, 'batch-report')}.md`)).trimEnd())
   return report.rows.some((r) => r.status === 'failed') ? 1 : 0
@@ -63,6 +65,7 @@ function renderProblems(problems: ManifestProblem[]): string {
 function renderDryRun(m: BatchManifest, steps: BatchStep[], o: PlanOpts, label: string, deps: Pick<RunDeps, 'exists'>): string {
   const slugs = [...new Set(steps.map((s) => s.slug))]
   const out = [`Dry run — ${label}: ${slugs.length} clips, phase ${o.phase}, gateC ${m.gateC}, work ${o.work}${o.bucket ? '' : ', S3_BUCKET_MEDIA unset (shown as $S3_BUCKET_MEDIA)'}`, '']
+  if (o.phase === 'final' && o.forceAi) out.push(o.publish ? '--force-ai --publish: glosses and quiz items are written AND published to the CDN.' : '--force-ai: glosses and quiz items are written locally; nothing is published (add --publish to publish).', '')
   for (const slug of slugs) {
     const c = m.clips.find((x) => x.slug === slug)!
     out.push(`## ${slug} — ${c.lang} → ${c.natives.join(',')}, ${c.license}, ${c.segment.in}–${c.segment.out} (${c.expectedDurationS} s)${c.segment.confirmed ? '' : ', segment NOT confirmed'}`)

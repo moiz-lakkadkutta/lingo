@@ -882,6 +882,12 @@ Deviations from §2–§4 (each deliberate, recorded here and in the commit mess
   zdf.de credit page. All four have `verifiedOn: null` until the human opens them.
 - Resume markers: `_cuts/<slug>.uploaded`, `<slug>/.batch-<phase>.json` (prepare inputs + sha256 of the cues file, `--reuse` excluded),
   `<slug>/.poster-published`; a failed stage removes its half-written output.
+  Review fixes (docs/reviews LING-008, M1/H2/M5): the source marker `_sources/<file>.json` holds the download URL, and the download goes to
+  `<file>.part`, renamed only after ffprobe passes. `_cuts/<slug>.cut.json`, `_cuts/<slug>.uploaded` and the prepare marker hold the
+  segment key `{in, out, url}`; `<slug>/.segment.json` records the key the work dir was made from. When it differs, prepare removes
+  mezz.mp4, transcript.json, words.json, poster.jpg and .poster-published first and transcribes again. With `cues` set it refuses instead,
+  because the corrected VTT was timed for the old segment. `--reuse` is passed whenever transcript.json exists (prepare re-normalises a
+  missing mezz.mp4). `--force-ai` publishes nothing unless `--publish` is also given.
 - Dry run in this sandbox says "Transcribe will run for: 11 clips (62.6 min)": row 3's Gate A work dir exists only on the human's machine,
   where it is 10 clips (58.9 min) as planned.
 - `smol-toml` is BSD-3-Clause (the plan said MIT).

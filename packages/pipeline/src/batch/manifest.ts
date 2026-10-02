@@ -38,8 +38,8 @@ export const BatchClip = z.object({
   attribution: z.string().min(1),
   /** the page that states the licence */
   sourceUrl: z.string().url(),
-  /** null when sourceS3 is given */
-  downloadUrl: z.string().url().nullable(),
+  /** null when sourceS3 is given; https only (curl -L would follow file:, ftp: and other schemes) */
+  downloadUrl: z.string().url().regex(/^https:\/\//, 'https:// only').nullable(),
   /** an already-uploaded cut (skips fetch/cut/upload); `$S3_BUCKET_MEDIA` is replaced by the env value */
   sourceS3: z.string().regex(/^s3:\/\//, 's3://…').nullable().default(null),
   segment: z.object({ in: Timecode, out: Timecode, confirmed: z.boolean() }),
@@ -84,6 +84,13 @@ export function parseTimecode(t: string): number {
   return parts.reduce((acc, n) => acc * 60 + n, 0)
 }
 export const segmentSeconds = (clip: Pick<BatchClip, 'segment'>) => parseTimecode(clip.segment.out) - parseTimecode(clip.segment.in)
+
+/**
+ * Identity of a clip's media: the segment (in seconds, so "4:00" and "04:00" agree) and where it comes from. The cut, upload and prepare
+ * markers store it, so editing the segment or the source re-runs every stage downstream of it (docs/reviews LING-008 M1).
+ */
+export const segmentKey = (clip: Pick<BatchClip, 'segment' | 'downloadUrl' | 'sourceS3'>) =>
+  JSON.stringify({ in: parseTimecode(clip.segment.in), out: parseTimecode(clip.segment.out), url: clip.downloadUrl ?? clip.sourceS3 })
 
 export const resolveFrom = (dir: string, p: string) => (isAbsolute(p) ? p : resolve(dir, p))
 

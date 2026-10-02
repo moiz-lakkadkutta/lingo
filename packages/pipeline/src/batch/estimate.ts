@@ -3,7 +3,7 @@
  * check each against its pricing page (and the eu-central-1 rate) before relying on it.
  */
 import { join } from 'node:path'
-import type { BatchManifest } from './manifest'
+import { segmentKey, type BatchClip, type BatchManifest } from './manifest'
 
 export const PRICES = {
   /** USD per audio minute, docs/aws.md. verify: https://aws.amazon.com/transcribe/pricing/ (billed per second with a per-request minimum) */
@@ -32,10 +32,25 @@ export interface CostEstimate {
   note: string
 }
 
+export interface FsRead { exists(path: string): boolean; read?(path: string): string | undefined }
+
+/** work/<slug>/.segment.json: the segmentKey() the files in work/<slug> (mezz.mp4, transcript.json, poster.jpg) were made from. */
+export const segmentFile = (work: string, slug: string) => join(work, slug, '.segment.json')
+/** work/<slug> was prepared for another segment or source. No record (a work dir from before the record existed) counts as unchanged. */
+export function segmentChanged(c: BatchClip, work: string, fs: FsRead): boolean {
+  const recorded = fs.read?.(segmentFile(work, c.slug))
+  return recorded !== undefined && recorded !== segmentKey(c)
+}
+/**
+ * The one rule for "will this clip call Amazon Transcribe?", shared by the plan (--reuse), the "Transcribe will run for" line and the
+ * estimate: no corrected VTT (`cues`) and no transcript.json made from the current segment.
+ */
+export const transcribes = (c: BatchClip, work: string, fs: FsRead) => c.cues === null && (segmentChanged(c, work, fs) || !fs.exists(join(work, c.slug, 'transcript.json')))
+
 /** Transcribe runs for a clip with neither a corrected VTT (`cues`) nor work/<slug>/transcript.json (prepare --reuse); Translate runs once per native per phase; Bedrock only in the final phase. */
-export function estimateBatch(m: BatchManifest, fs: { exists(path: string): boolean }, o: { work: string; phases: Phase[]; only?: string[] }): CostEstimate {
+export function estimateBatch(m: BatchManifest, fs: FsRead, o: { work: string; phases: Phase[]; only?: string[] }): CostEstimate {
   const clips = m.clips.filter((c) => !o.only || o.only.includes(c.slug))
-  const tr = clips.filter((c) => c.cues === null && !fs.exists(join(o.work, c.slug, 'transcript.json')))
+  const tr = clips.filter((c) => transcribes(c, o.work, fs))
   const minutes = tr.reduce((s, c) => s + c.expectedDurationS, 0) / 60
   const chars = o.phases.length * clips.reduce((s, c) => s + c.expectedDurationS * PRICES.speechCharsPerSecond * c.natives.length, 0)
   const transcribe = { slugs: tr.map((c) => c.slug), minutes, usd: minutes * PRICES.transcribePerMinute }

@@ -87,7 +87,8 @@ program.command('batch')
   .option('--stages <list>', 'comma-separated stages (default verify,fetch,cut,upload,prepare,poster,publish-extra)')
   .option('--work <dir>', 'work directory root (the same as prepare --work)', 'work')
   .option('--allow-unconfirmed', 'cut rows whose segment.confirmed is false (to listen to them)')
-  .option('--force-ai', 'run the final phase although gateC is pending (deliberate test runs only)')
+  .option('--force-ai', 'run the final phase although gateC is pending (deliberate test runs only); publishes nothing unless --publish is also given')
+  .option('--publish', 'with --force-ai: also publish to S3/CloudFront')
   .option('--fail-fast', 'stop at the first failed clip (default: continue, exit 1 at the end if any failed)')
   .option('--report <path>', 'report path; .json and .md are written (default <work>/batch-report)')
   .addHelpText('after', `
@@ -97,7 +98,7 @@ The human runbook (docs/plans/LING-008.md §2.9; run from the repo root, AWS cre
   $ pnpm pipeline batch content/clips.json --phase draft
   $ pnpm pipeline batch content/clips.json --phase final        # after "gateC": "passed"
 A gate failure prints the --cues hint: fix work/<slug>/<lang>.vtt, copy it to content/cues/, set "cues", re-run with --only <slug>.`)
-  .action(async (manifest: string, o: { phase: string; dryRun?: boolean; only?: string; stages?: string; work: string; allowUnconfirmed?: boolean; forceAi?: boolean; failFast?: boolean; report?: string }) => {
+  .action(async (manifest: string, o: { phase: string; dryRun?: boolean; only?: string; stages?: string; work: string; allowUnconfirmed?: boolean; forceAi?: boolean; publish?: boolean; failFast?: boolean; report?: string }) => {
     process.exitCode = await batchCommand(manifest, o, nodeRunDeps())
   })
 await program.parseAsync()
