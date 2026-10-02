@@ -28,6 +28,9 @@ export function markCue(cue: string, word: string): { before: string; mark: stri
 /** deckReducer plus a reset when a (re)load brings a new list. */
 const quizReducer = (s: DeckState, e: DeckEvent | { type: 'reset'; cards: DeckCard[] }): DeckState => (e.type === 'reset' ? initialDeck(e.cards) : deckReducer(s, e))
 
+/** 8-64 of [A-Za-z0-9_-] (contracts ReviewId); unique enough per saved word, which is all the server's constraint needs. */
+export const newReviewId = () => `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 8)}`
+
 type Load = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; words: DueWord[] }
 
 /** Due deck, SM-2 server-side: flip → Again · Hard · Good · Easy (equal, same style). No score, no percentage, no right/wrong language. */
@@ -36,11 +39,13 @@ export function QuizScreen({ api, firstClip, learning, onResult, onProgress }: Q
   const [deck, dispatch] = useReducer(quizReducer, [], initialDeck)
   const [sent, setSent] = useState(false)
   const reported = useRef(false)
+  /** One reviewId per word per deck: a retry after a lost answer resends it, so the server applies SM-2 once (POST /me/reviews). */
+  const reviewIds = useRef(new Map<string, string>())
 
   const fetchDeck = useCallback(() => {
     setLoad({ kind: 'loading' })
     api.dueWords().then(
-      (words) => { reported.current = false; setSent(false); dispatch({ type: 'reset', cards: buildDeck(words, firstClip) }); setLoad({ kind: 'ready', words }) },
+      (words) => { reported.current = false; reviewIds.current = new Map(); setSent(false); dispatch({ type: 'reset', cards: buildDeck(words, firstClip) }); setLoad({ kind: 'ready', words }) },
       () => setLoad({ kind: 'error' }),
     )
   }, [api, firstClip])
@@ -52,12 +57,17 @@ export function QuizScreen({ api, firstClip, learning, onResult, onProgress }: Q
     setSent(onResult(deck.firstPass.correct, deck.firstPass.graded))
   }, [load.kind, deck.done, deck.firstPass, onResult])
 
+  const reviewIdFor = (savedWordId: string) => {
+    let id = reviewIds.current.get(savedWordId)
+    if (!id) { id = newReviewId(); reviewIds.current.set(savedWordId, id) }
+    return id
+  }
   const grade = async (g: Grade) => {
     const card = deck.queue[0]
     if (!card || !deck.flipped || deck.posting) return
     dispatch({ type: 'gradeStart' })
     if (!needsPost(card)) { dispatch({ type: 'gradeOk', grade: g }); return }
-    try { await api.review(card.word.savedWordId, g); dispatch({ type: 'gradeOk', grade: g }) } catch { dispatch({ type: 'gradeFail' }) }
+    try { await api.review(card.word.savedWordId, g, reviewIdFor(card.word.savedWordId)); dispatch({ type: 'gradeOk', grade: g }) } catch { dispatch({ type: 'gradeFail' }) }
   }
 
   if (load.kind === 'loading') return <Page bottom={false}><ActivityIndicator color={color.interactive} /></Page>
@@ -106,7 +116,8 @@ export function QuizScreen({ api, firstClip, learning, onResult, onProgress }: Q
           <Text style={[type.body, { color: color.textSecondary }]}>{strings.quiz.reveal}</Text>
         </Pressable>
       ) : (
-        <View testID="card" accessible aria-label={strings.quiz.backLabel(w.word, w.gloss)} style={{ flex: 1, backgroundColor: color.surface1, borderRadius: radius.card, padding: space.l, justifyContent: 'center', gap: space.m }}>
+        // Not grouped (no `accessible`): the word, the gloss, the cue, the native line and "Hear it" are each their own screen-reader element.
+        <View testID="card" style={{ flex: 1, backgroundColor: color.surface1, borderRadius: radius.card, padding: space.l, justifyContent: 'center', gap: space.m }}>
           <Text style={[type.card, { color: color.text, textAlign: 'center' }]}>{w.word}</Text>
           <Text style={[type.title, { color: color.text, textAlign: 'center' }]}>{w.gloss}</Text>
           <Text testID="cue" style={[type.body, { color: color.text, textAlign: 'center' }]}>

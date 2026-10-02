@@ -18,6 +18,7 @@ export interface PlusStore {
   product(sku: string): Promise<StoreProduct | null>
   purchase(sku: string): Promise<PurchaseOutcome>
   /** Fire OS: getAvailablePurchases(). Vega: getPurchaseUpdates({ reset: true }) until !hasMore. Only receipts for which isPlusReceipt() holds. */
+  /** Throws when the store couldn't answer (a non-successful response code): an error is never reported as "no purchases". */
   restore(): Promise<StoreReceipt[]>
   /** Fire OS: finishTransaction({ purchase, isConsumable: false }). Vega: notifyFulfillment({ receiptId, fulfillmentResult: FULFILLED }). */
   fulfil(receiptId: string): Promise<void>

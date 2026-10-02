@@ -23,7 +23,10 @@ export const LearnerDto = z.object({ learning: Lang, native: z.string(), level: 
 /** PUT /me body: only what the learner may change. Strict, so a forbidden key is a 400, not silently dropped.
  *  plus is set only by /iap/verify, level only by PUT /me/level (LING-005), streak and knownRank only server-side. */
 export const LearnerSettingsPatch = z.object({ learning: Lang, native: z.string().min(1), firstRunDone: z.boolean(), nativeLine: NativeLine, autoPause: z.boolean(), cueScale: CueScale }).partial().strict()
-export const ReviewPost = z.object({ savedWordId: z.string(), grade: z.enum(['again', 'hard', 'good', 'easy']) })
+/** reviewId: made once per card on the phone and resent on a retry, so a retry after a lost answer never applies SM-2 twice (unique per saved word). */
+export const ReviewId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/, '8-64 letters, digits, _ or -')
+export const ReviewPost = z.object({ savedWordId: z.string(), grade: z.enum(['again', 'hard', 'good', 'easy']), reviewId: ReviewId.optional() })
+export type ReviewPost = z.infer<typeof ReviewPost>
 export const DueWord = z.object({
   savedWordId: z.string(), highlightId: z.string(),
   word: z.string(), lemma: z.string(), gloss: z.string(), example: z.string(), level: Level,
@@ -63,7 +66,7 @@ export const WordSavedPayload = z.object({
 export const QuizStartPayload = z.object({ code: SessionCode, clipSlug: z.string().nullable().default(null) })
 export const QuizResultPayload = z.object({ code: SessionCode, correct: z.number().int().min(0), total: z.number().int().min(0) })
   .refine((r) => r.correct <= r.total, 'correct ≤ total')
-export const SessionErrorPayload = z.object({ code: z.enum(['UNKNOWN_CODE', 'VALIDATION', 'INTERNAL']), message: z.string() })
+export const SessionErrorPayload = z.object({ code: z.enum(['UNKNOWN_CODE', 'VALIDATION', 'INTERNAL', 'RATE_LIMITED']), message: z.string() })
 
 /** Socket events between TV and phone (room = session code). */
 export const SocketEvents = {

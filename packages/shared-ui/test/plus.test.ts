@@ -35,8 +35,8 @@ describe('reducePlus', () => {
     const s2 = reducePlus(s1, { type: 'purchaseOutcome', outcome: { kind: 'purchased', receipt: receipt('r1') } })
     expect(s2).toEqual({ phase: 'busy', step: 'verifying', price: '2,99 €' })
     expect(reducePlus(s2, { type: 'verified', result: ok(true) })).toEqual({ phase: 'active', renewsAt: null, cancelsAt: null })
-    expect(reducePlus(s2, { type: 'verified', result: ok(false) })).toEqual({ ...offer, note: 'retry' })
-    expect(reducePlus(s2, { type: 'verifyError' })).toEqual({ ...offer, note: 'retry' })
+    expect(reducePlus(s2, { type: 'verified', result: ok(false) })).toEqual({ ...offer, note: 'pending' })
+    expect(reducePlus(s2, { type: 'verifyError' })).toEqual({ ...offer, note: 'pending' })
   })
 
   it('user cancel returns to the offer with no note; an error returns with the retry note', () => {
@@ -51,18 +51,18 @@ describe('reducePlus', () => {
     const restoring = reducePlus(busy, { type: 'purchaseOutcome', outcome: { kind: 'alreadyOwned' } })
     expect(restoring).toEqual({ phase: 'busy', step: 'restoring', price: '2,99 €' })
     expect(reducePlus(restoring, { type: 'restored', results: [] })).toEqual({ ...offer, note: 'restoreEmpty' })
-    expect(reducePlus(restoring, { type: 'restored', results: [ok(false), { plus: false, outcome: 'unavailable', fulfil: false }] })).toEqual({ ...offer, note: 'restoreEmpty' })
+    expect(reducePlus(restoring, { type: 'restored', results: [ok(false), { plus: false, outcome: 'unavailable', fulfil: false }] })).toEqual({ ...offer, note: 'restoreError' })
     expect(reducePlus(restoring, { type: 'restored', results: [ok(false), ok(true)] })).toEqual({ phase: 'active', renewsAt: null, cancelsAt: null })
     const active: PlusState = { phase: 'active', renewsAt: null, cancelsAt: null }
-    expect(reducePlus(active, { type: 'restore' })).toEqual({ phase: 'busy', step: 'restoring', price: null })
+    expect(reducePlus(active, { type: 'restore' })).toEqual({ phase: 'busy', step: 'restoring', price: null, resume: active })
   })
 
   it('events that do not apply to the phase return the same state object', () => {
     const states: PlusState[] = [initialPlus, { phase: 'unavailable' }, { phase: 'demo' }, offer, { phase: 'busy', step: 'purchasing', price: 'p' }, { phase: 'busy', step: 'verifying', price: 'p' }, { phase: 'busy', step: 'restoring', price: 'p' }, { phase: 'active', renewsAt: null, cancelsAt: null }]
-    const events: PlusEvent[] = [loaded(), { type: 'subscribe' }, { type: 'restore' }, { type: 'purchaseOutcome', outcome: { kind: 'userCancelled' } }, { type: 'verified', result: ok(true) }, { type: 'verifyError' }, { type: 'restored', results: [] }]
+    const events: PlusEvent[] = [loaded(), { type: 'subscribe' }, { type: 'restore' }, { type: 'purchaseOutcome', outcome: { kind: 'userCancelled' } }, { type: 'verified', result: ok(true) }, { type: 'verifyError' }, { type: 'restored', results: [] }, { type: 'restoreError' }]
     const applies: Record<string, string[]> = {
       loading: ['loaded'], unavailable: [], demo: [], offer: ['subscribe', 'restore'], active: ['restore'],
-      'busy:purchasing': ['purchaseOutcome'], 'busy:verifying': ['verified', 'verifyError'], 'busy:restoring': ['restored'],
+      'busy:purchasing': ['purchaseOutcome'], 'busy:verifying': ['verified', 'verifyError'], 'busy:restoring': ['restored', 'restoreError'],
     }
     for (const s of states) {
       const key = s.phase === 'busy' ? `busy:${s.step}` : s.phase
@@ -72,6 +72,38 @@ describe('reducePlus', () => {
         else expect(next, `${key} + ${e.type}`).toBe(s)
       }
     }
+  })
+})
+
+describe('LING-007 review fixes', () => {
+  const unavailable: VerifyResult = { plus: false, outcome: 'unavailable', fulfil: false }
+  const verifying: PlusState = { phase: 'busy', step: 'verifying', price: '2,99 €' }
+  it('M3: a verify failure after purchased never shows retry ("Nothing was charged"); it shows pending and hides Subscribe', () => {
+    for (const e of [{ type: 'verified', result: unavailable }, { type: 'verified', result: { plus: false, outcome: 'invalid', fulfil: false } }, { type: 'verifyError' }] as PlusEvent[]) {
+      const next = reducePlus(verifying, e)
+      expect(next).toEqual({ ...offer, note: 'pending' })
+      expect(reducePlus(next, { type: 'subscribe' })).toBe(next) // no second purchase from the pending note
+      expect(reducePlus(next, { type: 'restore' })).toMatchObject({ phase: 'busy', step: 'restoring' })
+    }
+  })
+  it('M4: a failed restore shows restoreError, not restoreEmpty', () => {
+    const restoring: PlusState = { phase: 'busy', step: 'restoring', price: '2,99 €' }
+    expect(reducePlus(restoring, { type: 'restoreError' })).toEqual({ ...offer, note: 'restoreError' })
+    expect(reducePlus(restoring, { type: 'restored', results: [unavailable] })).toEqual({ ...offer, note: 'restoreError' })
+  })
+  it('M4: Restore while subscribed keeps the active state unless the server says there is no Plus', () => {
+    const active: PlusState = { phase: 'active', renewsAt: '2026-10-20T00:00:00.000Z', cancelsAt: null }
+    const restoring = reducePlus(active, { type: 'restore' })
+    expect(reducePlus(restoring, { type: 'restoreError' })).toBe(active)
+    expect(reducePlus(restoring, { type: 'restored', results: [] })).toBe(active)
+    expect(reducePlus(restoring, { type: 'restored', results: [unavailable] })).toBe(active)
+    expect(reducePlus(restoring, { type: 'restored', results: [ok(true)] })).toBe(active)
+    expect(reducePlus(restoring, { type: 'restored', results: [ok(false)] })).toEqual({ phase: 'offer', price: null, note: 'restoreEmpty' })
+  })
+  it('M4: restoreFlow reports a store that throws as restoreError', async () => {
+    const log: string[] = []
+    expect(await restoreFlow(fakeStore(log, { restore: new Error('FAILED') }), fakeApi(log, () => ok(true)))).toEqual([{ type: 'restoreError' }])
+    expect(log).toEqual(['restore'])
   })
 })
 
@@ -135,6 +167,6 @@ describe('flows', () => {
     expect(events).toEqual([{ type: 'restored', results: [ok(true), { plus: false, outcome: 'unavailable', fulfil: false }, ok(false)] }])
 
     const empty: string[] = []
-    expect(await restoreFlow(fakeStore(empty, { restore: new Error('store down') }), fakeApi(empty, () => ok(true)))).toEqual([{ type: 'restored', results: [] }])
+    expect(await restoreFlow(fakeStore(empty, { restore: new Error('store down') }), fakeApi(empty, () => ok(true)))).toEqual([{ type: 'restoreError' }])
   })
 })

@@ -58,7 +58,7 @@ export default function App() {
       if (e instanceof ApiError && e.code === 'UNKNOWN_CODE') { link.leave(); refused() }
       throw e
     })
-    return { me: () => guard(raw.me()), dueWords: () => guard(raw.dueWords()), review: (id, g) => guard(raw.review(id, g)), stats: () => guard(raw.stats()) }
+    return { me: () => guard(raw.me()), dueWords: () => guard(raw.dueWords()), review: (id, g, rid) => guard(raw.review(id, g, rid)), stats: () => guard(raw.stats()) }
   }, [link, refused])
 
   const join = useCallback((code: string) => {

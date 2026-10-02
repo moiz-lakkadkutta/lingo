@@ -3,13 +3,14 @@ import { VerifyReceipt, type VerifyResult } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { acceptsSku, entitled, isActive, plusStatus, purchaseFields } from '../lib/entitlement'
 import { env } from '../lib/env'
-import { ok, validate } from '../lib/http'
+import { AppError, ok, validate } from '../lib/http'
 import { learner } from '../lib/learner'
 import { logger } from '../lib/logger'
 import type { RvsClient } from '../lib/rvs'
 
 /**
- * Lingo Plus over Amazon IAP (LING-007, decision 0009). The client sends the receipt here and fulfils only when `fulfil` is true,
+ * Lingo Plus over Amazon IAP (LING-007, decision 0009). The learner is x-device-id only (lib/learner.ts): a session code never buys or reads Plus.
+ * The client sends the receipt here and fulfils only when `fulfil` is true,
  * so an unverified receipt comes back on the next getPurchaseUpdates.
  * https://developer.amazon.com/docs/in-app-purchasing/iap-implement-iap.html · https://developer.amazon.com/docs/in-app-purchasing/rvs-cloud-sandbox.html
  * https://developer.amazon.com/docs/vega/0.22/rvs-cloud.html
@@ -21,6 +22,8 @@ export function iapRouter(deps: { rvs: RvsClient; now: () => Date }): Router {
   r.post('/verify', validate(VerifyReceipt, (q) => q.body), async (req, res, next) => {
     try {
       const body = (req as never as { valid: VerifyReceipt }).valid
+      // A receipt always belongs to a device: without x-device-id it would land on the shared 'anon' learner (review-007 L3).
+      if (!req.header('x-device-id')?.trim()) throw new AppError(400, 'VALIDATION', 'x-device-id: required')
       const l = await learner(req)
       const now = deps.now()
       const answer = async (outcome: VerifyResult['outcome'], fulfil: boolean) => {

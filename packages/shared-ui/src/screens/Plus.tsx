@@ -58,7 +58,7 @@ export function Plus({ store, api, caps, onBack, onChanged }: PlusProps) {
       if (events.some((e) => (e.type === 'verified' && e.result.plus) || (e.type === 'restored' && e.results.length > 0))) changed.current()
     })
   }
-  const subscribe = () => { if (s.phase === 'offer' && s.price !== null) { dispatch({ type: 'subscribe' }); runFlow(purchaseFlow) } }
+  const subscribe = () => { if (s.phase === 'offer' && s.price !== null && s.note !== 'pending') { dispatch({ type: 'subscribe' }); runFlow(purchaseFlow) } }
   const restore = () => { if (s.phase === 'offer' || s.phase === 'active') { dispatch({ type: 'restore' }); runFlow(restoreFlow) } }
 
   const btn = (label: string, aria: string, onPress: () => void, primary = false, preferred = false) => (
@@ -87,15 +87,16 @@ export function Plus({ store, api, caps, onBack, onChanged }: PlusProps) {
       </>
       break
     case 'offer': {
-      const note = s.note === 'retry' ? strings.plus.retry : s.note === 'restoreEmpty' ? strings.plus.restoreEmpty : null
+      const note = s.note === 'none' ? null : strings.plus[s.note]
+      const canBuy = s.price !== null && s.note !== 'pending' // a purchase being confirmed never invites a second one
       body = <>
         {title}
         <T variant="body">{strings.plus.body(caps.rate)}</T>
         <T variant="title">{s.price !== null ? strings.plus.price(s.price) : strings.plus.priceUnavailable}</T>
         {note ? <T variant="body" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{note}</T> : null}
         <Row>
-          {s.price !== null ? btn(strings.plus.buy, strings.plus.subscribeLabel(s.price), subscribe, true, true) : null}
-          {btn(strings.plus.restore, strings.plus.restoreLabel, restore, false, s.price === null)}
+          {canBuy && s.price !== null ? btn(strings.plus.buy, strings.plus.subscribeLabel(s.price), subscribe, true, true) : null}
+          {btn(strings.plus.restore, strings.plus.restoreLabel, restore, false, !canBuy)}
           {back(false)}
         </Row>
       </>

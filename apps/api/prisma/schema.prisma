@@ -148,7 +148,10 @@ model Review {
   savedWordId String
   savedWord SavedWord @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
   grade Grade
+  /// Client review id (POST /me/reviews): a retry with the same id returns the current schedule instead of applying SM-2 again.
+  reviewId String?
   at DateTime @default(now())
+  @@unique([savedWordId, reviewId])
 }
 model Session {
   code String @id

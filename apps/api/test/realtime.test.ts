@@ -90,8 +90,15 @@ describe('join', () => {
   it('malformed payload gets session:error VALIDATION', async () => {
     const s = client(); await connected(s)
     const err = once(s, 'session:error')
-    s.emit('join', { code: 'abc' } as never)
+    s.emit('join', { code: 'ABC234', role: 'robot' } as never)
     expect((await err).code).toBe('VALIDATION')
+    s.disconnect()
+  })
+  it('M1: a malformed code on join gets the same UNKNOWN_CODE as an unknown one', async () => {
+    const s = client(); await connected(s)
+    const err = once(s, 'session:error')
+    s.emit('join', { code: 'abc', role: 'phone' } as never)
+    expect((await err).code).toBe('UNKNOWN_CODE')
     s.disconnect()
   })
   it('phone join → tv receives phone:connected with the device name within 1 s', async () => {

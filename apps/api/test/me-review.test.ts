@@ -65,13 +65,14 @@ describe('learner resolution', () => {
     const r = await words({ 'x-device-id': phone })
     expect(r.body.data.map((w: DueWord) => w.savedWordId)).toEqual([id])
     const me = await request(app).get('/me').set('x-device-id', phone)
-    expect(me.body.data.deviceId).toBe(phone)
+    expect(me.status).toBe(200)
+    expect(me.body.data).toMatchObject({ learning: 'de', level: 'A2' })
   })
-  it('a malformed x-session-code is 400 VALIDATION and creates no learner', async () => {
+  it('a malformed x-session-code is 404 UNKNOWN_CODE (same as an unknown one) and creates no learner', async () => {
     const phone = 'test-l6-ghost-' + rnd()
     const r = await words({ 'x-session-code': 'ABC10O', 'x-device-id': phone })
-    expect(r.status).toBe(400)
-    expect(r.body).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
+    expect(r.status).toBe(404)
+    expect(r.body).toMatchObject({ success: false, error: { code: 'UNKNOWN_CODE' } })
     expect(await db.learner.findUnique({ where: { deviceId: phone } })).toBeNull()
   })
   it('a well-formed unknown x-session-code is 404 UNKNOWN_CODE', async () => {
