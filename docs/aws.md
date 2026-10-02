@@ -2,7 +2,7 @@
 
 Every AWS call Lingo makes, where in the code, why, and roughly what it costs. Judges read this for the AWS Builder mini-challenge;
 engineers read it before a run. Prices are the repo's figures and **unverified** until checked against the pricing pages listed below.
-Features owned by LING-005/006/007 are marked pending until they merge.
+LING-005/006/007 merged on 2026-10-02 without adding an AWS call.
 
 ## Calls
 
@@ -18,7 +18,13 @@ Features owned by LING-005/006/007 are marked pending until they merge.
 | CloudFront | serves `published/*` from the media bucket (Origin Access Control, HTTPS only, PriceClass 100) | `infra/lib/media-stack.ts` | global | app playback | HLS + WebVTT to the TV | free tier / cents for demo traffic (verify) |
 | CloudFormation via CDK | `cdk deploy lingo-media-dev --exclusively` | `infra/` | eu-central-1 | deploys | media bucket, CDN, PipelineRole | free |
 | IAM | `PipelineRole` (assumable by the account; S3 read/write, Transcribe, Translate, Polly, Bedrock Converse on `amazon.nova-*`) | `infra/lib/media-stack.ts` | global | defined | least-privilege role for the pipeline | free |
-| Amazon Appstore RVS | `POST /iap/verify` → Receipt Verification Service (sandbox) | `apps/api/src/routes/iap.ts` | — | pending <!-- LING-007: fill when merged --> | Lingo Plus receipts | — |
+
+Not AWS, listed so every outbound call is in one place: the **Amazon Appstore Receipt Verification Service (RVS)**,
+`GET https://appstore-sdk.amazon.com[/sandbox]/version/1.0/verifyReceiptId/developer/<secret>/user/<userId>/receiptId/<receiptId>`
+(`apps/api/src/lib/rvs.ts`), called by the API on `POST /iap/verify` and when a purchase is re-verified (verified more than 24 h ago,
+at most once an hour per purchase, from `GET /me` and `GET /iap/status`). Sandbox by default (`RVS_ENV`); free. It verifies Lingo Plus
+receipts (docs/decisions/0012-lingo-plus.md). LING-005, LING-006 and LING-007 added no AWS call (checked 2026-10-02 over
+`git diff f67fd9e..HEAD`): the phone speaks words with on-device TTS, and the TV device id lives on the device.
 
 Whether the pipeline runs under `PipelineRole` or the deploying profile: **TBD by human** (the root-keys friction log says deploys ran as
 root: docs/friction/2026-10-01-cdk-deploy-as-root-user-cannot-assume-bootstrap-roles.md).
@@ -28,7 +34,8 @@ root: docs/friction/2026-10-01-cdk-deploy-as-root-user-cannot-assume-bootstrap-r
 Kept, not deleted (orchestrator decision 2026-10-01). Nothing in Lingo's code calls these today.
 
 - `@aws-sdk/client-polly` in `packages/pipeline/package.json`, `polly:SynthesizeSpeech` in `PipelineRole`, `POLLY_VOICE_*` in `.env.example`:
-  planned "tap to hear" pronunciation of saved words — pending <!-- LING-005/006 -->.
+  planned "tap to hear" pronunciation of saved words. Still unused: LING-005's Clip word chips are display-only (plan scope), and
+  LING-006's phone uses on-device TTS (`expo-speech`, docs/decisions/0011-phone-session-code-access.md).
 - Stack `lingo-nova-dev` (us-east-1, bucket `lingo-nova-ingest-<stage>-…`, `infra/lib/nova-ingest-stack.ts`), `S3_BUCKET_NOVA_INGEST` and
   `NOVA_PRO_MODEL_ID`: Nova Pro video ingest, a Described pattern; no Lingo code reads them. Whether `lingo-nova-dev` was deployed: **TBD by human**.
 

@@ -1,15 +1,63 @@
 # Tickets (build order) — docs/PLAN.md §11
 
 - [x] LING-001 · week 2 · Pipeline steps 1–6 on two clips (Transcribe → segment → Translate → lemmatize+rank → highlights) + segmenter fixtures — done 2026-10-02, Gate A in docs/decisions/0001; decisions 0003, 0004, 0007, 0008. Follow-ups: segmenter still fails fast acted dialogue without a --cues pass; highlights not checked against the dictionary (ASR 'sal' became a highlight).
+  - [ ] follow-up: the segmenter on fast acted dialogue still needs a manual `--cues` pass (decision 0007 M2); decide whether condensing (0007 M2 option 4) is worth it once the 12-clip batch shows how many cues fail.
+  - [ ] follow-up: check highlights against the dictionary, so an ASR non-word ('sal' for "sale", confidence 0.158) never becomes a highlight, gloss or quiz item (proposed in `0009-gloss-quality.md` on `origin/feat/ling-001-pipeline`).
 - [ ] LING-002 · week 2 · Explanations + quiz generation (Nova Lite, Zod-validated JSON), caching, spot check 30
+  - [ ] follow-up (Gate C): land the gloss-prompt fixes from docs/plans/LING-002-gate-c.md and decision `0009-gloss-quality.md` (both on `origin/feat/ling-001-pipeline`, not yet on this branch), re-run the spot check, and have the human score both clips (docs/spot-checks/2026-10-02-gate-c.md: en ≈ 6/15 glosses, ≈ 7/10 quiz items, not passing; de unscored). Then write friction log N7 (docs/plans/LING-008.md §6.2).
 - [ ] LING-003 · week 2 · Player with dual cues + marker rendering + word focus; cue-wise seek; long-press replay; 0.75× — code done 2026-10-02 (decision 0006); waiting on device spikes S1 (docs/spikes/S1-fire-os-remote.md) and S2
+  - [ ] follow-up from the pipeline review (docs/reviews/2026-10-01-pipeline-pr.md M2): on Fire OS a seek or rebuffer can open the Explain card, because the kit's adapter reports react-native-video's `isPlaying=false` as `'paused'` and drops `isSeeking`. Confirm in S1 (logcat), then fix in the kit (report `'buffering'` while seeking) or ignore `'paused'` in Player.tsx while a seek is pending; add a machine test.
+  - [ ] follow-up: Alexa / Media Controls "stop" does nothing in the Player. `transportToKey` maps `stop` to the remote key `back` (packages/shared-ui/src/platform/transport.ts:12), but the Player machine handles Back only as its own `back` event from BackHandler, so a `key: 'back'` is dropped. Route it to the `back` event and add a test.
 - [x] LING-004 · week 3 · Socket.IO session (POST /sessions idempotent per TV, join validation, QR via react-native-svg, phone join/Live, word:saved < 1 s integration test) — done 2026-09-18, docs/decisions/0005. Explain-card anatomy + Save UI land with LING-003's Player rewrite.
-- [ ] LING-005 · week 3 · Home, Clip, Summary, Quiz(TV), Words, Settings, First run (placement)
-  - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank
-- [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build
-  - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today)
+- [ ] LING-005 · week 3 · Home, Clip, Summary, Quiz(TV), Words, Settings, First run (placement) — code done 2026-10-02 (plan docs/plans/LING-005.md; decisions 0010, 0014; review docs/reviews/2026-10-02-ling-005.md, H1 and M1–M4 fixed); waiting on the device checklist (plan §10, including step 15: two devices show different pairing codes)
+  - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank — done in fdb6928 (decision 0010 §6).
+  - [ ] follow-up: the Content Launcher / deep-link resume position is dropped. `useLaunchIntents` passes `positionS`, but Root's `onOpen` (packages/shared-ui/src/app/Root.tsx:116) ignores it (review L6). Put it on the player route (clamped to the clip, review-007 L8) or say in a comment that server progress wins.
+  - [ ] follow-up: the TV Words "Due today" filter uses the device's local end of day (packages/shared-ui/src/app/selectors.ts:42), while the API and the phone use UTC days (decision 0011 §5). Align them.
+  - [ ] follow-up (docs/plans/LING-008.md §14, open question 6): import processed clips into Postgres: Clip row from `content/clips.json` + `work/<slug>/clip.json`, poster key `published/<slug>/poster.jpg`. No importer exists yet.
+  - [ ] review lows left open (docs/reviews/2026-10-02-ling-005.md):
+    - [ ] L2: the level-rule window mixes the DB clock (`QuizAttempt.at`) and the API clock (`levelChangedAt`).
+    - [ ] L3: the code's expiry and rotation remain (scope, uniform 404 and rate limit done in 9b98e2c); tracked under LING-006 M1.
+    - [ ] L4: `POST /me/words` emits `word:saved` to any room named in `sessionCode`, without checking it belongs to the learner.
+    - [ ] L9: collapsed rail letters are ambiguous (Watch and Words are both "W").
+    - [ ] L10: "on our side" error for a client cache miss; "Add to Continue" on a completed clip clears it; focus ring has no 3 px offset.
+- [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build — code done 2026-10-02 (plan docs/plans/LING-006.md; decision 0011, pending human confirmation on the Apple Developer membership and LAN cleartext vs HTTPS; review docs/reviews/2026-10-02-ling-006.md, M1–M6 fixed); waiting on the manual device steps (plan §Manual device steps) and the EAS builds
+  - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today) — done in c331490, scoped to four routes in 9b98e2c (decision 0011).
   - [ ] follow-up from the LING-006 review (M1): the session code is still a long-lived bearer credential for the phone's read and review routes. Rotate the code when the TV selects "Pair a new phone" (and on "Use another TV"), or have the socket `join` issue a per-phone token that `/me/*` accepts instead of the code. The per-IP miss limiter is in-memory (one API process); move it to a shared store before running more than one instance, and set `trust proxy` behind a load balancer so `req.ip` is the client.
-- [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls
-- [ ] LING-008 · week 4 · Twelve clips, Vega build, polish, docs, feedback, ≥ 8 friction logs · freeze Oct 15
+  - [ ] follow-up (docs/plans/LING-008.md §14): the phone loads its fonts at runtime from `@expo-google-fonts`; the plan asked for the same `expo-font` plugin entry as the TV (`../../packages/shared-ui/assets/fonts/*.ttf`). Decide and align.
+  - [ ] review lows left open (docs/reviews/2026-10-02-ling-006.md):
+    - [ ] L1: quiz events do not check the sender's role (a phone can emit `quiz:start`, a TV `quiz:result`).
+    - [ ] L2: `join` never leaves a previous room (affects a TV that re-joins with another code).
+    - [ ] L3: Backspace on a filled code box may re-insert the character (check in device step D2).
+    - [ ] L4: `NSAllowsArbitraryLoads` is ignored next to `NSAllowsLocalNetworking`; keep one key deliberately.
+    - [ ] L5: re-saving a saved word counts as a study day; `LearnerDto.streak` is stale after a missed day (read `/me/stats`).
+    - [ ] L6: the phone's fetch has no timeout, so a hung request leaves the grade buttons disabled.
+    - [ ] L7: an unknown code from a deep link or QR forgets the remembered TV.
+    - [ ] L8: leaving Review mid-deck drops same-session repeats.
+    - [ ] L9: EAS scripts use `eas-cli@latest`; pin a major. Record the workspace install on the EAS builder in a friction log.
+- [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls — code done 2026-10-02 (plan docs/plans/LING-007.md; decision 0012, pending human confirmation on the console SKUs, cancel URL and PEM; review docs/reviews/2026-10-02-ling-007.md, H1 and M1–M5 fixed); waiting on the App Tester / RVS sandbox runs on the stick and the VVD (plan §Manual checklists A and B)
+  - [ ] follow-up: kit escalations E1–E4 (plan §Escalations; human decision, kit ↔ app interface): E1 public `contentLauncher.dispatchIntent` (Vega bindings are no-ops, KIT-007); E2 `onLaunchIntent` must be able to answer SUCCESS or failure; E3 `reportPlayback` needs a playback state, namespace and profile; E4 the kit's Vega adapter must register Vega Media Controls itself, and `TransportControl` needs absolute seek. Code markers: `TODO(KIT-E1..E4)` in packages/shared-ui/src/platform.
+  - [ ] follow-up: renumber the "decision 0009" comments for Lingo Plus to 0012 (apps/api/src/lib/env.ts, lib/entitlement.ts, routes/iap.ts, packages/contracts/src/iap.ts, packages/shared-ui/src/plus/flow.ts); 0009 is the gloss-quality record.
+  - [ ] review lows left open (docs/reviews/2026-10-02-ling-007.md):
+    - [ ] L1: `.` and `..` survive `encodeURIComponent` in RVS path segments.
+    - [ ] L2: the Vega Content Launcher answers SUCCESS for unknown slugs (`knownSlugs` is `() => null` in apps/vega/src/App.tsx).
+    - [ ] L4: receipt takeover by anyone with another learner's receiptId and Amazon user id (accepted in decision 0012); consider logging takeovers.
+    - [ ] L5: `plusStatus` can show a past end date while `plus` is true.
+    - [ ] L6: a re-verify whose receiptId does not match does nothing silently and skips the `/verify` acceptance checks.
+    - [ ] L7: `turbo.json` still lists the old `RVS_SECRET`.
+    - [ ] L8: the deep-link `t` has no upper bound.
+    - [ ] L10: EAS builds ship without the git-ignored PEM; document an EAS file secret.
+    - [ ] L11 (nit): `LaunchBridge.tsx` sits at apps/expo/ rather than apps/expo/src/.
+- [ ] LING-008 · week 4 · Twelve clips, Vega build, polish, docs, feedback, ≥ 8 friction logs · freeze Oct 15 — code done 2026-10-02 (plan docs/plans/LING-008.md; decision 0013, RN 0.83 and npm outside the workspace pending human confirmation after `vega project create`; review docs/reviews/2026-10-02-ling-008.md, H1, H2 and M1–M5 fixed); waiting on the 12-clip batch run (plan §2.9), the VVD checklist (§3.6) and design QA (§7). Friction logs: 23 (docs/friction/README.md)
   - follow-up from the LING-008 review (M4): once the kit's Vega adapter plays (KIT-010), set `caps.playback` true for kepler/vega in packages/shared-ui/src/platformCaps.ts and remove the playback-unavailable message (`PlaybackOff` in screens/Player.tsx, `strings.playbackOff`, test/player.test.tsx); until then `MiniPlayer` (Words, Quiz replay) still mounts KitPlayer on Vega and needs the same check
-- [ ] LING-009 · week 5 · Video (Save-word-to-phone moment with both screens in frame) + submission
+  - [ ] follow-up: `MiniPlayer` (Words, Quiz replay) checks `caps.playback` on Vega and shows the playback message instead of mounting `KitPlayer` (decision 0013 §3).
+  - [ ] follow-up (docs/plans/LING-008.md §14): make `Caps.playback` required once the Caps literals in the shared-ui tests are updated.
+  - [ ] review lows left open (docs/reviews/2026-10-02-ling-008.md):
+    - [ ] L3: a duration-check failure deletes the whole download (800 MB for row 1).
+    - [ ] L4: a BY-SA attribution containing `-->` throws inside prepare, after Transcribe; validate it in the manifest.
+    - [ ] L6: Commons rows 3–5 use manual checks with no age limit on `verifiedOn`.
+    - [ ] L8: the cost estimate counts already prepared or blocked clips; label it an upper bound.
+    - [ ] L9: three friction logs write "Workaround (planned …):"; use "Workaround:".
+    - [ ] L10: apps/vega/README.md still records a 3.6 MB bundle in the first run; the review measured 2.69 MB.
+    - [ ] L11: README "Status (2026-10-01)" heading sits above 2026-10-02 events.
+- [ ] LING-009 · week 5 · Video (Save-word-to-phone moment with both screens in frame) + submission — docs drafted 2026-10-01 (plan docs/plans/LING-009.md; docs/video-script.md, docs/submission.md, docs/submission-checklist.md, commit 92a010e); 32 placeholders pending (`grep -n PLACEHOLDER`), and the ground-truth table predates the LING-005..008 code (e.g. "IAP client Not built"), so refresh the claims after the device checklists
+  - [ ] follow-up (human decision): the AWS account ID is out of the tree (4174937) but still in git history (first in def541c). Decide whether to scrub the history before the repository goes public.
