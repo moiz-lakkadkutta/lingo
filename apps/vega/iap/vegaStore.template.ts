@@ -58,6 +58,8 @@ export function createVegaStore(): PlusStore {
       let reset = true
       for (let page = 0; page < MAX_PAGES; page++) {
         const r = await PurchasingService.getPurchaseUpdates({ reset })
+        // A store that couldn't answer is an error for restoreFlow (restoreError), never "no purchases".
+        if (r.responseCode !== PurchaseUpdatesResponseCode.SUCCESSFUL && page === 0) throw new Error(`getPurchaseUpdates answered ${String(r.responseCode)}`)
         out.push(...mapVegaUpdates({ code: updatesCode(r.responseCode), userId: r.userData?.userId, receipts: r.receiptList ?? [], hasMore: r.hasMore }))
         if (r.responseCode !== PurchaseUpdatesResponseCode.SUCCESSFUL || !r.hasMore) break
         reset = false

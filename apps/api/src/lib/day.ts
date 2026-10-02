@@ -10,3 +10,7 @@ export function startOfNextUtcDay(d: Date): Date {
 export function addUtcDays(day: string, n: number): string {
   return utcDay(new Date(Date.parse(`${day}T00:00:00.000Z`) + n * DAY_MS))
 }
+/** 00:00:00.000Z of d's UTC day (the free tier's daily limit starts here). */
+export function startOfUtcDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+}

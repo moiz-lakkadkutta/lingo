@@ -9,7 +9,7 @@ import { logger } from './lib/logger'
 import { catalog } from './routes/catalog'
 import { clips } from './routes/clips'
 import { learning } from './routes/learning'
-import { me } from './routes/me'
+import { meRouter } from './routes/me'
 import { sessions } from './routes/sessions'
 import { iapRouter } from './routes/iap'
 import { createRvsClient, type RvsClient } from './lib/rvs'
@@ -22,6 +22,8 @@ export const REDACTED_HEADERS = ['req.headers["x-session-code"]', 'req.headers["
 
 export function createApp(deps: AppDeps = {}): Express {
   const app = express()
+  const rvs = deps.rvs ?? createRvsClient()
+  const now = deps.now ?? (() => new Date())
   app.use(helmet())
   app.use(cors())
   app.use(express.json({ limit: '1mb' }))
@@ -30,9 +32,9 @@ export function createApp(deps: AppDeps = {}): Express {
   app.use('/catalog', catalog)
   app.use('/clips', clips)
   app.use('/me', learning)
-  app.use('/me', me)
+  app.use('/me', meRouter({ rvs, now }))
   app.use('/sessions', sessions)
-  app.use('/iap', iapRouter({ rvs: deps.rvs ?? createRvsClient(), now: deps.now ?? (() => new Date()) }))
+  app.use('/iap', iapRouter({ rvs, now }))
   app.use(errorHandler)
   return app
 }

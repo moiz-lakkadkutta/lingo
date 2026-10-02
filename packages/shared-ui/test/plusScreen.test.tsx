@@ -74,6 +74,37 @@ describe('Plus screen', () => {
     expect(labels(down)).toEqual([strings.plus.backLabel])
   })
 
+  it('M3: after a purchase that could not be confirmed the screen shows the pending line, never "Nothing was charged", and no Subscribe', async () => {
+    const s = { ...store(), purchase: vi.fn(async () => ({ kind: 'purchased' as const, receipt: { receiptId: 'r1', userId: 'u', sku: 'lingo.plus.monthly', termSku: 'lingo.plus.monthly', cancelled: false } })) }
+    const failingVerify = (async (path: string) => { if (path === '/iap/status') return status(); throw new Error('offline') }) as Api
+    const r = await show({ store: s, api: failingVerify })
+    const subscribe = r.root.find((n) => is(n, 'Pressable') && n.props['aria-label'] === strings.plus.subscribeLabel('2,99 €'))
+    await act(async () => { subscribe.props.onPress() })
+    await flush()
+    expect(texts(r)).toContain(strings.plus.pending)
+    expect(texts(r)).not.toContain(strings.plus.retry)
+    expect(strings.plus.pending).not.toMatch(/nothing was charged/i)
+    expect(labels(r)).toEqual([strings.plus.restoreLabel, strings.plus.backLabel])
+  })
+  it('M4: a restore whose store fails shows the restore error line, not "no purchase found"', async () => {
+    const s = { ...store(), restore: vi.fn(async () => { throw new Error('FAILED') }) }
+    const r = await show({ store: s })
+    const restore = r.root.find((n) => is(n, 'Pressable') && n.props['aria-label'] === strings.plus.restoreLabel)
+    await act(async () => { restore.props.onPress() })
+    await flush()
+    expect(texts(r)).toContain(strings.plus.restoreError)
+    expect(texts(r)).not.toContain(strings.plus.restoreEmpty)
+  })
+  it('M4: Restore while subscribed keeps the active screen when the store fails', async () => {
+    const s = { ...store(), restore: vi.fn(async () => { throw new Error('FAILED') }) }
+    const r = await show({ store: s, api: api(status({ plus: true })) })
+    const restore = r.root.find((n) => is(n, 'Pressable') && n.props['aria-label'] === strings.plus.restoreLabel)
+    await act(async () => { restore.props.onPress() })
+    await flush()
+    expect(texts(r)).toContain(strings.plus.active)
+    expect(texts(r)).not.toContain(strings.plus.priceUnavailable)
+  })
+
   it('no Plus string contains "failed" or "wrong"', () => {
     const all: string[] = []
     const walk = (v: unknown): void => {

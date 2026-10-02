@@ -40,10 +40,10 @@ export async function purchaseFlow(store: PlusStore, api: Api): Promise<PlusEven
 }
 
 /** store.restore() → verify each receipt (sequentially) → fulfil where result.fulfil → [{ type: 'restored', results }]. Never throws;
- *  a verify error counts as { plus:false, outcome:'unavailable', fulfil:false }. */
+ *  a verify error counts as { plus:false, outcome:'unavailable', fulfil:false }; a store that throws gives [{ type: 'restoreError' }]. */
 export async function restoreFlow(store: PlusStore, api: Api): Promise<PlusEvent[]> {
-  let receipts: StoreReceipt[] = []
-  try { receipts = await store.restore() } catch (e) { console.debug('[lingo] plus: restore did not complete', e) }
+  let receipts: StoreReceipt[]
+  try { receipts = await store.restore() } catch (e) { console.debug('[lingo] plus: restore did not complete', e); return [{ type: 'restoreError' }] }
   const results: VerifyResult[] = []
   for (const r of receipts) {
     try { results.push(await verifyThenFulfil(store, api, r)) } catch { results.push(UNAVAILABLE) }
