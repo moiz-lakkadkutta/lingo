@@ -22,7 +22,8 @@ export interface PlayerProps {
   clip: ClipDetail; learner: LearnerDto; scale: number; challenge: boolean; sessionCode?: string
   savedIds: ReadonlySet<string>; savedCount: number; remote: RemoteSource; caps?: Caps
   onBack(positionS: number): void; onEnd(): void
-  onSave(highlightId: string): Promise<'saved' | 'limit' | 'error'>; onPlus(): void
+  /** Leave for the Plus screen (Explain's save-limit CTA). positionS is the playhead, so the caller saves it like Back does (PR #2 review B-M1). */
+  onSave(highlightId: string): Promise<'saved' | 'limit' | 'error'>; onPlus(positionS: number): void
   onLearnerChange(patch: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>): void
 }
 
@@ -203,7 +204,7 @@ function PlayerView(props: PlayerProps) {
           onSave={onSave}
           onReplay={() => dispatch({ type: 'action', action: 'replay', now: Date.now() })}
           onSlower={() => dispatch({ type: 'action', action: 'slower', now: Date.now() })}
-          onPlus={onPlus}
+          onPlus={() => onPlus(stateRef.current.positionS)}
           chipRefs={chipRefs}
           saveRef={saveRef}
           bottom={cardBottom}

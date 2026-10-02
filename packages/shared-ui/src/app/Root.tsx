@@ -231,18 +231,22 @@ function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challen
       return 'error'
     }
   }
+  /**
+   * Every way out of the Player but the end saves the playhead first: the clip cache (so a remount resumes there) and a
+   * fire-and-forget PUT /me/progress (so Continue has it). Back pops; Plus pushes and remounts the Player on return (PR #2 review B-M1).
+   */
+  const onLeave = (pos: number) => {
+    const body = progressBody(slug, pos, clip.durationS)
+    ep.putProgress(body).catch(() => {}) // fire and forget: leaving must never wait on the network
+    clips.set(slug, cc, { ...clip, resumeS: body.completed ? null : pos, completed: !!body.completed })
+  }
   return (
     <Player
       clip={clip} learner={learner} scale={ctx.scale} challenge={challenge && learner.plus} sessionCode={session.code ?? undefined}
       savedIds={savedIds} savedCount={ctx.saved.length} remote={ctx.remote} onSave={save}
-      onPlus={() => nav({ type: 'push', route: { name: 'plus' } })}
+      onPlus={(pos) => { onLeave(pos); nav({ type: 'push', route: { name: 'plus' } }) }}
       onLearnerChange={(p) => { void ctx.patchLearner(p) }}
-      onBack={(pos) => {
-        const body = progressBody(slug, pos, clip.durationS)
-        ep.putProgress(body).catch(() => {}) // fire and forget: leaving must never wait on the network
-        clips.set(slug, cc, { ...clip, resumeS: body.completed ? null : pos, completed: !!body.completed })
-        nav({ type: 'pop' })
-      }}
+      onBack={(pos) => { onLeave(pos); nav({ type: 'pop' }) }}
       onEnd={() => {
         ep.putProgress({ clipSlug: slug, positionS: clip.durationS, completed: true }).catch(() => {})
         clips.set(slug, cc, { ...clip, resumeS: null, completed: true })
