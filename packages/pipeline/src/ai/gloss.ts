@@ -11,7 +11,7 @@ import { languageName } from './lang'
  * Nova tool use (enums, ≤ 2 nesting levels, long strings last): https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html
  */
 /** Bump whenever glossSystemPrompt() or glossToolConfig() changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const GLOSS_PROMPT_VERSION = 3 // v3: marked target, structured card, few-shot (LING-002 Gate C)
+export const GLOSS_PROMPT_VERSION = 5 // v3: marked target, structured card, few-shot (LING-002 Gate C); v4: referent first, spelling, all forms; v5: second gloss only if exact, plural in this sense (eval 2026-10-03)
 export const GLOSS_TOOL = 'explain_word'
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -25,7 +25,7 @@ export function markTarget(cue: string, word: string): string {
 }
 
 const FORMS: Record<Lang, string> = {
-  en: 'nouns → plural (e.g. "rackets"; "none" for a word with no plural); verbs → past and participle ("go" → "went", "gone"); adjectives → comparative ("nifty" → "niftier", "useful" → "more useful", "good" → "better"). Do not use {N} words in these fields.',
+  en: 'nouns → plural in this sense (e.g. "rackets"; "none" when the word has no plural in this sense, e.g. a sport or a mass noun); verbs → past and participle ("go" → "went", "gone"); adjectives → comparative ("nifty" → "niftier", "useful" → "more useful", "good" → "better"). Do not use {N} words in these fields.',
   de: 'nouns → article (der, die or das) and plural ("Stunden"; "none" if it has none); verbs → past = 3rd person singular Präteritum ("wartete"), participle with its auxiliary ("hat gewartet", "ist gegangen"), separable = the prefix of a separable verb ("an" for anrufen); adjectives → comparative ("schneller", "besser"; "none" if it has none). Do not use {N} words in these fields.',
 }
 
@@ -59,7 +59,7 @@ function examplesBlock(lang: Lang, native: string): string {
   return `The glosses below are ${languageName(EXAMPLE_GLOSS_LANG[lang]!)}; yours must be in ${languageName(native)}.\n${ex}`
 }
 
-/** LING-002-gate-c §3.5, verbatim. */
+/** LING-002-gate-c §3.5, plus the v4 changes recorded in docs/decisions/0009 (Eval results). */
 export function glossSystemPrompt(lang: Lang, native: string, level: Level, lemma: string): string {
   const T = languageName(lang), N = languageName(native)
   return [
@@ -70,11 +70,11 @@ export function glossSystemPrompt(lang: Lang, native: string, level: Level, lemm
     'Work on the marked word only. The other words of the line are context: use them to decide which sense the marked word has here, but never translate them into the gloss. When the marked word is part of a compound or fixed phrase ("tennis racket", "weenie roast", "get acquainted"), gloss only the marked part, in the sense it has inside that phrase.',
     '',
     `Call ${GLOSS_TOOL} exactly once. Fill the fields in this order:`,
-    `- sense: the dictionary sense of the marked word in this line, as a short ${T} definition (at most 12 words). Pick the sense this line needs, including old-fashioned, informal or slang senses. Describe the word, not the line.`,
+    `- sense: the dictionary sense of the marked word in this line, as a short ${T} definition (at most 12 words). First decide from the line what the word refers to here (a person, a thing, an event, an action). Pick the sense this line needs, including old-fashioned, informal or slang senses. Describe the word, not the line.`,
     '- pos: the part of speech of the marked word in this line.',
-    `- gloss: 1 or 2 ${N} translations of the marked word in that sense, most common first. Each is a dictionary headword: one word, or two only when ${N} has no single word for it. No articles, no sentences, no explanations, no words that translate other words of the line. If the translation is spelled like the ${T} word, add a 1–3-word ${N} clarifier in parentheses, e.g. "Tennis (Sport)".`,
+    `- gloss: 1 or 2 ${N} translations of the marked word in that sense, most common first; add a second one only if it means exactly the same here. Each is a dictionary headword: one word, or two only when ${N} has no single word for it. Each is a real, correctly spelled ${N} word, with all its accents and special letters. No articles, no sentences, no explanations, no words that translate other words of the line. If the translation is spelled like the ${T} word, add a 1–3-word ${N} clarifier in parentheses, e.g. "Tennis (Sport)".`,
     '- register: neutral, informal, formal, dated or slang, for the marked word in this sense.',
-    `- grammar fields, only those for its pos, with word forms in ${T}: ${FORMS[lang].replace('{N}', N)}`,
+    `- grammar fields: all of those for its pos and no others, with word forms in ${T}: ${FORMS[lang].replace('{N}', N)}`,
     `- example: one new ${T} sentence at level ${level} that uses the marked word (or another form of "${lemma}") in the same sense. Not the given line, no names of people, at most 12 words. The sentence must be in ${T}, never in ${N}.`,
     '',
     examplesBlock(lang, native),

@@ -23,7 +23,8 @@ function tidy(v: unknown): unknown {
 }
 
 const CardObject = z.object({
-  sense: boundedLine(100, 12),
+  /** the prompt asks for ≤ 12 words; the schema allows a little more, since the sense is only shown to the reviewer (eval 2026-10-03) */
+  sense: boundedLine(160, 20),
   pos: POS,
   gloss: z.array(boundedLine(40, 4)).min(1).max(2),
   register: REGISTER,
@@ -132,6 +133,10 @@ const singleToken = (s: string) => /^[\p{L}'’-]+$/u.test(s.trim())
 
 function englishFormIssues(c: GlossCard, ctx: CardContext): string[] {
   const issues: string[] = []
+  const missing = c.pos === 'noun' ? (c.plural === undefined ? ['plural'] : [])
+    : c.pos === 'verb' ? (['past', 'participle'] as const).filter((f) => c[f] === undefined)
+    : c.pos === 'adjective' ? (c.comparative === undefined ? ['comparative'] : []) : []
+  if (missing.length) issues.push(`F-MISSING-en: a${c.pos === 'adjective' ? 'n' : ''} ${c.pos} needs ${missing.join(' and ')} (use "none" if there is none)`)
   const word = ctx.word.toLowerCase(), lemma = ctx.lemma.toLowerCase()
   if (c.pos === 'noun' && c.plural !== undefined && !isNone(c.plural)) {
     const p = c.plural.trim().toLowerCase()
@@ -198,6 +203,14 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   for (const g of c.gloss) {
     const copied = contentWords(g, ctx.native).filter((w) => cueWords.has(w))
     if (copied.length) issues.push(`G-SOURCE: gloss "${g}" repeats "${copied[0]}", another word of the line; translate only the marked word`)
+  }
+  // G-COMPOUND: a compound built on a word of the line (target or neighbour) + ≥ 4 more letters translates more than the marked word
+  const lineWords = [...new Set(wordsOf(ctx.cue).filter((w) => w.length >= 4))]
+  for (const g of c.gloss) {
+    for (const w of contentWords(g, ctx.native)) {
+      const base = lineWords.find((x) => w !== x && w.length - x.length >= 4 && (w.startsWith(x) || w.endsWith(x)))
+      if (base) issues.push(`G-COMPOUND: gloss "${g}" is a compound with "${base}" from the line; translate only the marked word`)
+    }
   }
   // G-NEIGHBOUR: a multi-word gloss that shares a stem with the translated line copies a neighbour's translation.
   if (ctx.nativeCue) {

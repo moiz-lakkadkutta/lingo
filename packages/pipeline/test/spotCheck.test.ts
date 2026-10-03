@@ -150,9 +150,9 @@ describe('spot check', () => {
     const json = JSON.parse(await readFile(result.files.json, 'utf8'))
     expect(json.glosses[0].status).toBe('ok')
     expect(json.glosses[0].sense).toBe(`stub sense of ${json.glosses[0].lemma}`)
-    expect(json.glosses[0].card).toMatchObject({ pos: 'other', gloss: [`stub-${json.glosses[0].lemma}`] })
+    expect(json.glosses[0].card).toMatchObject({ pos: 'other', gloss: [`${json.glosses[0].lemma} (stub)`] })
     const row = (await readFile(out, 'utf8')).split('\n').find((l) => l.startsWith('| 1 | '))!
-    expect(row).toContain(`| ok | stub sense of ${json.glosses[0].lemma} | stub-${json.glosses[0].lemma} |`)
+    expect(row).toContain(`| ok | stub sense of ${json.glosses[0].lemma} | ${json.glosses[0].lemma} (stub) |`)
   })
 
   it('returns only the new section in result.markdown; with --append the earlier sections stay in the file but are not returned', async () => {

@@ -50,8 +50,9 @@ const out = join('work', 'eval', `${name}.${model.replace(/[:/]/g, '_')}.${confi
 await writeFile(out, JSON.stringify({ gold: o.gold, model, reasoning: o.reasoning, promptVersion: GLOSS_PROMPT_VERSION, at: new Date().toISOString(), score, results, quiz, cost: ai.cost() }, null, 2) + '\n')
 
 for (const s of score.items) {
-  const failed = Object.entries(s.checks).filter(([k, v]) => !v && k !== 'S-FIRST').map(([k]) => k)
-  const first = s.checks['S-FIRST'] ? '' : ' (retry/re-ask)'
+  const excluded = s.status === 'excluded'
+  const failed = excluded ? [] : Object.entries(s.checks).filter(([k, v]) => !v && k !== 'S-FIRST').map(([k]) => k)
+  const first = s.checks['S-FIRST'] || excluded ? '' : ' (retry/re-ask)'
   console.log(`${s.pass ? 'PASS' : 'FAIL'} ${s.id.padEnd(18)} ${s.status.padEnd(9)} ${failed.join(',').padEnd(24)} ${s.gloss}${s.ambiguous ? ' [ambiguous]' : ''}${first}`)
 }
 const firstTry = score.items.filter((s, i) => !isExcluded(gold.items[i]!) && s.checks['S-FIRST']).length

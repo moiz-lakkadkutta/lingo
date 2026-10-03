@@ -147,4 +147,29 @@ describe('glossCardIssues (validators v3)', () => {
     expect(contentWords('Tennis (Sport)', 'de')).toEqual(['tennis'])
     expect(contentWords('to call', 'en')).toEqual(['call'])
   })
+
+  it('G-COMPOUND rejects a compound of a word of the line ("Tennisschläger" for tennis or racket, "Baseballspiel" for baseball)', () => {
+    const t = en('tennis', 'tennis', "I'll get my tennis racket.", 'Ich hol meinen Tennisschläger.')
+    expect(ids(glossCardIssues(card({ gloss: ['Tennis (Sport)', 'Tennisschläger'], plural: 'none', example: 'We play tennis on Sundays.' }), t))).toContain('G-COMPOUND')
+    const r = en('racket', 'racket', "I'll get my tennis racket.")
+    expect(ids(glossCardIssues(card({ gloss: ['Tennisschläger'], plural: 'rackets', example: 'My racket is new.' }), r))).toContain('G-COMPOUND')
+    const b = en('baseball', 'baseball', 'go to a baseball game.')
+    expect(ids(glossCardIssues(card({ gloss: ['Baseballspiel'], plural: 'none', example: 'We play baseball on Sundays.' }), b))).toContain('G-COMPOUND')
+    expect(glossCardIssues(card({ gloss: ['Baseball (Sport)'], plural: 'none', example: 'We play baseball on Sundays.' }), b)).toEqual([])
+  })
+
+  it('F-MISSING-en asks for the forms of the pos: plural of a noun, past and participle of a verb, comparative of an adjective', () => {
+    const t = en('tacks', 'tack', 'Got any more tacks?')
+    expect(ids(glossCardIssues(card({ gloss: ['Reißzwecken'], example: 'I need some tacks for the board.' }), t))).toEqual(['F-MISSING-en'])
+    const s = en('swell', 'swell', "Well, Kay's a swell girl.")
+    expect(ids(glossCardIssues(card({ pos: 'adjective', gloss: ['toll'], example: 'That was a swell party.' }), s))).toEqual(['F-MISSING-en'])
+    const v = en('supervise', 'supervise', 'around to supervise,')
+    expect(ids(glossCardIssues(card({ pos: 'verb', gloss: ['beaufsichtigen'], past: 'supervised', example: 'Who will supervise the kids?' }), v))).toEqual(['F-MISSING-en'])
+    expect(glossCardIssues(card({ pos: 'adverb', gloss: ['bequem'], example: 'We can do it comfortably.' }), en('comfortably', 'comfortably', 'carry through comfortably.'))).toEqual([])
+  })
+
+  it('the sense may run a little over the 12 words the prompt asks for (≤ 20 words, 160 characters)', () => {
+    expect(GlossCard.safeParse({ sense: 'a piece of sports equipment used to hit a ball in tennis, badminton, etc.', pos: 'noun', gloss: ['Schläger'], register: 'neutral', example: 'x' }).success).toBe(true)
+    expect(GlossCard.safeParse({ sense: Array.from({ length: 21 }, () => 'w').join(' '), pos: 'noun', gloss: ['Schläger'], register: 'neutral', example: 'x' }).success).toBe(false)
+  })
 })

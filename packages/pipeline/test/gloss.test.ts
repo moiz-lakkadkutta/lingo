@@ -73,7 +73,7 @@ describe('gloss v3', () => {
   it('GLOSS_PROMPT_VERSION must be bumped when the system prompt or the tool schema changes (sha256 snapshot of both)', () => {
     const sha = createHash('sha256').update(glossSystemPrompt('de', 'en', 'A2', 'warten')).update(JSON.stringify(glossToolConfig('de', 'en'))).digest('hex')
     // If this fails because you edited the prompt or the tool: bump GLOSS_PROMPT_VERSION and update both values here.
-    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 3, sha: '8a86f014c20ac39c941e12ee15723e0d5b84ac1cc4467b88a9d3d675f7c074e3' })
+    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 5, sha: 'fcadfd641c953ccb1c0b7ac302815c1bba8f001097b6824216a8d19f1b2b003d' })
   })
 
   it('the en and de prompts carry their own FORMS and EXAMPLES blocks and no few-shot word from the English gold set', () => {
