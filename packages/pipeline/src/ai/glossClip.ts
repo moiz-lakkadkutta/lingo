@@ -9,10 +9,9 @@ import type { QuizCueInput } from './quiz'
  */
 export interface ClipGlossItem { cueIndex: number; word: string; lemma: string; rank: number; cue: string; nativeCue?: string }
 interface Meta { /** attempts of the final answer (1 = accepted first time); 0 when never asked */ attempts: number; cached: boolean; /** asked again with a sibling hint */ reasked: boolean }
-export type ClipGlossResult = ClipGlossItem & Meta & (
-  | { status: 'ok' | 'soft'; card: GlossCard; gloss: Gloss; issues: string[] }
-  | { status: 'rejected' | 'conflict'; issues: string[]; card?: GlossCard; lastOutput?: unknown }
-)
+export type AcceptedGloss = ClipGlossItem & Meta & { status: 'ok' | 'soft'; card: GlossCard; gloss: Gloss; issues: string[] }
+export type FailedGloss = ClipGlossItem & Meta & { status: 'rejected' | 'conflict'; issues: string[]; card?: GlossCard; lastOutput?: unknown }
+export type ClipGlossResult = AcceptedGloss | FailedGloss
 
 const toResult = (it: ClipGlossItem, o: GlossOutcome, reasked: boolean): ClipGlossResult =>
   o.status === 'rejected'

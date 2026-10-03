@@ -1,0 +1,591 @@
+{
+  "slug": "what-to-do-on-a-date-1950",
+  "lang": "en",
+  "native": "de",
+  "level": "A2",
+  "source": "What to Do on a Date (Coronet, 1950), Prelinger Archives, public domain (US); see docs/content.md. Cue text from clip.json, nativeCue = Amazon Translate de line. Senses: docs/plans/LING-002-gate-c.md §9.5.",
+  "items": [
+    {
+      "id": "c9-tennis",
+      "cueIndex": 9,
+      "cue": "Just a minute, Jeff.\nI'll get my tennis racket.",
+      "nativeCue": "Einen Moment, Jeff. Ich hol meinen Tennisschläger.",
+      "word": "tennis",
+      "lemma": "tennis",
+      "expect": {
+        "sense": "the ball game",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "tennis"
+        ],
+        "reject": [
+          "tennisschläger",
+          "schläger"
+        ],
+        "plural": [
+          "none"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c9-racket",
+      "cueIndex": 9,
+      "cue": "Just a minute, Jeff.\nI'll get my tennis racket.",
+      "nativeCue": "Einen Moment, Jeff. Ich hol meinen Tennisschläger.",
+      "word": "racket",
+      "lemma": "racket",
+      "expect": {
+        "sense": "bat with strings used in tennis",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "schläger",
+          "tennisschläger"
+        ],
+        "reject": [
+          "lärm",
+          "krach",
+          "betrug",
+          "schwindel",
+          "gaunerei"
+        ],
+        "plural": [
+          "rackets"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c12-sale",
+      "cueIndex": 12,
+      "cue": "on Friday to fix up\nthat scavenger sale?",
+      "nativeCue": "Am Freitag, um den Schnitzelverkauf zu regeln?",
+      "word": "sale",
+      "lemma": "sale",
+      "expect": {
+        "sense": "event at which collected things are sold",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "verkauf",
+          "basar",
+          "flohmarkt",
+          "trödelmarkt",
+          "wohltätigkeitsbasar",
+          "trödelverkauf"
+        ],
+        "reject": [
+          "angebot",
+          "rabatt",
+          "schlussverkauf",
+          "ausverkauf",
+          "sonderangebot"
+        ],
+        "plural": [
+          "sales"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c12-scavenger",
+      "cueIndex": 12,
+      "cue": "on Friday to fix up\nthat scavenger sale?",
+      "nativeCue": "Am Freitag, um den Schnitzelverkauf zu regeln?",
+      "word": "scavenger",
+      "lemma": "scavenger",
+      "expect": {
+        "sense": "person who collects discarded things (here attributive: a sale of collected items)",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "altwarensammler",
+          "lumpensammler",
+          "trödelsammler",
+          "sammler",
+          "schrottsammler",
+          "trödler",
+          "plünderer"
+        ],
+        "reject": [
+          "aasfresser"
+        ],
+        "plural": [
+          "scavengers"
+        ],
+        "ambiguous": true,
+        "note": "needs human confirmation (plan H6)"
+      }
+    },
+    {
+      "id": "c22-swell",
+      "cueIndex": 22,
+      "cue": "Well, Kay's a swell girl.",
+      "nativeCue": "Nun, Kay ist toll.",
+      "word": "swell",
+      "lemma": "swell",
+      "expect": {
+        "sense": "(dated, informal) excellent, very nice",
+        "pos": [
+          "adjective"
+        ],
+        "accept": [
+          "toll",
+          "prima",
+          "klasse",
+          "super",
+          "großartig",
+          "spitze",
+          "nett",
+          "famos"
+        ],
+        "reject": [
+          "anschwellen",
+          "schwellen",
+          "welle",
+          "dünung",
+          "frau",
+          "eine tolle frau"
+        ],
+        "comparative": [
+          "sweller",
+          "more swell"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c25-wagon",
+      "cueIndex": 25,
+      "cue": "Good picture, wagon train.",
+      "nativeCue": "Gutes Bild, Wagenzug.",
+      "word": "wagon",
+      "lemma": "wagon",
+      "expect": {
+        "sense": "horse-drawn vehicle (as in a western's wagon train)",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "wagen",
+          "planwagen",
+          "pferdewagen",
+          "fuhrwerk",
+          "treckwagen"
+        ],
+        "reject": [
+          "waggon",
+          "eisenbahnwagen",
+          "güterwagen",
+          "kombi"
+        ],
+        "plural": [
+          "wagons"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c42-sal",
+      "cueIndex": 42,
+      "cue": "the scavenger sal.",
+      "nativeCue": "Das Aasfresser Sal.",
+      "word": "sal",
+      "lemma": "sal",
+      "asr": 0.158,
+      "expect": {
+        "excluded": true,
+        "why": "ASR error for \"sale\" (Transcribe confidence 0.158; one-off near-spelling of \"sale\" after \"scavenger\")"
+      }
+    },
+    {
+      "id": "c66-old-timer",
+      "cueIndex": 66,
+      "cue": "that is an old-timer.",
+      "nativeCue": "Das ist ein Oldtimer.",
+      "word": "old-timer",
+      "lemma": "old-timer",
+      "expect": {
+        "sense": "something very old (here an old object)",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "altes ding",
+          "uraltes ding",
+          "altes stück",
+          "uraltes stück",
+          "oldtimer",
+          "antiquität",
+          "altertümchen",
+          "alter schinken"
+        ],
+        "reject": [
+          "erfahrener mensch",
+          "veteran",
+          "alter hase",
+          "alter mann"
+        ],
+        "plural": [
+          "old-timers"
+        ],
+        "ambiguous": true,
+        "note": "needs human confirmation (plan H6)"
+      }
+    },
+    {
+      "id": "c78-refreshments",
+      "cueIndex": 78,
+      "cue": "OK, how about helping with\nrefreshments for the game?",
+      "nativeCue": "OK, wie wär's mit Erfrischungen für das Spiel?",
+      "word": "refreshments",
+      "lemma": "refreshment",
+      "expect": {
+        "sense": "light food and drinks",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "erfrischungen",
+          "erfrischung",
+          "snacks",
+          "imbiss",
+          "verpflegung",
+          "getränke und snacks",
+          "snacks und getränke"
+        ],
+        "reject": [],
+        "plural": [
+          "refreshments"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c81-tacks",
+      "cueIndex": 81,
+      "cue": "Got any more tacks?",
+      "nativeCue": "Hast du mehr Tipps?",
+      "word": "tacks",
+      "lemma": "tack",
+      "expect": {
+        "sense": "short pin for fixing paper to a board",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "reißzwecken",
+          "reißzwecke",
+          "reißnägel",
+          "reißnagel",
+          "heftzwecken",
+          "heftzwecke",
+          "pinnnadeln",
+          "pinnnadel",
+          "stifte"
+        ],
+        "reject": [
+          "heftklammern",
+          "tipps",
+          "mehr heftklammern",
+          "nägel"
+        ],
+        "plural": [
+          "tacks"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c87-activities",
+      "cueIndex": 87,
+      "cue": "A list of coming activities.",
+      "nativeCue": "Liste kommender Aktivitäten.",
+      "word": "activities",
+      "lemma": "activity",
+      "expect": {
+        "sense": "things people do for fun",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "aktivitäten",
+          "aktivität",
+          "unternehmungen",
+          "veranstaltungen",
+          "freizeitaktivitäten"
+        ],
+        "reject": [
+          "kommende aktivitäten"
+        ],
+        "plural": [
+          "activities"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c90-acquainted",
+      "cueIndex": 90,
+      "cue": "A chance to do things with\na group, to get acquainted.",
+      "nativeCue": "Eine Chance, sich mit einer Gruppe kennen zu lernen.",
+      "word": "acquainted",
+      "lemma": "acquaint",
+      "expect": {
+        "sense": "(get acquainted) to get to know each other",
+        "pos": [
+          "verb",
+          "adjective"
+        ],
+        "accept": [
+          "kennenlernen",
+          "sich kennenlernen",
+          "bekannt",
+          "miteinander bekannt",
+          "vertraut",
+          "bekannt werden"
+        ],
+        "reject": [
+          "mit etwas vertraut machen"
+        ],
+        "past": [
+          "acquainted"
+        ],
+        "participle": [
+          "acquainted"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c93-roast",
+      "cueIndex": 93,
+      "cue": "Or a weenie roast.",
+      "nativeCue": "Oder ein Braten.",
+      "word": "roast",
+      "lemma": "roast",
+      "expect": {
+        "sense": "outdoor party where food is cooked over a fire",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "grillfest",
+          "grillparty",
+          "grillabend",
+          "lagerfeuer",
+          "grillen",
+          "cookout"
+        ],
+        "reject": [
+          "braten",
+          "rösten",
+          "wurstbraten"
+        ],
+        "plural": [
+          "roasts"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c93-weenie",
+      "cueIndex": 93,
+      "cue": "Or a weenie roast.",
+      "nativeCue": "Oder ein Braten.",
+      "word": "weenie",
+      "lemma": "weenie",
+      "expect": {
+        "sense": "(informal) a hot-dog sausage",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "würstchen",
+          "wiener",
+          "wiener würstchen",
+          "würstel",
+          "hotdog-würstchen",
+          "bockwurst"
+        ],
+        "reject": [],
+        "plural": [
+          "weenies"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c95-expense",
+      "cueIndex": 95,
+      "cue": "together. Not much arranging\nneeded, not much expense,",
+      "nativeCue": "zusammen. Nicht viel Arrangement, nicht viel Geld,",
+      "word": "expense",
+      "lemma": "expense",
+      "expect": {
+        "sense": "money spent",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "kosten",
+          "ausgaben",
+          "aufwand",
+          "ausgabe"
+        ],
+        "reject": [
+          "nicht viel"
+        ],
+        "plural": [
+          "expenses"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c98-baseball",
+      "cueIndex": 98,
+      "cue": "Wonder if she'd like to\ngo to a baseball game.",
+      "nativeCue": "Ob sie gern zu einem Baseballspiel geht?",
+      "word": "baseball",
+      "lemma": "baseball",
+      "expect": {
+        "sense": "the ball game",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "baseball"
+        ],
+        "reject": [
+          "baseballspiel",
+          "baseball-spiel"
+        ],
+        "plural": [
+          "none"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c99-comfortably",
+      "cueIndex": 99,
+      "cue": "A date that's not too involved, one\nyou can carry through comfortably.",
+      "nativeCue": "Ein nicht zu aufwändiger Termin,\nden du bequem durchziehen kannst.",
+      "word": "comfortably",
+      "lemma": "comfortably",
+      "expect": {
+        "sense": "easily, without strain",
+        "pos": [
+          "adverb"
+        ],
+        "accept": [
+          "bequem",
+          "gemütlich",
+          "mühelos",
+          "problemlos",
+          "entspannt",
+          "ohne mühe",
+          "gut"
+        ],
+        "reject": [],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c101-inexpensive",
+      "cueIndex": 101,
+      "cue": "inexpensive dates, most of them.",
+      "nativeCue": "Preiswerte Termine, die meisten.",
+      "word": "inexpensive",
+      "lemma": "inexpensive",
+      "expect": {
+        "sense": "not costing much",
+        "pos": [
+          "adjective"
+        ],
+        "accept": [
+          "preiswert",
+          "günstig",
+          "billig",
+          "preisgünstig",
+          "kostengünstig"
+        ],
+        "reject": [
+          "teuer"
+        ],
+        "comparative": [
+          "more inexpensive"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c111-loafer",
+      "cueIndex": 111,
+      "cue": "you loafer. What are you doing",
+      "nativeCue": "du Loafer. Was machst du",
+      "word": "loafer",
+      "lemma": "loafer",
+      "expect": {
+        "sense": "a lazy person (addressed to a boy)",
+        "pos": [
+          "noun"
+        ],
+        "accept": [
+          "faulenzer",
+          "faulpelz",
+          "nichtstuer",
+          "drückeberger",
+          "tagedieb",
+          "müßiggänger"
+        ],
+        "reject": [
+          "halbschuh",
+          "slipper",
+          "mokassin",
+          "faulenzerin"
+        ],
+        "plural": [
+          "loafers"
+        ],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "c115-supervise",
+      "cueIndex": 115,
+      "cue": "As soon as Kay isn't around to\nsupervise, you go off on a vacation.",
+      "nativeCue": "Sobald Kay nicht da ist, um zu\nbeaufsichtigen, gehst du in Urlaub.",
+      "word": "supervise",
+      "lemma": "supervise",
+      "expect": {
+        "sense": "to watch over and direct",
+        "pos": [
+          "verb"
+        ],
+        "accept": [
+          "beaufsichtigen",
+          "überwachen",
+          "aufpassen",
+          "kontrollieren",
+          "aufsicht führen"
+        ],
+        "reject": [],
+        "past": [
+          "supervised"
+        ],
+        "participle": [
+          "supervised"
+        ],
+        "ambiguous": false
+      }
+    }
+  ]
+}
