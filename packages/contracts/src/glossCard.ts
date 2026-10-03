@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { Lang } from './base'
 import { FUNCTION_WORDS, GERMAN_IRREGULAR_COMPARATIVES, INVARIANT_NOUNS, IRREGULAR_COMPARATIVES, IRREGULAR_PLURALS, irregularVerb, STOPWORDS } from './lexicon'
-import { boundedLine, countWords, EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MAX_CHARS, GLOSS_MAX_WORDS, sameStem, wordsOf } from './text'
+import { boundedLine, countWords, EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MAX_CHARS, GLOSS_MAX_WORDS, normGloss, sameStem, wordsOf } from './text'
 
 /**
  * Gloss card v3 (docs/plans/LING-002-gate-c.md §3–4, docs/decisions/0009 decisions 3–4): what Nova returns for one highlight. Code
@@ -221,4 +221,31 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   if (ctx.lang === 'en') issues.push(...englishFormIssues(c, ctx))
   else issues.push(...germanFormIssues(c, ctx))
   return issues
+}
+
+/**
+ * Two gloss lists overlap when a gloss of one equals a gloss of the other after normGloss (lowercase, parentheses and articles removed), or
+ * a word of one is a compound that contains a whole word (≥ 5 letters) of the other: Tennisschläger ⊃ Schläger.
+ */
+export function glossesOverlap(a: string[], b: string[]): boolean {
+  const na = a.map(normGloss).filter(Boolean), nb = b.map(normGloss).filter(Boolean)
+  if (na.some((x) => nb.includes(x))) return true
+  const wa = na.flatMap((g) => g.split(' ')), wb = nb.flatMap((g) => g.split(' '))
+  const contains = (outer: string[], inner: string[]) => inner.some((w) => w.length >= 5 && outer.some((o) => o !== w && o.includes(w)))
+  return contains(wa, wb) || contains(wb, wa)
+}
+
+export interface SiblingGloss { cueIndex: number; lemma: string; /** undefined = not an accepted card (never in conflict) */ gloss?: string[] }
+
+/** LING-002-gate-c §5: pairs [i, j] (i < j) of accepted items in the same cue, with different lemmas, whose glosses overlap. */
+export function siblingConflicts(items: SiblingGloss[]): Array<[number, number]> {
+  const out: Array<[number, number]> = []
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i]!, b = items[j]!
+      if (!a.gloss || !b.gloss || a.cueIndex !== b.cueIndex || a.lemma.toLowerCase() === b.lemma.toLowerCase()) continue
+      if (glossesOverlap(a.gloss, b.gloss)) out.push([i, j])
+    }
+  }
+  return out
 }

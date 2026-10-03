@@ -11,7 +11,8 @@ import { isName, loadNames, rankOf } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
 import { tokenizeCues } from './tokenize'
 import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
-import { AiSchemaError, createAi } from './ai/index'
+import { createAi } from './ai/index'
+import { glossClip } from './ai/glossClip'
 import { normalize, probeMezz } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
@@ -145,12 +146,13 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const highlights: PreparedHighlight[] = []
   let quiz: PreparedQuizItem[] | undefined
   if (doAi) {
+    const results = await glossClip(deps, picked.map((h) => ({ cueIndex: h.cueIndex, word: h.word, lemma: h.lemma, rank: h.rank, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!] })), lang, natives[0]!, level, (m) => deps.log(m))
     const glossed: Array<PreparedHighlight & { gloss: string }> = []
-    for (const h of picked) {
-      const r = await deps.gloss({ word: h.word, lemma: h.lemma, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!], lang, native: natives[0]!, level })
-      if (r.status === 'rejected') throw new AiSchemaError('gloss', r.issues, r.lastOutput)
-      glossed.push({ ...h, ...r.gloss })
-    }
+    results.forEach((r, i) => {
+      // a wrong explanation on screen is worse than one highlight fewer (docs/decisions/0009 decision 6)
+      if (r.status === 'ok' || r.status === 'soft') glossed.push({ ...picked[i]!, ...r.gloss })
+      else warnings.push(`gloss: dropped highlight "${r.word}" (cue ${r.cueIndex}): ${r.status} ${r.issues.join('; ')}`)
+    })
     highlights.push(...glossed)
     quiz = (await deps.quiz(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '', highlights: glossed.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), lang, natives[0]!)).items
   } else highlights.push(...picked)
