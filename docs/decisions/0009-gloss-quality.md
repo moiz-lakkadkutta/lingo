@@ -82,5 +82,41 @@ facts measured on that clip:
 
 ## Eval results
 
-To be filled by the implementer after plan §10 step 3: one row per configuration (model, reasoning, prompt version, passed/19, reject hits,
-quiz auto-checks, USD), then the chosen default.
+English gold set `eval/gold/en-de.what-to-do-on-a-date-1950.json` (19 scored items, `sal` excluded), run 2026-10-03 with
+`pnpm --filter @lingo/pipeline eval:gloss --quiz`, us-east-1, no cache. Bar (plan §9.4): ≥ 18/19, 0 reject hits, `sal` excluded, all quiz
+auto-checks true. USD = one run (19 gloss items with retries and sibling re-asks, plus one quiz call), i.e. about one clip; prices unverified (H4).
+
+| model | reasoning | gloss prompt | passed | reject hits | first try | `sal` excluded | quiz auto-checks | USD |
+|---|---|---|---|---|---|---|---|---|
+| Nova Lite v1 | – | v3 | 8/19 | 4 | 15/19 | yes | 4/5 | 0.0026 |
+| Nova 2 Lite | off | v3 | 11/19 | 1 | 16/19 | yes | 4/5 | 0.0215 |
+| Nova Lite v1 | – | v4 | 12/19 | 3 | 13/19 | yes | 4/5 | 0.0031 |
+| Nova 2 Lite | off | v4 | 13/19 | 1 | 16/19 | yes | 4/5 | 0.0218 |
+| Nova 2 Lite | low | v4 | 14/19 | 1 | 17/19 | yes | 4/5 | 0.0621 |
+| Nova Pro v1 | – | v4 | 15/19 | 1 | 16/19 | yes | 4/5 | 0.0346 |
+| Nova Lite v1 | – | v5 | 11/19 | 3 | 12/19 | yes | 4/5 | 0.0032 |
+| Nova 2 Lite | off | v5 | 12/19 | 1 | 16/19 | yes | 4/5 | 0.0205 |
+| Nova 2 Lite | low | v5 | 14/19 | 0 | 18/19 | yes | 4/5 | 0.0621 |
+| **Nova Pro v1** | – | **v5** | **16/19** | 1 | 16/19 | yes | 4/5 | 0.0350 |
+
+v3 = the plan's prompt with the plan's validators. Between v3 and v4 the validators gained G-COMPOUND (a gloss compounded from a word of
+the line: "Tennisschläger" for tennis, "Baseballspiel") and F-MISSING-en (a noun/verb/adjective card must carry its forms), and the card's
+`sense` may run to 20 words (Lite v1 had three good cards rejected twice for a 13-word sense). v4 prompt: decide the referent first, real
+and correctly spelled words, all forms of the pos. v5: a second gloss only if it means exactly the same here; plural "in this sense"
+("none" for a sport). The only failing quiz check in every run is Q-PASSING-GLOSSES (an option comes from a card that fails S-SENSE),
+i.e. a consequence of the gloss failures, not of the quiz code.
+
+Mechanics confirmed on Bedrock: Nova Lite v1 accepts `enum` in the tool input schema (no fallback needed); Nova 2 Lite with
+`reasoningConfig` works with `toolChoice: { any: {} }` (the code never sends a forced `tool` choice together with reasoning).
+
+Remaining failures of the best configuration (Pro v1, v5): `sale` → "Verkauf, Ausverkauf" (second gloss is a clearance sale, a reject),
+`old-timer` → "Alter, Senior" (person sense; the line alone, "that is an old-timer.", cannot tell, the thing is named in the previous
+cue), `roast` → "Bratparty" (not a German word). Failures common to all models: `old-timer` (every model picks the person sense), `sale`
+(Ausverkauf), and on the Lite models `tacks` (Nägel/Nadeln), `weenie` (Nova 2 Lite: "Wurstchen" without umlaut), `loafer` (invented words
+"Faulenz", "Faulenzerr").
+
+**No configuration meets the bar; two prompt iterations are spent (ORCHESTRATOR §3.4), so this goes back to the human.** Per H1 the default
+stays Nova Lite v1. The measurement favours Nova Pro v1 (16/19, ≈ $0.035 per clip, ≈ 13× Lite v1, still cents), then Nova 2 Lite
+reasoning low (14/19, 0 reject hits, ≈ $0.062 per clip). Nova 2 Lite with reasoning off (12–13/19) does not justify replacing Lite v1 on
+its own. The largest single remaining gap is sense selection that needs the neighbouring cue (`old-timer`); sending the previous cue as
+context is the next candidate change (not in this plan).
