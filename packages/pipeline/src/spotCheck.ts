@@ -1,16 +1,18 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { PreparedClip, type Lang, type Pos, type PreparedCost, type PreparedQuizItem } from '@lingo/contracts'
+import { PreparedClip, type GlossCard, type Lang, type PreparedCost, type PreparedQuizItem } from '@lingo/contracts'
+import { glossClip, quizInput, type ClipGlossResult } from './ai/glossClip'
 import { createAi, type Ai, type AiOptions } from './ai/index'
 import { loadFreqList, rankFn } from './freq'
 import { NEXT, pickHighlights } from './highlights'
 import { asrSuspects, MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
 
 /**
- * LING-002 §8: the 30-item quality check. Glosses each clip's highlights (then wider-band words until `perClip` rows), builds the quiz
- * from the clip highlights, and writes a rubric sheet with blank score columns for the reviewer. Works on a `--no-ai` clip.json:
+ * LING-002 §8 (as amended by LING-002-gate-c §7): the Gate C quality check. Glosses every clip highlight (then wider-band words while fewer
+ * than `perClip` rows), builds the quiz from the status-ok clip highlights, and writes a rubric sheet with blank score columns for the reviewer. Works on a `--no-ai` clip.json:
  * glosses and quiz are generated here through createAi() (and its cache), never read from the file.
  */
+/** The minimum number of rows per clip (every clip highlight is always a row). */
 export const DEFAULT_PER_CLIP = 15
 
 export interface SpotCandidate { cueIndex: number; cue: string; word: string; lemma: string; rank: number; fromClip: boolean }
@@ -42,16 +44,33 @@ export function spotCheckCandidates(clip: PreparedClip, rank: (lemma: string) =>
   return out
 }
 
-export interface SpotGlossRow { cueIndex: number; cue: string; word: string; lemma: string; rank: number; gloss: string; grammar: string; example: string; cached: boolean }
+export interface SpotGlossRow {
+  cueIndex: number; cue: string; word: string; lemma: string; rank: number
+  /** ok / soft / rejected / conflict (glossClip) */
+  status: ClipGlossResult['status']
+  /** the model's definition, so the reviewer sees the sense it chose */
+  sense: string
+  gloss: string; grammar: string; example: string
+  /** validator / sibling issues (soft issues on a soft row) */
+  issues: string[]
+  /** the raw card, when there is one */
+  card?: GlossCard
+  fromClip: boolean; cached: boolean
+}
 export interface SpotCheckResult {
   slug: string; sourceLang: Lang; native: string; level: PreparedClip['level']; perClip: number
   /** candidates found (< perClip means the clip ran out of words; the markdown says so) */
   available: number
   glosses: SpotGlossRow[]; quiz: PreparedQuizItem[]; cost: PreparedCost
   files: { json: string; markdown: string }
+  /** the section just rendered (never earlier sections of an --append file) */
+  markdown: string
+  /** the one-line summary (also logged) */
+  summary: string
 }
 export interface SpotCheckOptions {
   clipJson: string
+  /** minimum number of rows: every clip highlight is a row, widened with other words while fewer than perClip */
   perClip?: number
   /** markdown sheet; default work/spot-check.md */
   out?: string
@@ -66,6 +85,17 @@ export interface SpotCheckOptions {
   log?: (m: string) => void
 }
 
+const toRow = (r: ClipGlossResult, fromClip: boolean): SpotGlossRow => {
+  const card = r.card
+  const base = { cueIndex: r.cueIndex, cue: r.cue, word: r.word, lemma: r.lemma, rank: r.rank, status: r.status, sense: card?.sense ?? '', issues: r.issues, ...(card ? { card } : {}), fromClip, cached: r.cached }
+  if (r.status === 'ok' || r.status === 'soft') return { ...base, ...r.gloss }
+  return { ...base, gloss: card ? card.gloss.join(', ') : '', grammar: '', example: card?.example ?? '' }
+}
+
+/**
+ * LING-002-gate-c §7: rows = every clip highlight (after the ASR filter) and, while fewer than perClip, widened candidates; glossed through
+ * glossClip (as prepare does); the quiz is built from the status-ok clip-highlight rows only, through the same quizInput() as prepare.
+ */
 export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult> {
   const log = o.log ?? ((m: string) => console.log(m))
   const perClip = o.perClip ?? DEFAULT_PER_CLIP
@@ -75,57 +105,62 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const rank = rankFn(o.freqList ?? (await loadFreqList(clip.sourceLang)))
   const candidates = spotCheckCandidates(clip, rank, perClip)
 
-  // gloss every candidate (all clip highlights are needed for the quiz even when perClip is smaller)
-  const glossed: SpotGlossRow[] = []
-  const quizzable = new Map<SpotGlossRow, { lemma: string; pos: Pos; gloss: string }>()
-  for (const c of candidates) {
-    const before = ai.cost().cachedCalls
-    const r = await ai.gloss({ word: c.word, lemma: c.lemma, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], lang: clip.sourceLang, native, level: clip.level })
-    // a twice-rejected answer is a result to score (it fails), not a reason to abort the sheet
-    const g = r.status === 'rejected' ? { gloss: `REJECTED: ${r.issues.join('; ')}`, grammar: JSON.stringify(r.lastOutput), example: '' } : r.gloss
-    const row = { cueIndex: c.cueIndex, cue: c.cue, word: c.word, lemma: c.lemma, rank: c.rank, ...g, cached: ai.cost().cachedCalls > before }
-    if (r.status === 'ok') quizzable.set(row, { lemma: c.lemma, pos: r.card.pos, gloss: r.card.gloss[0]! })
-    glossed.push(row)
-  }
+  const results = await glossClip(ai, candidates.map((c) => ({ cueIndex: c.cueIndex, word: c.word, lemma: c.lemma, rank: c.rank, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native] })),
+    clip.sourceLang, native, clip.level, log)
+  const glosses = results.map((r, i) => toRow(r, candidates[i]!.fromClip))
 
-  // quiz over the clip highlights only, as prepare() would build it; a REJECTED row has no gloss to offer as an option
-  const fromClip = glossed.slice(0, clip.highlights.length).filter((g) => quizzable.has(g))
-  const quiz = (await ai.quiz(clip.cues.map((cue) => ({
-    index: cue.index, text: cue.text, native: cue.native[native] ?? '',
-    highlights: fromClip.filter((g) => g.cueIndex === cue.index).map((g) => ({ word: g.word, ...quizzable.get(g)! })),
-  })), clip.sourceLang, native)).items
+  const fromClip = results.filter((_, i) => candidates[i]!.fromClip)
+  const quiz = (await ai.quiz(quizInput(clip.cues.map((c) => ({ index: c.index, text: c.text, native: c.native[native] ?? '' })), fromClip), clip.sourceLang, native)).items
 
-  const result: SpotCheckResult = {
-    slug: clip.slug, sourceLang: clip.sourceLang, native, level: clip.level, perClip, available: candidates.length,
-    glosses: glossed.slice(0, perClip), quiz, cost: ai.cost(),
-    files: { json: join(dirname(o.clipJson), o.jsonFile ?? 'spot-check.json'), markdown: o.out ?? join('work', 'spot-check.md') },
-  }
-  const { slug, level, glosses, cost } = result
-  await writeFile(result.files.json, JSON.stringify({ slug, sourceLang: clip.sourceLang, native, level, glosses, quiz, cost }, null, 2) + '\n')
-  const md = renderSpotCheckMarkdown(result, clip)
-  await mkdir(dirname(result.files.markdown), { recursive: true })
-  await (o.append ? appendFile(result.files.markdown, `\n${md}`) : writeFile(result.files.markdown, md))
-  log(`spot-check ${slug}: ${glosses.length} glosses, ${quiz.length} quiz items, $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${result.files.markdown}`)
-  return result
+  const files = { json: join(dirname(o.clipJson), o.jsonFile ?? 'spot-check.json'), markdown: o.out ?? join('work', 'spot-check.md') }
+  const partial = { slug: clip.slug, sourceLang: clip.sourceLang, native, level: clip.level, perClip, available: candidates.length, glosses, quiz, cost: ai.cost(), files }
+  const { slug, level, cost } = partial
+  await writeFile(files.json, JSON.stringify({ slug, sourceLang: clip.sourceLang, native, level, glosses, quiz, cost }, null, 2) + '\n')
+  const markdown = renderSpotCheckMarkdown(partial, clip)
+  await mkdir(dirname(files.markdown), { recursive: true })
+  await (o.append ? appendFile(files.markdown, `\n${markdown}`) : writeFile(files.markdown, markdown))
+  const counts = Object.entries(glosses.reduce<Record<string, number>>((a, g) => ({ ...a, [g.status]: (a[g.status] ?? 0) + 1 }), {})).map(([k, v]) => `${v} ${k}`).join(', ')
+  const summary = `spot-check ${slug}: ${glosses.length} glosses (${counts}), ${quiz.length} quiz items, $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${files.markdown}`
+  log(summary)
+  return { ...partial, markdown, summary }
 }
 
 const cell = (s: string) => s.replace(/\s*\n\s*/g, ' ').replace(/\|/g, '\\|').trim()
 
-/** §8.2 layout; score columns left blank for the reviewer. */
-export function renderSpotCheckMarkdown(r: SpotCheckResult, clip: PreparedClip): string {
+/** §8.2 layout as amended by LING-002-gate-c §7 (status and sense columns); score columns left blank for the reviewer. */
+export function renderSpotCheckMarkdown(r: Omit<SpotCheckResult, 'markdown' | 'summary'>, clip: PreparedClip): string {
+  const own = r.glosses.filter((g) => g.fromClip).length
   const lines = [
-    `## ${r.slug} · ${r.sourceLang} → ${r.native} · level ${r.level} · ${r.glosses.length} glosses · ${r.quiz.length} quiz items · $${r.cost.usd.toFixed(4)} (${r.cost.calls} calls, ${r.cost.cachedCalls} cached)`,
+    `## ${r.slug} · ${r.sourceLang} → ${r.native} · level ${r.level} · ${r.glosses.length} glosses (${own} highlights + ${r.glosses.length - own} widened) · ${r.quiz.length} quiz items · $${r.cost.usd.toFixed(4)} (${r.cost.calls} calls, ${r.cost.cachedCalls} cached)`,
     '',
   ]
   if (r.available < r.perClip) lines.push(`Only ${r.available} candidate words in this clip (wanted ${r.perClip}).`, '')
-  lines.push('| # | cue | word · lemma (rank) | gloss | grammar | example | G1 | G2 | G3 | G4 | G5 | pass |', '|---|---|---|---|---|---|---|---|---|---|---|---|')
-  r.glosses.forEach((g, i) => lines.push(`| ${i + 1} | ${cell(g.cue)} | ${cell(g.word)} · ${cell(g.lemma)} (${g.rank}) | ${cell(g.gloss)} | ${cell(g.grammar)} | ${cell(g.example)} |  |  |  |  |  |  |`))
+  lines.push('| # | cue | word · lemma (rank) | status | sense | gloss | grammar | example | G1 | G2 | G3 | G4 | G5 | pass |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+  r.glosses.forEach((g, i) => {
+    const status = g.status === 'ok' ? 'ok' : `${g.status}: ${g.issues.join('; ')}`
+    lines.push(`| ${i + 1} | ${cell(g.cue)} | ${cell(g.word)} · ${cell(g.lemma)} (${g.rank}) | ${cell(status)} | ${cell(g.sense)} | ${cell(g.gloss)} | ${cell(g.grammar)} | ${cell(g.example)} |  |  |  |  |  |  |`)
+  })
   lines.push('', '### Quiz', '', '| # | kind | prompt | options (answer marked *) | cue | Q1 | Q2 | Q3 | pass |', '|---|---|---|---|---|---|---|---|---|')
   r.quiz.forEach((q, i) => {
     const options = q.options.map((o, j) => (j === q.answer ? `*${cell(o)}` : cell(o))).join(' / ')
     const cue = q.cueIndex === null ? '' : cell(clip.cues[q.cueIndex]?.text ?? '')
     lines.push(`| ${i + 1} | ${q.kind} | ${cell(q.prompt)} | ${options} | ${cue} |  |  |  |  |`)
   })
-  if (!r.quiz.length) lines.push('', 'No quiz: fewer than 4 highlights in this clip.')
+  if (!r.quiz.length) lines.push('', 'No quiz: fewer than 4 status-ok highlights in this clip.')
   return lines.join('\n') + '\n'
+}
+
+export interface SpotCheckCliOptions { clipJson: string; perClip: number; out: string; append?: boolean; echo: boolean; ai?: Ai; jsonFile?: string; freqList?: string[] }
+
+/**
+ * The `spot-check` command (cli.ts): prints only the section just written (never the whole file, F9), or with --no-echo only the summary
+ * line, and then no per-word log line either (for clips whose rows must not reach a terminal log; docs/decisions/0009 decision 8).
+ */
+export async function spotCheckCli(o: SpotCheckCliOptions, print: (s: string) => void): Promise<SpotCheckResult> {
+  const log = o.echo ? print : () => {}
+  const ai = o.ai ?? createAi({ log })
+  const r = await runSpotCheck({ clipJson: o.clipJson, perClip: o.perClip, out: o.out, append: o.append, ai, log, jsonFile: o.jsonFile, freqList: o.freqList })
+  if (o.echo) print(`\n${r.markdown}`)
+  else print(r.summary)
+  return r
 }
