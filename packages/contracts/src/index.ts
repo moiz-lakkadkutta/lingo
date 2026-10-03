@@ -4,6 +4,7 @@ export { Lang, Level } from './base'
 export * from './prepared'
 export * from './ai'
 export * from './glossCard'
+export * from './lexicon'
 export { levenshtein, normGloss, sameStem, wordsOf, countWords } from './text'
 export const ClipCard = z.object({ slug: z.string(), title: z.string(), level: Level, durationS: z.number(), posterUrl: z.string().url().nullable(), resumeS: z.number().nullable() })
 export const Catalog = z.object({ continue: z.array(ClipCard), justRight: z.array(ClipCard), harder: z.array(ClipCard), fresh: z.array(ClipCard) })
