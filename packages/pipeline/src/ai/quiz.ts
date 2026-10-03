@@ -1,27 +1,27 @@
 import type { ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
-import { QuizPlan, quizCounts, quizPlanIssues, type Lang, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
+import { distractorIssue, QuizPlan, quizCounts, quizPlanIssues, type Lang, type Pos, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
 import { cacheKey, normalizeCue, type CacheEntry } from './cache'
 import { askWithRetry, type AiDeps } from './call'
 import { languageName } from './lang'
 import { fnv1a, seededShuffle } from './seed'
 
 /** Bump whenever quizSystemPrompt() or the tool spec changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const QUIZ_PROMPT_VERSION = 1
+export const QUIZ_PROMPT_VERSION = 2 // v2: pos per highlight (LING-002 Gate C)
 export const QUIZ_TOOL = 'plan_quiz'
 
-/** = prepare.ts's call shape. */
-export type QuizCueInput = { index: number; text: string; native: string; highlights: Array<{ word: string; gloss: string }> }
+/** = prepare.ts's call shape (built by quizInput() in ./glossClip): only status-ok cards, gloss = the card's first headword. */
+export type QuizCueInput = { index: number; text: string; native: string; highlights: Array<{ word: string; lemma: string; pos: Pos; gloss: string }> }
 
-/** Flatten in cue order, dedupe by word.toLowerCase() keeping the first; id = position. */
+/** Flatten in cue order, dedupe by lemma (case-insensitive) keeping the first, so two forms of one lemma never meet; id = position. */
 export function flattenHighlights(cues: QuizCueInput[]): QuizHighlight[] {
   const out: QuizHighlight[] = []
   const seen = new Set<string>()
   for (const c of [...cues].sort((a, b) => a.index - b.index)) {
     for (const h of c.highlights) {
-      const k = h.word.toLowerCase()
+      const k = h.lemma.toLowerCase()
       if (seen.has(k)) continue
       seen.add(k)
-      out.push({ id: out.length, cueIndex: c.index, word: h.word, gloss: h.gloss, cue: c.text })
+      out.push({ id: out.length, cueIndex: c.index, word: h.word, lemma: h.lemma, pos: h.pos, gloss: h.gloss, cue: c.text })
     }
   }
   return out
@@ -32,7 +32,7 @@ export function quizSystemPrompt(lang: Lang, native: string, counts: QuizCounts)
   const T = languageName(lang), N = languageName(native)
   return [
     `You are a ${T} teacher choosing vocabulary quiz items from one video clip's subtitles for a learner who speaks ${N}.`,
-    `You receive JSON {"highlights":[{"id","word","gloss","cue"}]}: the words the learner saw highlighted, each with its ${N} gloss and the subtitle line it appeared in.`,
+    `You receive JSON {"highlights":[{"id","word","pos","gloss","cue"}]}: the words the learner saw highlighted, each with its part of speech, its ${N} gloss and the subtitle line it appeared in.`,
     `Call the tool ${QUIZ_TOOL} exactly once with "items":`,
     `- exactly ${counts.meaning} items with "kind":"meaning": the learner sees the word and picks its gloss among 4. "distractorIds" = 3 OTHER highlight ids whose glosses are plausible but clearly different in meaning (prefer the same part of speech; never a synonym of the correct gloss).`,
     `- exactly ${counts.cloze} items with "kind":"cloze": the learner sees the line with the word blanked and picks the word among 4. "distractorIds" = 3 OTHER highlight ids whose words would fit the line grammatically but not in meaning (prefer the same part of speech; never a word that also makes the line true).`,
@@ -82,7 +82,10 @@ export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, n
     const field = it.kind === 'meaning' ? 'gloss' : 'word'
     const correct = h[field]
     const options = seededShuffle([correct, ...it.distractorIds.map((id) => H[id]![field])], fnv1a(`${lang}|${native}|${it.kind}|${h.cueIndex}|${h.word}`))
-    return { kind: it.kind, prompt: it.kind === 'meaning' ? h.word : clozePrompt(h.cue, h.word), options, answer: options.indexOf(correct), cueIndex: h.cueIndex }
+    const answer = options.indexOf(correct)
+    // invariant: the answer is the highlight's own gloss/word, never a sibling's
+    if (answer < 0 || options[answer] !== H[it.highlightId]![field]) throw new Error(`answer invariant broken for ${it.kind} item "${h.word}"`)
+    return { kind: it.kind, prompt: it.kind === 'meaning' ? h.word : clozePrompt(h.cue, h.word), options, answer, cueIndex: h.cueIndex }
   }
   const out: PreparedQuizItem[] = []
   for (const it of [...plan.items.filter((i) => i.kind === 'meaning'), ...plan.items.filter((i) => i.kind === 'cloze')]) {
@@ -94,7 +97,8 @@ export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, n
 
 /**
  * Deterministic plan: meaning = H[0..counts.meaning), cloze = H[0..counts.cloze); distractors for H[i] = the next ids cyclically,
- * skipping any whose gloss (meaning) / word (cloze) duplicates one already chosen or the correct one; an item that cannot reach 3 is dropped.
+ * skipping any whose gloss (meaning) / word (cloze) duplicates one already chosen or the correct one, or that breaks a distractor rule
+ * (distractorIssue); an item that cannot reach 3 is dropped.
  */
 export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts): QuizPlan {
   const items: QuizPlanItem[] = []
@@ -106,7 +110,7 @@ export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts): QuizPlan {
       for (let step = 1; step < H.length && distractorIds.length < 3; step++) {
         const j = (i + step) % H.length
         const k = key(H[j]!)
-        if (seen.has(k)) continue
+        if (seen.has(k) || distractorIssue(kind, H[i]!, H[j]!)) continue
         seen.add(k)
         distractorIds.push(j)
       }
@@ -130,7 +134,7 @@ export function makeQuiz(d: QuizDeps): QuizFn {
     const H = flattenHighlights(cues)
     const counts = quizCounts(H.length)
     if (counts.meaning === 0) { d.log(`quiz: skipped, ${H.length} highlights < 4`); return { items: [] } }
-    const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, lang, native, highlights: H.map((h) => [h.cueIndex, h.word, h.gloss, normalizeCue(h.cue)]) }
+    const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, highlights: H.map((h) => [h.cueIndex, h.word, h.lemma, h.pos, h.gloss, normalizeCue(h.cue)]) }
     const key = cacheKey(identity)
     const check = (p: QuizPlan) => quizPlanIssues(p, H, counts)
     let plan: QuizPlan | undefined
@@ -144,7 +148,7 @@ export function makeQuiz(d: QuizDeps): QuizFn {
       try {
         const r = await askWithRetry(d, {
           kind: 'quiz', label: 'clip', system: quizSystemPrompt(lang, native, counts),
-          payload: { highlights: H.map((h) => ({ id: h.id, word: h.word, gloss: h.gloss, cue: normalizeCue(h.cue) })) },
+          payload: { highlights: H.map((h) => ({ id: h.id, word: h.word, pos: h.pos, gloss: h.gloss, cue: normalizeCue(h.cue) })) },
           toolName: QUIZ_TOOL, toolConfig: quizToolConfig(), maxTokens: 1500, schema: QuizPlan, check,
         })
         if (r.ok) {

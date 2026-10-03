@@ -12,7 +12,7 @@ import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
 import { tokenizeCues } from './tokenize'
 import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
 import { createAi } from './ai/index'
-import { glossClip } from './ai/glossClip'
+import { glossClip, quizInput } from './ai/glossClip'
 import { normalize, probeMezz } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
@@ -154,7 +154,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
       else warnings.push(`gloss: dropped highlight "${r.word}" (cue ${r.cueIndex}): ${r.status} ${r.issues.join('; ')}`)
     })
     highlights.push(...glossed)
-    quiz = (await deps.quiz(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '', highlights: glossed.filter((g) => g.cueIndex === s.index).map((g) => ({ word: g.word, gloss: g.gloss })) })), lang, natives[0]!)).items
+    quiz = (await deps.quiz(quizInput(segs.map((s) => ({ index: s.index, text: s.text, native: native[s.index]![natives[0]!] ?? '' })), results), lang, natives[0]!)).items
   } else highlights.push(...picked)
   mark(`highlights: ${highlights.length}${doAi ? `, glossed, ${quiz?.length ?? 0} quiz items` : ''}`)
   // 7. VTT files: the target VTT is already on disk (step 3) and its findings fail the clip; native findings (2 × 56, 26 cps) are warnings

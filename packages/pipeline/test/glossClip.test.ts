@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { glossesOverlap, siblingConflicts, type GlossCard } from '@lingo/contracts'
-import { glossClip, type ClipGlossItem } from '../src/ai/glossClip'
+import { glossClip, quizInput, type ClipGlossItem, type ClipGlossResult } from '../src/ai/glossClip'
 import type { GlossOutcome, GlossRequest } from '../src/ai/gloss'
 import { prepare } from '../src/prepare'
 import { fixtureDeps } from '../src/fixtureDeps'
@@ -108,5 +108,26 @@ describe('prepare with glossClip', () => {
     let first = true
     d.gloss = async (r) => { if (first) { first = false; return { status: 'rejected', issues: ['X-LANG: wrong'], lastOutput: null, attempts: 2, cached: false } } return orig(r) }
     await expect(prepare({ slug: 'gc-nothrow', source: 's3://unused', lang: 'de', natives: ['en'], workRoot, publish: false }, d)).resolves.toBeDefined()
+  })
+})
+
+describe('quizInput (shared by prepare and the spot check)', () => {
+  const base = { cue: 'Or a weenie roast.', rank: 5000, attempts: 1, cached: false, reasked: false }
+  const results: ClipGlossResult[] = [
+    { ...base, cueIndex: 3, word: 'roast', lemma: 'roast', status: 'ok', card: card(['Grillfest', 'Grillparty']), gloss: { gloss: 'Grillfest, Grillparty', grammar: 'Nomen', example: 'x' }, issues: [] },
+    { ...base, cueIndex: 3, word: 'weenie', lemma: 'weenie', status: 'soft', card: card(['Würstchen']), gloss: { gloss: 'Würstchen', grammar: 'Nomen', example: 'x' }, issues: ['X-USES: x'] },
+    { ...base, cueIndex: 3, word: 'Or', lemma: 'or', status: 'rejected', issues: ['G-LEN: x'] },
+    { ...base, cueIndex: 4, word: 'tennis', lemma: 'tennis', status: 'conflict', issues: ['SIBLING: x'], card: card(['Tennisschläger']) },
+  ]
+  const cues = [{ index: 3, text: 'Or a weenie roast.', native: 'Oder ein Würstchengrillen.' }, { index: 4, text: 'my tennis racket', native: 'mein Tennisschläger' }]
+
+  it('only status ok highlights reach the quiz: soft, rejected and conflict items are left out', () => {
+    const q = quizInput(cues, results)
+    expect(q.flatMap((c) => c.highlights.map((h) => h.word))).toEqual(['roast'])
+    expect(q.map((c) => c.index)).toEqual([3, 4])
+  })
+
+  it('uses the first gloss headword as the option text', () => {
+    expect(quizInput(cues, results)[0]!.highlights).toEqual([{ word: 'roast', lemma: 'roast', pos: 'noun', gloss: 'Grillfest' }])
   })
 })

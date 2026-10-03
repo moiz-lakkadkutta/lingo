@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { PreparedQuizItem } from './prepared'
+import type { Pos } from './glossCard'
+import { levenshtein, normGloss, sameStem, wordsOf } from './text'
 
 /**
  * LING-002: shapes the pipeline asks Amazon Nova Lite for (gloss card, quiz plan) and the context rules a schema cannot express.
@@ -48,7 +50,7 @@ export const QuizPlanItem = z.object({ kind: z.enum(['meaning', 'cloze']), highl
 export const QuizPlan = z.object({ items: z.array(QuizPlanItem).min(1).max(QUIZ_MEANING_ITEMS + QUIZ_CLOZE_ITEMS) }).strict()
 export type QuizPlan = z.infer<typeof QuizPlan>
 export type QuizPlanItem = z.infer<typeof QuizPlanItem>
-export interface QuizHighlight { id: number; cueIndex: number; word: string; gloss: string; cue: string }
+export interface QuizHighlight { id: number; cueIndex: number; word: string; lemma: string; pos: Pos; /** first gloss headword */ gloss: string; cue: string }
 export interface QuizCounts { meaning: number; cloze: number }
 
 /** H < QUIZ_MIN_HIGHLIGHTS → { meaning: 0, cloze: 0 }; else { meaning: min(6, H), cloze: min(4, H) }. */
@@ -58,6 +60,26 @@ export function quizCounts(highlightCount: number): QuizCounts {
 }
 
 const optionKey = (s: string) => s.trim().toLowerCase()
+
+/**
+ * LING-002-gate-c §6 distractor rules (quizPlanIssues and fallbackPlan): meaning: the distractor gloss must not share a stem with,
+ * contain or be contained in the answer gloss (Schläger / Tennisschläger); cloze: the distractor word must not have the answer's lemma,
+ * be at edit distance ≤ 1 from it (sale / sal), or already occur in the answer's line (Or a ____ roast. / roast). undefined = fine.
+ */
+export function distractorIssue(kind: 'meaning' | 'cloze', answer: QuizHighlight, d: QuizHighlight): string | undefined {
+  if (kind === 'meaning') {
+    const a = normGloss(answer.gloss), g = normGloss(d.gloss)
+    const contains = (x: string, y: string) => y.length >= 4 && x.includes(y)
+    if (a && g && (sameStem(a, g) || contains(a, g) || contains(g, a))) return `gloss "${d.gloss}" overlaps the answer gloss "${answer.gloss}"; choose a clearly different meaning`
+    return undefined
+  }
+  const a = answer.word.toLowerCase(), w = d.word.toLowerCase()
+  if (d.lemma.toLowerCase() === answer.lemma.toLowerCase() || levenshtein(a, w) <= 1) return `word "${d.word}" is too close to the answer "${answer.word}" (same lemma or one letter apart)`
+  const others = wordsOf(answer.cue)
+  const at = others.indexOf(a)
+  if (others.some((x, i) => i !== at && x === w)) return `word "${d.word}" is already in the line of "${answer.word}"`
+  return undefined
+}
 
 /**
  * [] when acceptable. Checks: every id < H.length; distractorIds distinct and ≠ highlightId; exactly counts.meaning 'meaning' and
@@ -86,6 +108,10 @@ export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizC
     const values = ids.map((id) => optionKey(H[id]![field]))
     const dup = values.find((v, j) => values.indexOf(v) !== j)
     if (dup !== undefined && new Set(ids).size === ids.length) issues.push(`${at}: options repeat the ${field} "${dup}"; choose distractors with different ${field}s`)
+    for (const id of it.distractorIds) {
+      const why = id === it.highlightId ? undefined : distractorIssue(it.kind, H[it.highlightId]!, H[id]!)
+      if (why) issues.push(`${at}: distractor ${id} ${why}`)
+    }
   })
   return issues
 }

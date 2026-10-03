@@ -1,5 +1,6 @@
 import { siblingConflicts, type Gloss, type GlossCard, type Lang, type Level } from '@lingo/contracts'
 import type { GlossFn, GlossOutcome } from './gloss'
+import type { QuizCueInput } from './quiz'
 
 /**
  * Clip-level glossing (docs/plans/LING-002-gate-c.md §5, docs/decisions/0009 decision 5): gloss every item, then re-ask once, with a hint,
@@ -51,4 +52,15 @@ export async function glossClip(ai: { gloss: GlossFn }, items: ClipGlossItem[], 
   // 5. one log line per non-ok item
   for (const r of results) if (r.status !== 'ok') log(`gloss: ${r.status} "${r.word}" (cue ${r.cueIndex}): ${r.issues.join('; ')}`)
   return results
+}
+
+/**
+ * The quiz input of LING-002-gate-c §6, shared by prepare and the spot check: only status-ok cards (soft, rejected and conflict never),
+ * with the card's lemma, pos and first gloss headword (shorter, cleaner options).
+ */
+export function quizInput(cues: Array<{ index: number; text: string; native: string }>, results: ClipGlossResult[]): QuizCueInput[] {
+  return cues.map((c) => ({
+    index: c.index, text: c.text, native: c.native,
+    highlights: results.filter((r) => r.cueIndex === c.index).flatMap((r) => (r.status === 'ok' ? [{ word: r.word, lemma: r.lemma, pos: r.card.pos, gloss: r.card.gloss[0]! }] : [])),
+  }))
 }

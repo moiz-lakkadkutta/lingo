@@ -247,7 +247,7 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(quiz).toHaveBeenCalledTimes(1)
     const [cues, l, n] = quiz.mock.calls[0]!
     expect(l).toBe(lang); expect(n).toBe(native); expect(cues.length).toBe(r.clip.cues.length)
-    expect(cues[0]).toEqual({ index: 0, text: r.clip.cues[0]!.text, native: r.clip.cues[0]!.native[native], highlights: r.clip.highlights.filter((h) => h.cueIndex === 0).map((h) => ({ word: h.word, gloss: h.gloss })) })
+    expect(cues[0]).toEqual({ index: 0, text: r.clip.cues[0]!.text, native: r.clip.cues[0]!.native[native], highlights: r.clip.highlights.filter((h) => h.cueIndex === 0).map((h) => ({ word: h.word, lemma: h.lemma, pos: 'other', gloss: `gloss of ${h.lemma}` })) })
   })
   it('--no-ai never calls gloss or quiz', async () => {
     const d = fixtureDeps(lang)

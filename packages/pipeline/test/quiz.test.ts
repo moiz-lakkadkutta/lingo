@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { PreparedQuizItem, QuizPlan, quizCounts, type QuizHighlight } from '@lingo/contracts'
+import { PreparedQuizItem, QuizPlan, quizCounts, quizPlanIssues, type QuizHighlight } from '@lingo/contracts'
 import { createAi } from '../src/ai/index'
 import { buildQuizItems, clozePrompt, fallbackPlan, flattenHighlights, QUIZ_PROMPT_VERSION, quizSystemPrompt } from '../src/ai/quiz'
 import { fakeSend, nova, QUIZ_CUES, userTexts } from './novaFake'
@@ -19,7 +19,7 @@ describe('quiz', () => {
   it('flattenHighlights keeps cue order, assigns ids from 0 and dedupes words case-insensitively', () => {
     expect(H.map((h) => h.word)).toEqual(['warte', 'Stunden', 'suche', 'Schlüssel', 'rufe', 'morgen', 'vergesse', 'immer', 'Zug', 'Bahnhof'])
     expect(H.map((h) => h.id)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(H[1]).toEqual({ id: 1, cueIndex: 0, word: 'Stunden', gloss: 'hours', cue: 'Ich warte seit zwei\nStunden auf dich.' })
+    expect(H[1]).toEqual({ id: 1, cueIndex: 0, word: 'Stunden', lemma: 'Stunde', pos: 'noun', gloss: 'hours', cue: 'Ich warte seit zwei\nStunden auf dich.' })
     expect(H[9]!.cueIndex).toBe(4)
     expect(flattenHighlights([QUIZ_CUES[2]!, QUIZ_CUES[0]!]).map((h) => h.cueIndex)).toEqual([0, 0, 2, 2])
   })
@@ -41,7 +41,7 @@ describe('quiz', () => {
     expect(input.toolConfig?.toolChoice).toEqual({ tool: { name: 'plan_quiz' } })
     expect(input.inferenceConfig).toEqual({ maxTokens: 1500, temperature: 0 })
     expect(input.system).toEqual([{ text: quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 }) }])
-    expect(JSON.parse(userTexts(send)[0]!).highlights[0]).toEqual({ id: 0, word: 'warte', gloss: 'wait', cue: 'Ich warte seit zwei Stunden auf dich.' })
+    expect(JSON.parse(userTexts(send)[0]!).highlights[0]).toEqual({ id: 0, word: 'warte', pos: 'verb', gloss: 'wait', cue: 'Ich warte seit zwei Stunden auf dich.' })
     expect(items.map((i) => i.kind)).toEqual(['meaning', 'meaning', 'meaning', 'meaning', 'meaning', 'meaning', 'cloze', 'cloze', 'cloze', 'cloze'])
     const plan = okPlan()
     items.forEach((item, n) => {
@@ -107,12 +107,12 @@ describe('quiz', () => {
     const plan = fallbackPlan(H, { meaning: 6, cloze: 4 })
     expect(plan.items.filter((i) => i.kind === 'meaning').map((i) => [i.highlightId, i.distractorIds])).toEqual([[0, [1, 2, 3]], [1, [2, 3, 4]], [2, [3, 4, 5]], [3, [4, 5, 6]], [4, [5, 6, 7]], [5, [6, 7, 8]]])
     expect(plan.items.filter((i) => i.kind === 'cloze').map((i) => i.highlightId)).toEqual([0, 1, 2, 3])
-    const h = (id: number, word: string, gloss: string): QuizHighlight => ({ id, cueIndex: id, word, gloss, cue: `x ${word} y` })
+    const h = (id: number, word: string, gloss: string): QuizHighlight => ({ id, cueIndex: id, word, lemma: word, pos: 'noun', gloss, cue: `x ${word} y` })
     // cyclic wrap + skipping a gloss already chosen
     const five = [h(0, 'a', 'x'), h(1, 'b', 'y'), h(2, 'c', 'Y'), h(3, 'd', 'z'), h(4, 'e', 'w')]
     expect(fallbackPlan(five, { meaning: 5, cloze: 0 }).items.map((i) => i.distractorIds)).toEqual([[1, 3, 4], [3, 4, 0], [3, 4, 0], [4, 0, 1], [0, 1, 3]])
     // only 3 distinct glosses among 4 highlights: no meaning item can reach 3 distractors; cloze words are distinct
-    const four = [h(0, 'a', 'x'), h(1, 'b', 'y'), h(2, 'c', 'y'), h(3, 'd', 'z')]
+    const four = [h(0, 'apple', 'x'), h(1, 'house', 'y'), h(2, 'river', 'y'), h(3, 'cloud', 'z')]
     const p = fallbackPlan(four, { meaning: 4, cloze: 4 })
     expect(p.items.filter((i) => i.kind === 'meaning')).toEqual([])
     expect(p.items.map((i) => [i.highlightId, i.distractorIds])).toEqual([[0, [1, 2, 3]], [1, [2, 3, 0]], [2, [3, 0, 1]], [3, [0, 1, 2]]])
@@ -145,7 +145,7 @@ describe('quiz', () => {
   it('QUIZ_PROMPT_VERSION must be bumped when the system prompt changes (sha256 snapshot)', () => {
     const sha = createHash('sha256').update(quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 })).digest('hex')
     // If this fails because you edited the prompt: bump QUIZ_PROMPT_VERSION and update both values here.
-    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 1, sha: 'dc3d9a9bf072185a9a56d3a204fdbe0af9d7a14346eecf1d98a397639955ff23' })
+    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 2, sha: '5d45a16961e7047700004b166de2408b44e5226dbee2b022d3d5800843c2782b' })
   })
 
   it('drops an item it cannot build (word not found as a whole word in its cue) instead of failing the clip, and logs why', async () => {
@@ -158,5 +158,57 @@ describe('quiz', () => {
     expect(logs.some((l) => l.startsWith('quiz: dropped cloze item "Bahnhof": cloze: "Bahnhof" not found'))).toBe(true)
     // the pure builder still throws when no onDrop is given
     expect(() => buildQuizItems(okPlan(), flattenHighlights(cues), 'de', 'en')).toThrow(/not found/)
+  })
+
+  it('flattenHighlights dedupes by lemma', () => {
+    const cues = [{ index: 0, text: 'Ich warte hier.', native: '', highlights: [{ word: 'warte', lemma: 'warten', pos: 'verb' as const, gloss: 'wait' }] },
+      { index: 1, text: 'Wir warten dort.', native: '', highlights: [{ word: 'warten', lemma: 'warten', pos: 'verb' as const, gloss: 'wait' }, { word: 'dort', lemma: 'dort', pos: 'adverb' as const, gloss: 'there' }] }]
+    expect(flattenHighlights(cues).map((h) => h.word)).toEqual(['warte', 'dort'])
+  })
+})
+
+describe('quiz v2 distractor rules (LING-002-gate-c §6)', () => {
+  const hq = (id: number, word: string, lemma: string, gloss: string, cue: string, cueIndex = id): QuizHighlight => ({ id, cueIndex, word, lemma, pos: 'noun', gloss, cue })
+  const base = [
+    hq(0, 'sale', 'sale', 'Verkauf', 'to fix up that scavenger sale?'),
+    hq(1, 'sal', 'sal', 'Sal', 'the scavenger sal.'),
+    hq(2, 'roast', 'roast', 'Grillfest', 'Or a weenie roast.'),
+    hq(3, 'weenie', 'weenie', 'Würstchen', 'Or a weenie roast.', 2),
+    hq(4, 'racket', 'racket', 'Schläger', 'my tennis racket.'),
+    hq(5, 'tennis', 'tennis', 'Tennisschläger', 'my tennis racket.', 4),
+    hq(6, 'tacks', 'tack', 'Reißzwecken', 'Got any more tacks?'),
+    hq(7, 'expense', 'expense', 'Kosten', 'not much expense,'),
+    hq(8, 'rackets', 'racket', 'Schläger', 'two rackets.'),
+  ]
+  const one = (kind: 'meaning' | 'cloze', highlightId: number, distractorIds: number[]) => quizPlanIssues({ items: [{ kind, highlightId, distractorIds }] }, base, kind === 'meaning' ? { meaning: 1, cloze: 0 } : { meaning: 0, cloze: 1 })
+
+  it('quizPlanIssues rejects a cloze distractor at edit distance 1 or with the same lemma as the answer (sal/sale)', () => {
+    expect(one('cloze', 0, [1, 6, 7]).join(' ')).toMatch(/"sal".*too close/)
+    expect(one('cloze', 4, [8, 6, 7]).join(' ')).toMatch(/"rackets".*too close/)
+    expect(one('cloze', 0, [4, 6, 7])).toEqual([])
+  })
+
+  it('quizPlanIssues rejects a cloze distractor that already appears in the cue (Or a ____ roast. / roast)', () => {
+    expect(one('cloze', 3, [2, 6, 7]).join(' ')).toMatch(/"roast".*already in the line/)
+    expect(one('cloze', 3, [0, 6, 7])).toEqual([])
+  })
+
+  it('quizPlanIssues rejects a meaning distractor whose gloss contains the answer gloss (Schläger / Tennisschläger)', () => {
+    expect(one('meaning', 4, [5, 6, 7]).join(' ')).toMatch(/"Tennisschläger".*overlaps/)
+    expect(one('meaning', 4, [0, 6, 7])).toEqual([])
+  })
+
+  it('fallbackPlan honours the new distractor rules', () => {
+    const plan = fallbackPlan(base, { meaning: 6, cloze: 4 })
+    expect(plan.items.length).toBeGreaterThan(0)
+    expect(quizPlanIssues(plan, base, { meaning: plan.items.filter((i) => i.kind === 'meaning').length, cloze: plan.items.filter((i) => i.kind === 'cloze').length })).toEqual([])
+  })
+
+  it('the answer of every meaning item is the gloss of its own highlight (invariant), never a sibling gloss', () => {
+    const plan = fallbackPlan(base, { meaning: 6, cloze: 4 })
+    for (const it of buildQuizItems(plan, base, 'en', 'de')) {
+      const src = base.find((h) => (it.kind === 'meaning' ? h.word === it.prompt : clozePrompt(h.cue, h.word) === it.prompt))!
+      expect(it.options[it.answer]).toBe(it.kind === 'meaning' ? src.gloss : src.word)
+    }
   })
 })

@@ -1,6 +1,6 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { PreparedClip, type Lang, type PreparedCost, type PreparedQuizItem } from '@lingo/contracts'
+import { PreparedClip, type Lang, type Pos, type PreparedCost, type PreparedQuizItem } from '@lingo/contracts'
 import { createAi, type Ai, type AiOptions } from './ai/index'
 import { loadFreqList, rankFn } from './freq'
 import { NEXT, pickHighlights } from './highlights'
@@ -77,22 +77,22 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
 
   // gloss every candidate (all clip highlights are needed for the quiz even when perClip is smaller)
   const glossed: SpotGlossRow[] = []
-  const rejected = new Set<SpotGlossRow>()
+  const quizzable = new Map<SpotGlossRow, { lemma: string; pos: Pos; gloss: string }>()
   for (const c of candidates) {
     const before = ai.cost().cachedCalls
     const r = await ai.gloss({ word: c.word, lemma: c.lemma, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], lang: clip.sourceLang, native, level: clip.level })
     // a twice-rejected answer is a result to score (it fails), not a reason to abort the sheet
     const g = r.status === 'rejected' ? { gloss: `REJECTED: ${r.issues.join('; ')}`, grammar: JSON.stringify(r.lastOutput), example: '' } : r.gloss
     const row = { cueIndex: c.cueIndex, cue: c.cue, word: c.word, lemma: c.lemma, rank: c.rank, ...g, cached: ai.cost().cachedCalls > before }
-    if (g.gloss.startsWith('REJECTED: ')) rejected.add(row)
+    if (r.status === 'ok') quizzable.set(row, { lemma: c.lemma, pos: r.card.pos, gloss: r.card.gloss[0]! })
     glossed.push(row)
   }
 
   // quiz over the clip highlights only, as prepare() would build it; a REJECTED row has no gloss to offer as an option
-  const fromClip = glossed.slice(0, clip.highlights.length).filter((g) => !rejected.has(g))
+  const fromClip = glossed.slice(0, clip.highlights.length).filter((g) => quizzable.has(g))
   const quiz = (await ai.quiz(clip.cues.map((cue) => ({
     index: cue.index, text: cue.text, native: cue.native[native] ?? '',
-    highlights: fromClip.filter((g) => g.cueIndex === cue.index).map((g) => ({ word: g.word, gloss: g.gloss })),
+    highlights: fromClip.filter((g) => g.cueIndex === cue.index).map((g) => ({ word: g.word, ...quizzable.get(g)! })),
   })), clip.sourceLang, native)).items
 
   const result: SpotCheckResult = {

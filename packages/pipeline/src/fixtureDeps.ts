@@ -33,7 +33,7 @@ export function fixtureSend(): BedrockSend {
       const english = /ONE word of a English subtitle line/.test(input.system?.[0]?.text ?? '')
       toolInput = { sense: `stub sense of ${lemma}`, pos: 'other', gloss: [`stub-${lemma}`], register: 'neutral', example: english ? `Here is the word ${word} once more.` : `Hier steht das Wort ${word} noch einmal.` }
     } else if (tool === QUIZ_TOOL) {
-      const H = (payload.highlights as Array<Omit<QuizHighlight, 'cueIndex'>>).map((h) => ({ ...h, cueIndex: 0 }))
+      const H = (payload.highlights as Array<Omit<QuizHighlight, 'cueIndex' | 'lemma'>>).map((h) => ({ ...h, lemma: h.word, cueIndex: 0 }))
       toolInput = fallbackPlan(H, quizCounts(H.length))
     } else throw new Error(`fixtureSend: unknown tool ${String(tool)}`)
     return {
