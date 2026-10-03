@@ -247,4 +247,26 @@ describe('gloss v3', () => {
     await expect(ai(other).gloss({ ...REQ, cue: 'Noch eine Zeile mit warte.' })).rejects.toThrow('malformed toolConfig')
     expect(other).toHaveBeenCalledTimes(1)
   })
+
+  it('reasoning low sends reasoningConfig in additionalModelRequestFields and raises gloss maxTokens to 2000', async () => {
+    const send = fakeSend(withCard(OK_CARD))
+    await createAi({ send, model: 'us.amazon.nova-2-lite-v1:0', reasoning: 'low', cacheDir: dir, log: () => {} }).gloss(REQ)
+    const input = send.mock.calls[0]![0]
+    expect(input.additionalModelRequestFields).toEqual({ reasoningConfig: { type: 'enabled', maxReasoningEffort: 'low' } })
+    expect(input.inferenceConfig?.maxTokens).toBe(2000)
+    const off = fakeSend(withCard(OK_CARD))
+    await createAi({ send: off, model: 'us.amazon.nova-2-lite-v1:0', cacheDir: join(dir, 'off'), log: () => {} }).gloss(REQ)
+    expect(off.mock.calls[0]![0].additionalModelRequestFields).toBeUndefined()
+    expect(off.mock.calls[0]![0].inferenceConfig?.maxTokens).toBe(500)
+  })
+
+  it('reasoning is part of the cache key', async () => {
+    const send = fakeSend(withCard(OK_CARD))
+    const mk = (reasoning: 'off' | 'low') => createAi({ send, model: 'us.amazon.nova-2-lite-v1:0', reasoning, cacheDir: dir, log: () => {} })
+    await mk('off').gloss(REQ)
+    await mk('low').gloss(REQ)
+    expect(send).toHaveBeenCalledTimes(2)
+    await mk('low').gloss(REQ)
+    expect(send).toHaveBeenCalledTimes(2)
+  })
 })

@@ -56,6 +56,15 @@ async function converse(d: AiDeps, input: ConverseCommandInput): Promise<Convers
   }
 }
 
+/**
+ * With extended thinking on, a forced tool choice is replaced by `any` (one tool, so equivalent): the Nova 2 docs do not say that a
+ * forced `tool` choice works together with reasoning (docs/plans/LING-002-gate-c.md §8.5).
+ * https://docs.aws.amazon.com/nova/latest/nova2-userguide/extended-thinking.html
+ */
+function withReasoningToolChoice(tc: ToolConfiguration): ToolConfiguration {
+  return tc.toolChoice && 'tool' in tc.toolChoice && tc.toolChoice.tool ? { ...tc, toolChoice: { any: {} } } : tc
+}
+
 const zodIssues = (e: z.ZodError) => e.issues.map((i) => `${i.path.join('.')}: ${i.message}`)
 
 /**
@@ -65,14 +74,16 @@ const zodIssues = (e: z.ZodError) => e.issues.map((i) => `${i.path.join('.')}: $
 export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskResult<T>> {
   let issues: string[] = []
   let lastOutput: unknown = null
+  const reasoningOn = !!d.reasoning && d.reasoning !== 'off'
   for (let attempt = 1; attempt <= 2; attempt++) {
     const feedback = attempt === 2 ? [{ text: `Your previous tool call was rejected: ${issues.join('; ')}. Previous answer: ${JSON.stringify(lastOutput)}. Call ${spec.toolName} again with a corrected answer.` }] : []
     const out = await converse(d, {
       modelId: d.model,
       system: [{ text: spec.system }],
       messages: [{ role: 'user', content: [{ text: JSON.stringify(spec.payload) }, ...(spec.extraText ?? []).map((text) => ({ text })), ...feedback] }],
-      toolConfig: spec.toolConfig,
+      toolConfig: reasoningOn ? withReasoningToolChoice(spec.toolConfig) : spec.toolConfig,
       inferenceConfig: { maxTokens: spec.maxTokens },
+      ...(reasoningOn ? { additionalModelRequestFields: { reasoningConfig: { type: 'enabled', maxReasoningEffort: d.reasoning as string } } } : {}),
     })
     const usd = d.ledger.record(out.usage)
     d.log(`ai ${spec.kind} ${spec.label} attempt=${attempt} in=${out.usage?.inputTokens ?? 0} out=${out.usage?.outputTokens ?? 0} ms=${out.metrics?.latencyMs ?? 0} usd=${usd.toFixed(6)} stop=${out.stopReason ?? 'unknown'}`)

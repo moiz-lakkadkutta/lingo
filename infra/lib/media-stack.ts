@@ -25,11 +25,11 @@ export class MediaStack extends Stack {
       },
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
     })
-    // Pipeline / API role: S3 read-write on media, Transcribe, Polly, Translate here; Bedrock in us-east-1 (see NovaIngestStack).
+    // Pipeline / API role: S3 read-write on media, Transcribe, Polly, Translate here; Bedrock via the us. inference profile, whose destination Regions all need the foundation model (any Region below).
     const pipelineRole = new iam.Role(this, 'PipelineRole', { assumedBy: new iam.AccountRootPrincipal(), description: 'lingo pipeline: media bucket + speech/translate services' })
     media.grantReadWrite(pipelineRole)
     pipelineRole.addToPolicy(new iam.PolicyStatement({ actions: ['transcribe:StartTranscriptionJob', 'transcribe:GetTranscriptionJob', 'polly:SynthesizeSpeech', 'translate:TranslateText'], resources: ['*'] }))
-    pipelineRole.addToPolicy(new iam.PolicyStatement({ actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream', 'bedrock:Converse', 'bedrock:ConverseStream'], resources: ['arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-*', `arn:aws:bedrock:us-east-1:${this.account}:inference-profile/*`] }))
+    pipelineRole.addToPolicy(new iam.PolicyStatement({ actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream', 'bedrock:Converse', 'bedrock:ConverseStream'], resources: ['arn:aws:bedrock:*::foundation-model/amazon.nova-*', `arn:aws:bedrock:us-east-1:${this.account}:inference-profile/*`] }))
     new CfnOutput(this, 'MediaBucket', { value: media.bucketName })
     new CfnOutput(this, 'CdnDomain', { value: dist.distributionDomainName })
     new CfnOutput(this, 'PipelineRoleArn', { value: pipelineRole.roleArn })
