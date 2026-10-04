@@ -1,0 +1,227 @@
+{
+  "real/friedlaender": {
+    "slug": "friedlaender",
+    "lang": "de",
+    "level": "B2",
+    "coverageRank": 6574,
+    "durationS": 226.3,
+    "cues": 58,
+    "twoLineCues": 20,
+    "tokens": 356,
+    "cps": {
+      "min": 4,
+      "median": 11.407,
+      "p95": 17.267,
+      "max": 19.667
+    },
+    "lineChars": {
+      "min": 4,
+      "median": 26,
+      "p95": 42,
+      "max": 42
+    },
+    "durationSec": {
+      "min": 1,
+      "median": 2.58,
+      "p95": 6.496,
+      "max": 6.835
+    },
+    "gapSec": {
+      "min": 0.084,
+      "median": 0.401,
+      "p95": 3.729,
+      "max": 4.01
+    },
+    "over17cps": 5,
+    "under1_2s": 9,
+    "exactly1s": 8,
+    "atLeast6s": 4,
+    "speechCoveredS": 177.327,
+    "speechShare": 0.784,
+    "maxInnerGapS": 1.651,
+    "cuesWithInnerPause": 1,
+    "highlights": [
+      {
+        "word": "Überlebende",
+        "lemma": "Überlebende",
+        "rank": 5490,
+        "cueIndex": 0
+      },
+      {
+        "word": "Margot",
+        "lemma": "Margot",
+        "rank": 7491,
+        "cueIndex": 0
+      },
+      {
+        "word": "Weltkrieg",
+        "lemma": "Weltkrieg",
+        "rank": 4625,
+        "cueIndex": 6
+      },
+      {
+        "word": "Eiserne",
+        "lemma": "eisern",
+        "rank": 6574,
+        "cueIndex": 7
+      },
+      {
+        "word": "Mutti",
+        "lemma": "Mutti",
+        "rank": 4629,
+        "cueIndex": 8
+      },
+      {
+        "word": "registrieren",
+        "lemma": "registrieren",
+        "rank": 4283,
+        "cueIndex": 9
+      },
+      {
+        "word": "Brasilien",
+        "lemma": "Brasilien",
+        "rank": 6462,
+        "cueIndex": 11
+      },
+      {
+        "word": "angeguckt",
+        "lemma": "angucken",
+        "rank": 5650,
+        "cueIndex": 13
+      },
+      {
+        "word": "Schwindler",
+        "lemma": "Schwindler",
+        "rank": 7499,
+        "cueIndex": 13
+      },
+      {
+        "word": "Baracken",
+        "lemma": "Baracke",
+        "rank": 7984,
+        "cueIndex": 32
+      },
+      {
+        "word": "Gitter",
+        "lemma": "Gitter",
+        "rank": 4027,
+        "cueIndex": 44
+      },
+      {
+        "word": "bedrückt",
+        "lemma": "bedrückt",
+        "rank": 6934,
+        "cueIndex": 48
+      },
+      {
+        "word": "jüdisches",
+        "lemma": "jüdisch",
+        "rank": 4059,
+        "cueIndex": 55
+      },
+      {
+        "word": "christliches",
+        "lemma": "christlich",
+        "rank": 6219,
+        "cueIndex": 55
+      }
+    ],
+    "names": [
+      "Amerika",
+      "Berlin",
+      "Deutschland",
+      "Friedländer",
+      "Isolierung",
+      "Margarine",
+      "Schai",
+      "Tütchen"
+    ],
+    "unrankedLemmas": [
+      "17,5",
+      "38",
+      "glimmern",
+      "sich",
+      "verfaulen"
+    ],
+    "warnings": [],
+    "nativeCpsWarnings": 0,
+    "nativeLinesOver56": 0
+  },
+  "real/voa01": {
+    "slug": "voa01",
+    "lang": "en",
+    "level": "A2",
+    "coverageRank": 1504,
+    "durationS": 300.4,
+    "cues": 46,
+    "twoLineCues": 2,
+    "tokens": 187,
+    "cps": {
+      "min": 1.814,
+      "median": 8.96,
+      "p95": 16.667,
+      "max": 17.188
+    },
+    "lineChars": {
+      "min": 3,
+      "median": 18,
+      "p95": 33,
+      "max": 37
+    },
+    "durationSec": {
+      "min": 1,
+      "median": 1.63,
+      "p95": 6.806,
+      "max": 6.981
+    },
+    "gapSec": {
+      "min": 0.084,
+      "median": 0.81,
+      "p95": 17.989,
+      "max": 22.289
+    },
+    "over17cps": 2,
+    "under1_2s": 16,
+    "exactly1s": 12,
+    "atLeast6s": 6,
+    "speechCoveredS": 115.66,
+    "speechShare": 0.385,
+    "maxInnerGapS": 5.141,
+    "cuesWithInnerPause": 10,
+    "highlights": [],
+    "names": [
+      "A",
+      "An",
+      "Ana",
+      "Anna",
+      "Apartment",
+      "English",
+      "Fast",
+      "Here's",
+      "I'm",
+      "Irving",
+      "Let's",
+      "Listen",
+      "N",
+      "N's",
+      "Nice",
+      "Now",
+      "Pete",
+      "Record",
+      "Say",
+      "Speak",
+      "Street"
+    ],
+    "unrankedLemmas": [
+      "00",
+      "1400",
+      "I'm",
+      "pique"
+    ],
+    "warnings": [
+      "dropped cue 227.240–227.740 \"my new\" (unplaceable)"
+    ],
+    "nativeCpsWarnings": 0,
+    "nativeLinesOver56": 0
+  }
+}

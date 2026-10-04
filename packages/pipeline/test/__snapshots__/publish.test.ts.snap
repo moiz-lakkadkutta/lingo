@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`publishCalls > emits sync, master.m3u8, one vtt per language, clip.json in that order 1`] = `
+[
+  {
+    "args": [
+      "s3",
+      "sync",
+      "work/demo-de/hls",
+      "s3://lingo-media/published/demo-de/",
+      "--delete",
+      "--cache-control",
+      "public,max-age=31536000,immutable",
+    ],
+    "cmd": "aws",
+  },
+  {
+    "args": [
+      "s3",
+      "cp",
+      "work/demo-de/hls/master.m3u8",
+      "s3://lingo-media/published/demo-de/master.m3u8",
+      "--cache-control",
+      "public,max-age=60",
+      "--content-type",
+      "application/vnd.apple.mpegurl",
+    ],
+    "cmd": "aws",
+  },
+  {
+    "args": [
+      "s3",
+      "cp",
+      "work/demo-de/de.vtt",
+      "s3://lingo-media/published/demo-de/vtt/de.vtt",
+      "--cache-control",
+      "public,max-age=60",
+      "--content-type",
+      "text/vtt",
+    ],
+    "cmd": "aws",
+  },
+  {
+    "args": [
+      "s3",
+      "cp",
+      "work/demo-de/native-en.vtt",
+      "s3://lingo-media/published/demo-de/vtt/en.vtt",
+      "--cache-control",
+      "public,max-age=60",
+      "--content-type",
+      "text/vtt",
+    ],
+    "cmd": "aws",
+  },
+  {
+    "args": [
+      "s3",
+      "cp",
+      "work/demo-de/clip.json",
+      "s3://lingo-media/published/demo-de/clip.json",
+      "--cache-control",
+      "public,max-age=60",
+      "--content-type",
+      "application/json",
+    ],
+    "cmd": "aws",
+  },
+]
+`;

@@ -35,7 +35,7 @@ beforeAll(async () => {
   const s = createServer(); server = s.server; io = s.io
   base = `http://127.0.0.1:${await listen(server)}`
   const slug = 'test-realtime-' + rnd()
-  clip = await db.clip.create({ data: { slug, title: 'Realtime test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'ready' } })
+  clip = await db.clip.create({ data: { slug, title: 'Realtime test clip', sourceLang: 'de', durationS: 60, level: 'A2', coverageRank: 1000, license: 'CC BY 4.0', attribution: 'test', status: 'published' } })
   const cue = await db.cue.create({ data: { clipId: clip.id, index: 0, startMs: 0, endMs: 2000, text: 'Der Zug fährt vom Bahnhof ab.', native: { en: 'The train leaves from the station.' } } })
   const words = ['Zug', 'fährt', 'Bahnhof', 'ab', 'Der']
   for (const [i, w] of words.entries()) {
@@ -90,8 +90,15 @@ describe('join', () => {
   it('malformed payload gets session:error VALIDATION', async () => {
     const s = client(); await connected(s)
     const err = once(s, 'session:error')
-    s.emit('join', { code: 'abc' } as never)
+    s.emit('join', { code: 'ABC234', role: 'robot' } as never)
     expect((await err).code).toBe('VALIDATION')
+    s.disconnect()
+  })
+  it('M1: a malformed code on join gets the same UNKNOWN_CODE as an unknown one', async () => {
+    const s = client(); await connected(s)
+    const err = once(s, 'session:error')
+    s.emit('join', { code: 'abc', role: 'phone' } as never)
+    expect((await err).code).toBe('UNKNOWN_CODE')
     s.disconnect()
   })
   it('phone join → tv receives phone:connected with the device name within 1 s', async () => {

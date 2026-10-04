@@ -1,0 +1,478 @@
+{
+  "8": {
+    "lemma": "8",
+    "known": true
+  },
+  "2015": {
+    "lemma": "2015",
+    "known": false
+  },
+  "And|si": {
+    "lemma": "and",
+    "known": true
+  },
+  "But|si": {
+    "lemma": "but",
+    "known": true
+  },
+  "Have|si": {
+    "lemma": "have",
+    "known": true
+  },
+  "I": {
+    "lemma": "I",
+    "known": true
+  },
+  "In|si": {
+    "lemma": "in",
+    "known": true
+  },
+  "I|si": {
+    "lemma": "I",
+    "known": true
+  },
+  "London": {
+    "lemma": "London",
+    "known": true
+  },
+  "My|si": {
+    "lemma": "my",
+    "known": true
+  },
+  "Never|si": {
+    "lemma": "never",
+    "known": true
+  },
+  "No|si": {
+    "lemma": "no",
+    "known": true
+  },
+  "Of|si": {
+    "lemma": "of",
+    "known": true
+  },
+  "Right|si": {
+    "lemma": "right",
+    "known": true
+  },
+  "Sarah": {
+    "lemma": "Sarah",
+    "known": true
+  },
+  "She|si": {
+    "lemma": "she",
+    "known": true
+  },
+  "So|si": {
+    "lemma": "so",
+    "known": true
+  },
+  "Stop|si": {
+    "lemma": "stop",
+    "known": true
+  },
+  "Tell|si": {
+    "lemma": "tell",
+    "known": true
+  },
+  "That|si": {
+    "lemma": "that",
+    "known": true
+  },
+  "Then|si": {
+    "lemma": "then",
+    "known": true
+  },
+  "The|si": {
+    "lemma": "the",
+    "known": true
+  },
+  "This|si": {
+    "lemma": "this",
+    "known": true
+  },
+  "Wait|si": {
+    "lemma": "wait",
+    "known": true
+  },
+  "We|si": {
+    "lemma": "we",
+    "known": true
+  },
+  "Where|si": {
+    "lemma": "where",
+    "known": true
+  },
+  "Yes|si": {
+    "lemma": "yes",
+    "known": true
+  },
+  "You|si": {
+    "lemma": "you",
+    "known": true
+  },
+  "a": {
+    "lemma": "a",
+    "known": true
+  },
+  "am": {
+    "lemma": "be",
+    "known": true
+  },
+  "and": {
+    "lemma": "and",
+    "known": true
+  },
+  "answered": {
+    "lemma": "answer",
+    "known": true
+  },
+  "anyway": {
+    "lemma": "anyway",
+    "known": true
+  },
+  "are": {
+    "lemma": "be",
+    "known": true
+  },
+  "at": {
+    "lemma": "at",
+    "known": true
+  },
+  "awful": {
+    "lemma": "awful",
+    "known": true
+  },
+  "battery": {
+    "lemma": "battery",
+    "known": true
+  },
+  "been": {
+    "lemma": "be",
+    "known": true
+  },
+  "bus": {
+    "lemma": "bus",
+    "known": true
+  },
+  "call": {
+    "lemma": "call",
+    "known": true
+  },
+  "called": {
+    "lemma": "call",
+    "known": true
+  },
+  "cancelled": {
+    "lemma": "cancell",
+    "known": true
+  },
+  "coffee": {
+    "lemma": "coffee",
+    "known": true
+  },
+  "comes": {
+    "lemma": "come",
+    "known": true
+  },
+  "course": {
+    "lemma": "course",
+    "known": true
+  },
+  "crazy": {
+    "lemma": "crazy",
+    "known": true
+  },
+  "day": {
+    "lemma": "day",
+    "known": true
+  },
+  "dead": {
+    "lemma": "dead",
+    "known": true
+  },
+  "earth": {
+    "lemma": "earth",
+    "known": true
+  },
+  "for": {
+    "lemma": "for",
+    "known": true
+  },
+  "forgot": {
+    "lemma": "forget",
+    "known": true
+  },
+  "friend": {
+    "lemma": "friend",
+    "known": true
+  },
+  "go": {
+    "lemma": "go",
+    "known": true
+  },
+  "got": {
+    "lemma": "get",
+    "known": true
+  },
+  "grab": {
+    "lemma": "grab",
+    "known": true
+  },
+  "has": {
+    "lemma": "have",
+    "known": true
+  },
+  "have": {
+    "lemma": "have",
+    "known": true
+  },
+  "her": {
+    "lemma": "her",
+    "known": false
+  },
+  "here": {
+    "lemma": "here",
+    "known": true
+  },
+  "hours": {
+    "lemma": "hour",
+    "known": true
+  },
+  "hurry": {
+    "lemma": "hurry",
+    "known": true
+  },
+  "in": {
+    "lemma": "in",
+    "known": true
+  },
+  "is": {
+    "lemma": "be",
+    "known": true
+  },
+  "it": {
+    "lemma": "it",
+    "known": true
+  },
+  "just": {
+    "lemma": "just",
+    "known": true
+  },
+  "keys": {
+    "lemma": "key",
+    "known": true
+  },
+  "know": {
+    "lemma": "know",
+    "known": true
+  },
+  "knows": {
+    "lemma": "know",
+    "known": true
+  },
+  "lasts": {
+    "lemma": "last",
+    "known": true
+  },
+  "late": {
+    "lemma": "late",
+    "known": true
+  },
+  "let": {
+    "lemma": "let",
+    "known": true
+  },
+  "lived": {
+    "lemma": "live",
+    "known": true
+  },
+  "long": {
+    "lemma": "long",
+    "known": true
+  },
+  "managed": {
+    "lemma": "manage",
+    "known": true
+  },
+  "me": {
+    "lemma": "I",
+    "known": true
+  },
+  "mind": {
+    "lemma": "mind",
+    "known": true
+  },
+  "moment": {
+    "lemma": "moment",
+    "known": true
+  },
+  "my": {
+    "lemma": "my",
+    "known": true
+  },
+  "need": {
+    "lemma": "need",
+    "known": true
+  },
+  "never": {
+    "lemma": "never",
+    "known": true
+  },
+  "next": {
+    "lemma": "next",
+    "known": true
+  },
+  "nobody": {
+    "lemma": "nobody",
+    "known": true
+  },
+  "now": {
+    "lemma": "now",
+    "known": true
+  },
+  "on": {
+    "lemma": "on",
+    "known": true
+  },
+  "one": {
+    "lemma": "one",
+    "known": true
+  },
+  "only": {
+    "lemma": "only",
+    "known": true
+  },
+  "over": {
+    "lemma": "over",
+    "known": true
+  },
+  "phone": {
+    "lemma": "phone",
+    "known": true
+  },
+  "quick": {
+    "lemma": "quick",
+    "known": true
+  },
+  "really": {
+    "lemma": "really",
+    "known": true
+  },
+  "running": {
+    "lemma": "run",
+    "known": true
+  },
+  "she": {
+    "lemma": "she",
+    "known": true
+  },
+  "since": {
+    "lemma": "since",
+    "known": true
+  },
+  "so": {
+    "lemma": "so",
+    "known": true
+  },
+  "sorry": {
+    "lemma": "sorry",
+    "known": true
+  },
+  "that": {
+    "lemma": "that",
+    "known": true
+  },
+  "the": {
+    "lemma": "the",
+    "known": true
+  },
+  "them": {
+    "lemma": "they",
+    "known": true
+  },
+  "then": {
+    "lemma": "then",
+    "known": true
+  },
+  "this": {
+    "lemma": "this",
+    "known": true
+  },
+  "three": {
+    "lemma": "three",
+    "known": true
+  },
+  "time": {
+    "lemma": "time",
+    "known": true
+  },
+  "times": {
+    "lemma": "time",
+    "known": true
+  },
+  "to": {
+    "lemma": "to",
+    "known": true
+  },
+  "today": {
+    "lemma": "today",
+    "known": true
+  },
+  "train": {
+    "lemma": "train",
+    "known": true
+  },
+  "two": {
+    "lemma": "two",
+    "known": true
+  },
+  "us": {
+    "lemma": "we",
+    "known": true
+  },
+  "visit": {
+    "lemma": "visit",
+    "known": true
+  },
+  "waiting": {
+    "lemma": "wait",
+    "known": true
+  },
+  "waits": {
+    "lemma": "wait",
+    "known": true
+  },
+  "walked": {
+    "lemma": "walk",
+    "known": true
+  },
+  "wanted": {
+    "lemma": "want",
+    "known": true
+  },
+  "was": {
+    "lemma": "be",
+    "known": true
+  },
+  "we": {
+    "lemma": "we",
+    "known": true
+  },
+  "weather": {
+    "lemma": "weather",
+    "known": true
+  },
+  "whole": {
+    "lemma": "whole",
+    "known": true
+  },
+  "will": {
+    "lemma": "will",
+    "known": true
+  },
+  "you": {
+    "lemma": "you",
+    "known": true
+  }
+}

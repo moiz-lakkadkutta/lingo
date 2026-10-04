@@ -1,0 +1,134 @@
+# Lingo for Vega OS (experimental; docs/plans/LING-008.md §3). Shape and comments follow Amazon's samples:
+# https://github.com/AmazonAppDev/vega-video-sample/blob/main/manifest.toml (RN for Vega 0.83 runtime-module)
+# https://github.com/AmazonAppDev/react-native-multi-tv-app-sample/blob/main/apps/vega/manifest.toml ([wants] list)
+# `pnpm check:vega` (scripts/check-vega.mjs) checks this file against package.json and app.json without the SDK.
+schema-version = 1
+
+[package]
+# Reuses the Fire OS application id (apps/expo/app.json android.package). vega-video-sample's manifest: "Existing FireTV app
+# developers with apps on FireOS devices must reuse their existing application id to ensure existing Amazon integrations,
+# viz. IAP, continue to work." LING-007 confirms (docs/plans/LING-008.md open question 7).
+id = "dev.moizp.lingo"
+title = "Lingo"
+version = "0.1.0"
+# Placeholder art (tokens ground colour); the size rules are to be checked in the Vega manifest docs.
+icon = "@image/lingo-icon.png"
+
+[os.version]
+min = "1.2"
+target = "1.2"
+
+[components]
+[[components.interactive]]
+id = "dev.moizp.lingo.main"
+# RN for Vega 0.83 track (react-native-kepler 4.x). The 0.72 track uses "/com.amazon.kepler.keplerscript.runtime.loader_2@IKeplerScript_2_0".
+runtime-module = "/com.amazon.kepler.runtime.react_native_kepler_4@IReactNativeKepler_0"
+launch-type = "singleton"
+categories = ["com.amazon.category.main", "com.amazon.category.kepler.media"]
+
+[processes]
+[[processes.group]]
+component-ids = ["dev.moizp.lingo.main"]
+
+# Optional capabilities, copied from the multi-TV sample; then the LING-007 entries (IAP, Content Launcher, Personalization, Media
+# Controls) from AmazonAppDev/vega-video-sample manifest.toml, reduced to what Lingo uses:
+# https://developer.amazon.com/docs/vega/0.22/vega-iap-overview.html
+# https://community.amazondeveloper.com/t/sample-manifest-for-content-launcher-account-login-and-vega-media-controls/7956
+[wants]
+[[wants.service]]
+id = "com.amazon.inputmethod.service"
+
+# Media player / transform (video playback is off on Vega until KIT-010; kept so the switch is a code change only)
+[[wants.service]]
+id = "com.amazon.media.server"
+
+[[wants.service]]
+id = "com.amazon.mediametrics.service"
+
+# Remote button events
+[[wants.service]]
+id = "com.amazon.inputd.service"
+
+# Media Controls
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+
+[[wants.service]]
+id = "com.amazon.mediabuffer.service"
+
+[[wants.service]]
+id = "com.amazon.mediatransform.service"
+
+# Accessibility (VoiceView labels)
+[[wants.privilege]]
+id = "com.amazon.devconf.privilege.accessibility"
+
+# Required for GIPC SR — audio/video playback
+[[wants.service]]
+id = "com.amazon.gipc.uuid.*"
+
+# Audio
+[[wants.service]]
+id = "com.amazon.audio.stream"
+
+[[wants.service]]
+id = "com.amazon.audio.control"
+
+[[wants.service]]
+id = "com.amazon.audio.system"
+
+# Network information (catalog, websocket to the phone)
+[[wants.service]]
+id = "com.amazon.network.service"
+
+# IAP (LING-007; src/iap/vegaStore.ts)
+[[wants.service]]
+id = "com.amazon.iap.core.service"
+
+[[wants.module]]
+id = "/com.amazon.iap.core@IIAPCoreUI"
+
+# App Tester (sandbox)
+[[wants.service]]
+id = "com.amazon.iap.tester.service"
+
+[[wants.module]]
+id = "/com.amazonappstore.iap.tester@IIAPTesterUI"
+
+# Content Personalization (only effective once KIT-007 calls the API; harmless before)
+[[wants.service]]
+id = "com.amazon.tv.developer.dataservice"
+
+[[wants.privilege]]
+id = "com.amazon.tv.content-personalization.privilege.provide-data"
+
+[needs]
+[[needs.module]]
+id = "/com.amazon.kepler.appstore.iap.purchase.core@IAppstoreIAPPurchaseCoreService"
+
+# Content Launcher (LING-007; src/platform/contentLauncher.ts)
+[[needs.module]]
+id = "/com.amazon.kepler.media@IContentLauncher1"
+
+[[message]]
+uri = "pkg://dev.moizp.lingo.main"
+sender-privileges = ["*"]
+receiver-privileges = ["self"]
+
+[[extras]]
+key = "interface.provider"
+component-id = "dev.moizp.lingo.main"
+
+[extras.value.application]
+[[extras.value.application.interface]]
+interface_name = "com.amazon.kepler.media.IContentLauncherServer"
+attribute_options = ["partner-id"]
+static-values = { partner-id = "LINGO" }      # Q5: the real partner id comes from Amazon catalog onboarding
+
+[[extras.value.application.interface]]
+interface_name = "com.amazon.kepler.media.IMediaPlaybackServer"
+command_options = ["SkipForward", "SkipBackward"]
+features = ["AdvancedSeek"]                     # no VariableSpeed: Vega caps.rate is false (decision 0006)
+
+# Not added: the IContentPersonalizationServer interface block (SupportedCustomerLists / DataRefreshComponentId). It needs a
+# headless data-refresh service component Lingo does not have (escalation E3).
