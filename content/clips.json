@@ -1,0 +1,347 @@
+{
+  "version": 1,
+  "gateC": "pending",
+  "bucketEnv": "S3_BUCKET_MEDIA",
+  "clips": [
+    {
+      "slug": "jung-naiv-drogen",
+      "title": "Jung & Naiv Folge 81 – \"Drogen\" (Tilo Jung interviews Mathias Bröckers)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+      "attribution": "Tilo Jung / Jung & Naiv — CC BY 3.0 (source https://www.youtube.com/watch?v=x7vxmIWk-HM)",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Drogen_-_Jung_&_Naiv_Folge_81_-_YouTube.webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Drogen_-_Jung_%26_Naiv_Folge_81_-_YouTube.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "02:00",
+        "out": "08:00",
+        "confirmed": false
+      },
+      "expectedDurationS": 360,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "commons",
+        "file": "Drogen_-_Jung_&_Naiv_Folge_81_-_YouTube.webm"
+      },
+      "editorialNote": "799.7 MB source. Two speakers with back-channel overlap (docs/decisions/0007): expect a --cues pass. Drug policy (adult, not graphic)."
+    },
+    {
+      "slug": "openhpi-vandalismus",
+      "title": "Gespräch zu Vandalismus – Trolle, Hass und Fake-News (openHPI, 2019-11-13)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "FORMAL",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution": "Hasso-Plattner-Institut / openHPI; speakers Julian Resch, Martin Rulsch, Sandro Halank — CC BY-SA 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:2019-11-13_Gespräch_zu_Vandalismus_–_Trolle,_Hass_und_Fake-News_–_Wie_können_wir_das_Internet_retten%3F_(openHPI).webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f0/2019-11-13_Gespr%C3%A4ch_zu_Vandalismus_%E2%80%93_Trolle%2C_Hass_und_Fake-News_%E2%80%93_Wie_k%C3%B6nnen_wir_das_Internet_retten%3F_%28openHPI%29.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "07:00",
+        "confirmed": false
+      },
+      "expectedDurationS": 420,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "commons",
+        "file": "2019-11-13_Gespräch_zu_Vandalismus_–_Trolle,_Hass_und_Fake-News_–_Wie_können_wir_das_Internet_retten?_(openHPI).webm"
+      },
+      "editorialNote": "downloadUrl is derived from the Commons file title (upload path = md5 of the title, f0/…); the Direct file URL in docs/content.md row 2 carries an ASCII-folded name whose md5 does not match f0 (docs/content.md footnote [^dl2]). FORMAL (openHPI rows, docs/plans/LING-001-quality.md §14). BY-SA: derived VTTs carry the NOTE."
+    },
+    {
+      "slug": "terra-x-friedlaender",
+      "title": "Interview mit Holocaust-Überlebender Margot Friedländer (Terra X)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+      "attribution": "ZDF/TerraX/Leonie Schöler/Julia Geiß/Michael Fandel/Benjamin Leng/Margot Friedländer Zeitzeugin/Maximilian Mohr — CC BY 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Interview_mit_Holocaust-Überlebender_Margot_Friedländer.webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Interview_mit_Holocaust-%C3%9Cberlebender_Margot_Friedl%C3%A4nder.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "03:46",
+        "confirmed": true
+      },
+      "expectedDurationS": 226,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "manual",
+        "url": "https://commons.wikimedia.org/wiki/File:Interview_mit_Holocaust-Überlebender_Margot_Friedländer.webm",
+        "verifiedOn": null
+      },
+      "editorialNote": "Gate A clip: work/terra-x-friedlaender exists on the human's machine, so prepare runs with --reuse (no Transcribe). A Holocaust survivor's testimony (Theresienstadt): handle glosses and quiz items with care (docs/content.md §6). Manual check: open the per-clip schule.zdf.de page linked from the Commons credit (docs/content.md §7) and set verifiedOn."
+    },
+    {
+      "slug": "terra-x-klimafaktoren",
+      "title": "Die wichtigsten Klimafaktoren (ZDF, Terra X)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+      "attribution": "ZDF/Terra X/Story House Productions/Gruppe 5/Luise Wagner, Jonas Sichert, Andreas Hougardy, Rudi Kirschen — CC BY 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Die_wichtigsten_Klimafaktoren_(ZDF,_Terra_X)_720p_50FPS.webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/6/68/Die_wichtigsten_Klimafaktoren_%28ZDF%2C_Terra_X%29_720p_50FPS.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "07:14",
+        "confirmed": true
+      },
+      "expectedDurationS": 434,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "manual",
+        "url": "https://commons.wikimedia.org/wiki/File:Die_wichtigsten_Klimafaktoren_(ZDF,_Terra_X)_720p_50FPS.webm",
+        "verifiedOn": null
+      },
+      "editorialNote": "Narration with a music bed. Manual check: open the per-clip schule.zdf.de page (docs/content.md §7) and set verifiedOn."
+    },
+    {
+      "slug": "terra-x-becker-interview",
+      "title": "Interview mit dem Virologen Prof. Stephan Becker zur Corona-Pandemie (Terra X)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution": "ZDF Terra X Redaktion — CC BY-SA 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "04:49",
+        "confirmed": true
+      },
+      "expectedDurationS": 289,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "manual",
+        "url": "https://commons.wikimedia.org/wiki/File:Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm",
+        "verifiedOn": null
+      },
+      "editorialNote": "BY-SA: derived VTTs carry the NOTE. Technical vocabulary. Manual check: open the per-clip schule.zdf.de page (docs/content.md §7) and set verifiedOn."
+    },
+    {
+      "slug": "terra-x-so-trinken-baeume",
+      "title": "So trinken Bäume (Terra X)",
+      "lang": "de",
+      "natives": [
+        "en"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+      "attribution": "ZDF/TerraX/Colourfield Tell A Vision/Petra Höfer, Freddie Röckenhaus/Tobias Kaufmann/422 south/Johannes Fritsche/Jochen … — CC BY 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:So_trinken_Bäume.webm",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2c/So_trinken_B%C3%A4ume.webm",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "04:19",
+        "confirmed": true
+      },
+      "expectedDurationS": 259,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "manual",
+        "url": "https://www.zdf.de/dokumentation/terra-x/so-trinken-baeume-creative-commons-clip-100.html",
+        "verifiedOn": null
+      },
+      "editorialNote": "TBD by human: the credit line is cut off at \"Jochen …\" (docs/content.md [^g5]); copy the full line from the ZDF page (licenceCheck.url) — the manifest stays invalid for this row until then."
+    },
+    {
+      "slug": "what-to-do-on-a-date-1950",
+      "title": "What to Do on a Date (Coronet, 1950)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "Public domain (US)",
+      "licenseUrl": "http://creativecommons.org/licenses/publicdomain/",
+      "attribution": "Coronet Instructional Films (1950), Prelinger Archives — public domain",
+      "sourceUrl": "https://archive.org/details/WhattoDo1950",
+      "downloadUrl": null,
+      "sourceS3": "s3://$S3_BUCKET_MEDIA/clips/what-to-do-on-a-date-1950.mp4",
+      "segment": {
+        "in": "00:16",
+        "out": "07:55",
+        "confirmed": true
+      },
+      "expectedDurationS": 459,
+      "cues": "cues/what-to-do-on-a-date-1950.en.vtt",
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "ia",
+        "id": "WhattoDo1950"
+      },
+      "editorialNote": "The cut is already in the media bucket (docs/content.md row 7). Gate A needed a --cues pass: the human copies the corrected VTT to content/cues/ (Phase 0); the manifest stays invalid for this row until then. US-PD rests on non-renewal (docs/content.md §3 licence evidence)."
+    },
+    {
+      "slug": "sprite-fright",
+      "title": "Sprite Fright (Blender Studio, 2021)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "Blender Studio / Blender Foundation — CC BY 4.0 (studio.blender.org/films/sprite-fright)",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm",
+      "downloadUrl": "https://archive.org/download/sprite-fright-2021/Sprite%20Fright%20%282021%29.mp4",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "06:00",
+        "confirmed": false
+      },
+      "expectedDurationS": 360,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "commons",
+        "file": "Sprite_Fright_-_Blender_Open_Movie-full_movie.webm"
+      },
+      "editorialNote": "Downloads the archive.org mp4 (60.6 MB) instead of the 2048×858 Commons webm. Acted dialogue: expect a --cues pass."
+    },
+    {
+      "slug": "shy-guy-1947",
+      "title": "Shy Guy (Coronet Instructional Films, 1947)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "Public domain (US)",
+      "licenseUrl": "http://creativecommons.org/licenses/publicdomain/",
+      "attribution": "Coronet Instructional Films (1947), Prelinger Archives / Internet Archive — public domain",
+      "sourceUrl": "https://archive.org/details/ShyGuy1947",
+      "downloadUrl": "https://archive.org/download/ShyGuy1947/ShyGuy1947.mp4",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "07:00",
+        "confirmed": false
+      },
+      "expectedDurationS": 420,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "ia",
+        "id": "ShyGuy1947"
+      },
+      "editorialNote": "Acted dialogue: expect a --cues pass; archive.org has a Whisper .srt to compare against."
+    },
+    {
+      "slug": "cosmos-laundromat",
+      "title": "Cosmos Laundromat – First Cycle (Blender Foundation, 2015)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "attribution": "Blender Foundation / Blender Institute — CC BY 4.0 (per archive.org item)",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cosmos_Laundromat_-_First_Cycle_-_Official_Blender_Foundation_release.webm",
+      "downloadUrl": "https://archive.org/download/CosmosLaundromatFirstCycle/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29.mp4",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "05:30",
+        "confirmed": false
+      },
+      "expectedDurationS": 330,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "commons",
+        "file": "Cosmos_Laundromat_-_First_Cycle_-_Official_Blender_Foundation_release.webm"
+      },
+      "editorialNote": "Licence drift: archive.org says CC BY 4.0, the Commons file is tagged CC BY-SA 3.0; docs/content.md §5 says treat it as at least BY-SA, so the label is the stricter CC BY-SA 3.0 (derived VTTs carry the NOTE) and the re-check reads the Commons tag. The attribution string is the register's, verbatim. Rated 13+."
+    },
+    {
+      "slug": "tears-of-steel",
+      "title": "Tears of Steel (Blender Foundation, 2012)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "CC BY 3.0",
+      "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+      "attribution": "(CC) Blender Foundation | mango.blender.org",
+      "sourceUrl": "https://archive.org/details/Tears-of-Steel",
+      "downloadUrl": "https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4",
+      "sourceS3": null,
+      "segment": {
+        "in": "00:00",
+        "out": "04:30",
+        "confirmed": false
+      },
+      "expectedDurationS": 270,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "ia",
+        "id": "Tears-of-Steel"
+      },
+      "editorialNote": "On-location dialogue with some overlap: expect a --cues pass."
+    },
+    {
+      "slug": "duck-and-cover",
+      "title": "Duck and Cover (Archer Productions for the US Federal Civil Defense Administration, 1951)",
+      "lang": "en",
+      "natives": [
+        "de"
+      ],
+      "formality": "INFORMAL",
+      "license": "Public domain (US)",
+      "licenseUrl": "http://creativecommons.org/licenses/publicdomain/",
+      "attribution": "Archer Productions / US Federal Civil Defense Administration (1951), Prelinger Archives — public domain",
+      "sourceUrl": "https://archive.org/details/DuckandC1951",
+      "downloadUrl": "https://archive.org/download/DuckandC1951/DuckandC1951.mp4",
+      "sourceS3": null,
+      "segment": {
+        "in": "01:00",
+        "out": "07:30",
+        "confirmed": true
+      },
+      "expectedDurationS": 390,
+      "cues": null,
+      "posterAtS": null,
+      "licenceCheck": {
+        "kind": "ia",
+        "id": "DuckandC1951"
+      },
+      "editorialNote": "The in-point 01:00 skips the song and sound effects at the start. US government commission: the safest of the PD set for an EU demo (docs/content.md §5)."
+    }
+  ]
+}

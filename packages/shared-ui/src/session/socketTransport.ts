@@ -24,6 +24,7 @@ export function createSocketTransport(): SessionTransport {
       return () => { connectCbs.delete(cb) }
     },
     join(p: JoinPayload) { socket?.emit('join', p) },
+    quizStart(p) { socket?.emit('quiz:start', p) },
     on(event, cb) {
       const l = { event, cb: cb as (...args: never[]) => void }
       listeners.push(l)

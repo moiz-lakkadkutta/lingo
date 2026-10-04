@@ -72,3 +72,25 @@ describe('loadCuesVtt', () => {
     } finally { await rm(dir, { recursive: true, force: true }) }
   })
 })
+
+describe('cuesToVtt NOTE (BY-SA licence line, docs/content.md §5)', () => {
+  const cues = [{ index: 0, startS: 0.4, endS: 2.77, text: 'Ich warte.' }]
+  it('cuesToVtt puts a single-line NOTE after the header and parseVtt skips it', async () => {
+    const vtt = cuesToVtt(cues, 'de', 'CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0\n— ZDF Terra X Redaktion.')
+    expect(vtt.startsWith('WEBVTT\n\nNOTE CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 — ZDF Terra X Redaktion.\n\nc0\n')).toBe(true)
+    const { cues: parsed, findings } = checkVtt(vtt, 'de')
+    expect(parsed.map((c) => c.text)).toEqual(['Ich warte.']); expect(findings).toEqual([])
+    const dir = await mkdtemp(join(tmpdir(), 'lingo-vtt-note-'))
+    try {
+      const path = join(dir, 'de.vtt'); await writeFile(path, vtt)
+      expect((await loadCuesVtt(path, 'de')).map((s) => s.text)).toEqual(['Ich warte.'])
+    } finally { await rm(dir, { recursive: true, force: true }) }
+  })
+  it('without a note the output is unchanged', () => {
+    expect(cuesToVtt(cues, 'de', undefined)).toBe(cuesToVtt(cues, 'de'))
+    expect(cuesToVtt(cues, 'de', '  ')).toBe(cuesToVtt(cues, 'de'))
+  })
+  it('rejects a note containing -->', () => {
+    expect(() => cuesToVtt(cues, 'de', 'a --> b')).toThrow(/-->/)
+  })
+})

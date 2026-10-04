@@ -32,6 +32,40 @@ describe('player machine', () => {
     expect(s.revealedCue).toBeNull()
   })
 
+  describe('before the first cue (no line to explain)', () => {
+    it('Select before the first cue keeps playing and shows the chrome, with no pause', () => {
+      const s0 = at(0.5)
+      expect(s0.cueIndex).toBeNull()
+      const [s, fx] = reduce(s0, { type: 'stageSelect', now: NOW }, ctx)
+      expect(s.phase).toBe('playing')
+      expect(s.chromeUntil).toBe(NOW + ctx.chromeMs)
+      expect(fx).toEqual([])
+    })
+    it('Pause before the first cue pauses with no card, and Select on the stage resumes', () => {
+      let [s, fx] = reduce(at(0.5), key('playPause'), ctx)
+      expect(s.phase).toBe('explain')
+      expect(s.cueIndex).toBeNull()
+      expect(fx).toEqual([{ kind: 'pause' }])
+      ;[s, fx] = reduce(s, { type: 'stageSelect', now: NOW }, ctx)
+      expect(s.phase).toBe('playing')
+      expect(s.stageKey).toBe(1)
+      expect(fx).toEqual([{ kind: 'play' }])
+    })
+    it('an external pause before the first cue can be resumed with Select', () => {
+      let [s] = reduce(at(0.5), { type: 'playerState', s: 'paused', now: NOW }, ctx)
+      expect([s.phase, s.cueIndex]).toEqual(['explain', null])
+      const r = reduce(s, { type: 'stageSelect', now: NOW }, ctx)
+      expect(r[0].phase).toBe('playing')
+      expect(r[1]).toEqual([{ kind: 'play' }])
+    })
+    it('stage Select in Explain with a card is ignored (the card owns focus)', () => {
+      const [s] = reduce(at(4.5), { type: 'stageSelect', now: NOW }, ctx)
+      const r = reduce(s, { type: 'stageSelect', now: NOW }, ctx)
+      expect(r[0]).toBe(s)
+      expect(r[1]).toEqual([])
+    })
+  })
+
   it('stage Select pauses and opens Explain on the current cue with wordIdx 0', () => {
     const [s, fx] = reduce(at(4.5, { wordIdx: 1 }), { type: 'stageSelect', now: NOW }, ctx)
     expect(s.phase).toBe('explain')

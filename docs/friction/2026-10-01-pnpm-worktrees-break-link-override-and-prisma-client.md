@@ -1,4 +1,4 @@
-# pnpm worktrees break link override and prisma client
+# pnpm: git worktrees break the `link:` override and the Prisma client
 
 Task attempted: Run sub-agents in separate git worktrees (`.claude/worktrees/agent-*`, `../lingo-ling003`) so LING-001,
 LING-002 and LING-003 can be built in parallel, each with its own `pnpm i`.
@@ -20,7 +20,7 @@ Workaround: After `pnpm i` in a worktree, re-point the kit link by hand (e.g. at
 Suggestion: Project: use an absolute or env-driven path for the kit override (or publish the kit to a registry), and add a
 `postinstall: prisma generate` to `apps/api`. pnpm: document that `link:` in `overrides` resolves from the workspace root, so
 it breaks under git worktrees.
-Environment: macOS 26.2, Node 22.19.0, pnpm 9.15.9, Prisma 6, git worktrees.
+Environment: Platform: third party (pnpm, Prisma). macOS 26.2, Node 22.19.0, pnpm 9.15.9, Prisma 6, git worktrees.
 Links:
   - pnpm overrides: https://pnpm.io/package_json#pnpmoverrides
   - Prisma generate: https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/generating-prisma-client

@@ -3,10 +3,11 @@ import { Animated, BackHandler, findNodeHandle, Pressable, View } from 'react-na
 import { KitPlayer } from '@moizp/vega-media-kit'
 import type { KitPlayerRef, RemoteEvent } from '@moizp/vega-media-kit'
 import type { ClipDetail, LearnerDto } from '@lingo/contracts'
-import { DualCue } from '../components'
+import { DualCue, Screen, StateMessage } from '../components'
 import { caps as platformCaps, type Caps } from '../platformCaps'
 import type { RemoteSource } from '../remote/types'
 import { useRemoteKeys } from '../remote/useRemoteKeys'
+import { usePlatformMedia } from '../platform/usePlatformMedia'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
@@ -21,17 +22,37 @@ export interface PlayerProps {
   clip: ClipDetail; learner: LearnerDto; scale: number; challenge: boolean; sessionCode?: string
   savedIds: ReadonlySet<string>; savedCount: number; remote: RemoteSource; caps?: Caps
   onBack(positionS: number): void; onEnd(): void
-  onSave(highlightId: string): Promise<'saved' | 'limit' | 'error'>; onPlus(): void
+  /** Leave for the Plus screen (Explain's save-limit CTA). positionS is the playhead, so the caller saves it like Back does (PR #2 review B-M1). */
+  onSave(highlightId: string): Promise<'saved' | 'limit' | 'error'>; onPlus(positionS: number): void
   onLearnerChange(patch: Partial<Pick<LearnerDto, 'nativeLine' | 'cueScale'>>): void
 }
 
 const REPORTED = new Set(['loading', 'ready', 'playing', 'paused', 'buffering', 'ended'])
 
 /**
+ * caps.playback === false (Vega OS until the kit's Vega adapter plays, KIT-010): an honest message instead of mounting KitPlayer, which
+ * would reach the Shaka stub and crash. Back (button or remote) leaves at the resume position.
+ */
+export function Player(props: PlayerProps) {
+  const caps = props.caps ?? platformCaps
+  if (caps.playback === false) return <PlaybackOff onBack={() => props.onBack(props.clip.resumeS ?? 0)} />
+  return <PlayerView {...props} caps={caps} />
+}
+
+function PlaybackOff({ onBack }: { onBack(): void }) {
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onBack(); return true })
+    return () => sub.remove()
+  }, [onBack])
+  const s = strings.playbackOff
+  return <Screen><StateMessage title={s.title} body={s.body} announceOnMount actions={[{ label: s.backLabel, text: s.back, onPress: onBack }]} /></Screen>
+}
+
+/**
  * Thin shell over the pure machine (screens/player/machine.ts): events in, effects out (LING-003, decision 0006).
  * Dual cues are rendered by DualCue from the clip payload, so highlights and native text always align.
  */
-export function Player(props: PlayerProps) {
+function PlayerView(props: PlayerProps) {
   const { clip, learner, challenge, savedIds, savedCount, remote, onSave, onPlus, onLearnerChange } = props
   const caps = props.caps ?? platformCaps
   const kit = useRef<KitPlayerRef>(null)
@@ -93,7 +114,7 @@ export function Player(props: PlayerProps) {
     }
     dispatch({ type: 'key', key: ev.key, longPress: ev.longPress, repeat: ev.repeat, now: Date.now() })
   }, [dispatch])
-  useRemoteKeys(remote, onKey, true)
+  const onKeySeen = usePlatformMedia({ clip, state, onKey }); useRemoteKeys(remote, onKeySeen, true)
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { dispatch({ type: 'back', now: Date.now() }); return true })
@@ -129,7 +150,9 @@ export function Player(props: PlayerProps) {
   const [cueBlockH, setCueBlockH] = useState<number | null>(null)
   const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(24)
 
-  const stageActive = state.phase === 'playing' || state.phase === 'holding'
+  // Paused before the first line (machine.toExplain): no card, so the stage keeps focus and Select resumes.
+  const pausedNoCue = state.phase === 'explain' && !cue
+  const stageActive = state.phase === 'playing' || state.phase === 'holding' || pausedNoCue
   return (
     <View style={{ flex: 1, backgroundColor: tokens.color.stage }}>
       <KitPlayer
@@ -142,8 +165,8 @@ export function Player(props: PlayerProps) {
       />
       <Pressable
         key={state.stageKey}
-        aria-label={strings.player.stage}
-        hasTVPreferredFocus={state.phase === 'playing'}
+        aria-label={pausedNoCue ? strings.player.stagePaused : strings.player.stage}
+        hasTVPreferredFocus={state.phase === 'playing' || pausedNoCue}
         focusable={stageActive}
         pointerEvents={stageActive ? 'auto' : 'none'}
         onPress={() => dispatch({ type: 'stageSelect', now: Date.now() })}
@@ -164,7 +187,7 @@ export function Player(props: PlayerProps) {
         nextFocusDown={saveHandle}
         chipRefs={wordFocus === 'cue' ? chipRefs : undefined}
       />
-      <StatusLine parts={statusParts({ challenge, rate: state.rate })} visible={chromeVisible} />
+      <StatusLine parts={pausedNoCue ? [...statusParts({ challenge, rate: state.rate }), strings.player.pausedHint] : statusParts({ challenge, rate: state.rate })} visible={chromeVisible} />
       {explaining && cue ? (
         <Explain
           cue={cue}
@@ -181,7 +204,7 @@ export function Player(props: PlayerProps) {
           onSave={onSave}
           onReplay={() => dispatch({ type: 'action', action: 'replay', now: Date.now() })}
           onSlower={() => dispatch({ type: 'action', action: 'slower', now: Date.now() })}
-          onPlus={onPlus}
+          onPlus={() => onPlus(stateRef.current.positionS)}
           chipRefs={chipRefs}
           saveRef={saveRef}
           bottom={cardBottom}

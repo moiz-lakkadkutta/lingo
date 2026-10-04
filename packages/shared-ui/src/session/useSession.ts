@@ -1,7 +1,7 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { SessionDto } from '@lingo/contracts'
 import { createSocketTransport } from './socketTransport'
-import { initialSession, sessionReducer, type SessionState, type SessionTransport } from './types'
+import { initialPhoneQuiz, initialSession, phoneQuizReducer, sessionReducer, type SessionHandle, type SessionTransport } from './types'
 
 export interface UseSessionOptions {
   /** Root's api(): envelope-unwrapping fetch. Identity may change (learner.native); the session is still created once per mount. */
@@ -26,8 +26,9 @@ export async function postSessionWithRetry(post: () => Promise<unknown>, wait: (
 }
 
 /** POST /sessions once, join the room as 'tv' on every (re)connect, mirror phone presence. word:saved is not consumed here: Root already knows what it saved. */
-export function useSession({ api, apiBaseUrl, enabled, transport, onOffline }: UseSessionOptions): SessionState {
+export function useSession({ api, apiBaseUrl, enabled, transport, onOffline }: UseSessionOptions): SessionHandle {
   const [state, dispatch] = useReducer(sessionReducer, initialSession)
+  const [phoneQuiz, dispatchQuiz] = useReducer(phoneQuizReducer, initialPhoneQuiz)
   const apiRef = useRef(api); apiRef.current = api
   const onOfflineRef = useRef(onOffline); onOfflineRef.current = onOffline
   const transportRef = useRef<SessionTransport | null>(null)
@@ -55,5 +56,18 @@ export function useSession({ api, apiBaseUrl, enabled, transport, onOffline }: U
     return () => { cancelled = true; if (timer) clearTimeout(timer); for (const u of unsubs) u(); t.disconnect(); dispatch({ type: 'transport', live: false }) }
   }, [enabled, apiBaseUrl, t]) // api, onOffline and transport are refs on purpose: their identity must not re-create the session
 
-  return state
+  // quiz:result only matters while a phone quiz is sent (the reducer ignores it otherwise); subscribed only then.
+  const quizSent = phoneQuiz.status === 'sent'
+  useEffect(() => {
+    if (!quizSent) return
+    return t.on('quiz:result', (p) => dispatchQuiz({ type: 'result', correct: p.correct, total: p.total }))
+  }, [quizSent, t])
+  const code = state.code
+  const startPhoneQuiz = useCallback((clipSlug: string) => {
+    if (!code) return
+    dispatchQuiz({ type: 'sent', clipSlug })
+    t.quizStart({ code, clipSlug })
+  }, [code, t])
+
+  return { ...state, phoneQuiz, startPhoneQuiz }
 }

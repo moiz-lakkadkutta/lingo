@@ -69,3 +69,22 @@ describe('isCountable (input to clipLevel / coverageRank)', () => {
     expect(toks.filter(isCountable).map((t) => t.word)).toEqual(['Ich', 'habe', 'angerufen', 'einsam'])
   })
 })
+
+describe('isNumeral: number words are never highlighted (review M5)', () => {
+  const yes = (ws: string[]) => { for (const w of ws) expect(isNumeral(w), w).toBe(true) }
+  const no = (ws: string[]) => { for (const w of ws) expect(isNumeral(w), w).toBe(false) }
+  it('English teens, including fifteen', () => yes(['thirteen', 'fourteen', 'fifteen', 'Sixteen', 'seventeen', 'eighteen', 'nineteen']))
+  it('English tens, hundred, thousand, million, billion, trillion, dozen and plurals', () =>
+    yes(['twenty', 'forty', 'eighty', 'ninety', 'hundred', 'hundreds', 'thousands', 'million', 'millions', 'billion', 'billions', 'trillion', 'dozen', 'dozens', 'twenties', 'fifties', 'twofold']))
+  it('English ordinals beyond tenth', () =>
+    yes(['eleventh', 'twelfth', 'thirteenth', 'fifteenth', 'nineteenth', 'twentieth', 'fortieth', 'ninetieth', 'hundredth', 'thousandth', 'millionth', 'billionth']))
+  it('English hyphenated compounds', () => yes(['twenty-one', 'Forty-Two', 'twenty-first', 'ninety-ninth', 'one-hundred']))
+  it('German compounds, including zweihundert', () =>
+    yes(['zweihundert', 'zweitausend', 'einundzwanzig', 'fünfundzwanzig', 'dreihundertvierzig', 'zweihunderteinundzwanzig', 'einhundert', 'eintausend', 'dreizehn', 'sechzehn', 'siebzehn', 'Dreissig', 'zwo']))
+  it('German ordinals, including elfte and compounds', () =>
+    yes(['elfte', 'zwölften', 'dreizehnte', 'neunzehnter', 'zwanzigste', 'einundzwanzigsten', 'hundertste', 'tausendstes', 'zweihundertste', 'hundertdritte', 'sechste', 'zweite', 'vierten']))
+  it('German Million(en), Milliarde(n), Billion(en), Dutzend and Hunderte/Tausende', () =>
+    yes(['Million', 'Millionen', 'Milliarde', 'Milliarden', 'Billion', 'Billionen', 'Dutzend', 'Dutzende', 'Hunderte', 'Tausenden', 'zweimal', 'hundertfach', 'millionste']))
+  it('ordinary words that start or end like numbers stay highlightable', () =>
+    no(['einfach', 'einte', 'Sieb', 'dreiste', 'dreisten', 'Viertel', 'elfen', 'Zweifel', 'Achtung', 'seconds', 'often', 'tense', 'tenant', 'ones', 'none', 'someone', 'nine-to-five', 'second-hand', 'Einsamkeit', 'Hundertwasser', 'Neunauge', 'Dutzendware', 'ein', 'und']))
+})

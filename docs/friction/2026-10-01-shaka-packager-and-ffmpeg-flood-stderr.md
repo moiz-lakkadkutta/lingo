@@ -1,4 +1,4 @@
-# shaka packager and ffmpeg flood stderr
+# Shaka Packager and ffmpeg flood stderr in a pipeline run
 
 Task attempted: Run the media pipeline (`pnpm pipeline prepare …`) on a real clip and follow its progress in the terminal:
 ffmpeg makes the mezzanine and renditions, Shaka Packager writes HLS, then Transcribe, Translate and Bedrock run.
@@ -15,7 +15,7 @@ Workaround (decision 0008 §12): ffmpeg runs with `-hide_banner -loglevel error 
 each pipeline step logs its elapsed time.
 Suggestion: Shaka Packager could default INFO logging off for non-interactive use, or document `--quiet` / glog's
 `--minloglevel` on the main usage page.
-Environment: macOS 26.2, Node 22.19.0, ffmpeg, Shaka Packager.
+Environment: Platform: third party (Shaka Packager, ffmpeg). macOS 26.2, Node 22.19.0, ffmpeg, Shaka Packager.
 Links:
   - ffmpeg generic options (`-loglevel`, `-hide_banner`): https://ffmpeg.org/ffmpeg.html#Generic-options
   - ffmpeg main options (`-nostats`): https://ffmpeg.org/ffmpeg.html#Main-options
