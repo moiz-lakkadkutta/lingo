@@ -105,7 +105,7 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const rank = rankFn(o.freqList ?? (await loadFreqList(clip.sourceLang)))
   const candidates = spotCheckCandidates(clip, rank, perClip)
 
-  const results = await glossClip(ai, candidates.map((c) => ({ cueIndex: c.cueIndex, word: c.word, lemma: c.lemma, rank: c.rank, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native] })),
+  const results = await glossClip(ai, candidates.map((c) => ({ cueIndex: c.cueIndex, word: c.word, lemma: c.lemma, rank: c.rank, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], ...(c.cueIndex > 0 ? { prevCue: clip.cues[c.cueIndex - 1]!.text } : {}) })),
     clip.sourceLang, native, clip.level, log)
   const glosses = results.map((r, i) => toRow(r, candidates[i]!.fromClip))
 

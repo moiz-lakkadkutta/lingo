@@ -65,6 +65,13 @@ describe('glossClip', () => {
     expect(logs[0]).toMatch(/^gloss: conflict "tennis" \(cue 9\): /)
   })
 
+  it('passes the previous cue of each item on to gloss, and none when there is none', async () => {
+    const f = fakeGloss({ 'tennis|': ['Tennis (Sport)'], 'racket|': ['Schläger'] })
+    await glossClip({ gloss: f.gloss }, [{ ...items[0]!, prevCue: 'Hi, Kay.' }, items[1]!], 'en', 'de', 'A2', () => {})
+    expect(f.calls[0]!.prevCue).toBe('Hi, Kay.')
+    expect(f.calls[1]).not.toHaveProperty('prevCue')
+  })
+
   it('does not treat the same gloss in two different cues as a conflict', async () => {
     const f = fakeGloss({ 'tennis|': ['Tennis (Sport)'], 'racket|': ['Tennis (Sport)'] })
     const r = await glossClip({ gloss: f.gloss }, [items[0]!, { ...items[1]!, cueIndex: 10 }], 'en', 'de', 'A2', () => {})

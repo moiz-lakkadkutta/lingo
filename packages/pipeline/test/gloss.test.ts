@@ -73,7 +73,7 @@ describe('gloss v3', () => {
   it('GLOSS_PROMPT_VERSION must be bumped when the system prompt or the tool schema changes (sha256 snapshot of both)', () => {
     const sha = createHash('sha256').update(glossSystemPrompt('de', 'en', 'A2', 'warten')).update(JSON.stringify(glossToolConfig('de', 'en'))).digest('hex')
     // If this fails because you edited the prompt or the tool: bump GLOSS_PROMPT_VERSION and update both values here.
-    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 5, sha: 'fcadfd641c953ccb1c0b7ac302815c1bba8f001097b6824216a8d19f1b2b003d' })
+    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 6, sha: 'e1632f9e890ae630070612d7b2b1bd0518420d4c435d880003b5df869efb4f64' })
   })
 
   it('the en and de prompts carry their own FORMS and EXAMPLES blocks and no few-shot word from the English gold set', () => {
@@ -172,6 +172,38 @@ describe('gloss v3', () => {
     // cached and served again as soft
     expect(await a.gloss(req)).toMatchObject({ status: 'soft', cached: true })
     expect(send).toHaveBeenCalledTimes(2)
+  })
+
+  it('sends the previous cue as "previous" context (line breaks joined), never its native line', async () => {
+    const send = fakeSend(nova('gloss-v3-ok'))
+    await ai(send).gloss({ ...REQ, prevCue: 'Wo bist du\ndenn?', prevNativeCue: 'Where are you?' })
+    expect(JSON.parse(userTexts(send)[0]!)).toEqual({ previous: 'Wo bist du denn?', line: 'Ich [[warte]] seit zwei Stunden auf dich.', word: 'warte', lemma: 'warten' })
+    expect(JSON.stringify(send.mock.calls[0]![0].messages)).not.toContain('Where are you')
+    expect(glossSystemPrompt('de', 'en', 'A2', 'warten')).toMatch(/"previous".*context only/s)
+  })
+
+  it('the first cue (no previous cue) sends no context', async () => {
+    const send = fakeSend(nova('gloss-v3-ok'))
+    await ai(send).gloss(REQ)
+    expect(JSON.parse(userTexts(send)[0]!)).not.toHaveProperty('previous')
+  })
+
+  it('a different previous cue is a cache miss; the same previous cue is a hit', async () => {
+    const send = fakeSend(nova('gloss-v3-ok'))
+    const a = ai(send)
+    await a.gloss({ ...REQ, prevCue: 'Wo bist du?' })
+    await a.gloss({ ...REQ, prevCue: 'Komm schon!' })
+    await a.gloss(REQ)
+    expect(send).toHaveBeenCalledTimes(3)
+    await a.gloss({ ...REQ, prevCue: 'Wo  bist du?' })
+    expect(send).toHaveBeenCalledTimes(3)
+  })
+
+  it('a gloss that matches a word of the previous line is not an issue (the previous line is context only)', async () => {
+    const send = fakeSend(withCard(OK_CARD))
+    const r = await ai(send).gloss({ ...REQ, prevCue: 'Bitte wait, to wait!', prevNativeCue: 'Please wait, to wait!' })
+    expect(r.status).toBe('ok')
+    expect(send).toHaveBeenCalledTimes(1)
   })
 
   it('a hint changes the cache key and is sent as a second user text block', async () => {

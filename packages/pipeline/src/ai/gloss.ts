@@ -11,7 +11,7 @@ import { languageName } from './lang'
  * Nova tool use (enums, ≤ 2 nesting levels, long strings last): https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html
  */
 /** Bump whenever glossSystemPrompt() or glossToolConfig() changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const GLOSS_PROMPT_VERSION = 5 // v3: marked target, structured card, few-shot (LING-002 Gate C); v4: referent first, spelling, all forms; v5: second gloss only if exact, plural in this sense (eval 2026-10-03)
+export const GLOSS_PROMPT_VERSION = 6 // v3: marked target, structured card, few-shot (LING-002 Gate C); v4: referent first, spelling, all forms; v5: second gloss only if exact, plural in this sense (eval 2026-10-03); v6: previous cue as context
 export const GLOSS_TOOL = 'explain_word'
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -65,7 +65,8 @@ export function glossSystemPrompt(lang: Lang, native: string, level: Level, lemm
   return [
     `You write one entry of a learner's dictionary for ONE word of a ${T} subtitle line. The learner speaks ${N}; their level is about ${level} (CEFR, approximate).`,
     '',
-    'Input JSON: {"line": the subtitle line with the target word marked like [[this]], "word": the marked word exactly as it appears, "lemma": its dictionary form}.',
+    'Input JSON: {"previous": the subtitle line before it (absent for the first line), "line": the subtitle line with the target word marked like [[this]], "word": the marked word exactly as it appears, "lemma": its dictionary form}.',
+    'The "previous" line is context only: use it to tell what the marked word refers to (a thing or a person named there, an event), but never gloss or translate its words.',
     '',
     'Work on the marked word only. The other words of the line are context: use them to decide which sense the marked word has here, but never translate them into the gloss. When the marked word is part of a compound or fixed phrase ("tennis racket", "weenie roast", "get acquainted"), gloss only the marked part, in the sense it has inside that phrase.',
     '',
@@ -112,7 +113,13 @@ export function glossToolConfig(lang: Lang, native: string): ToolConfiguration {
   }
 }
 
-export interface GlossRequest { word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string; level: Level; hint?: string }
+export interface GlossRequest {
+  word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string; level: Level; hint?: string
+  /** the cue before (context only; sent as "previous", part of the cache key); absent for the first cue */
+  prevCue?: string
+  /** its Translate line: accepted for callers, never sent to the model and never used by the validators (0009 decision 4) */
+  prevNativeCue?: string
+}
 export type GlossOutcome =
   | { status: 'ok' | 'soft'; card: GlossCard; gloss: Gloss; issues: string[]; /** 1 or 2 when asked now; the stored value on a cache hit */ attempts: number; cached: boolean }
   | { status: 'rejected'; issues: string[]; lastOutput: unknown; attempts: number; cached: false }
@@ -139,6 +146,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
   return async (r) => {
     const { word, lemma, lang, native, level, hint } = r
     const line = normalizeCue(r.cue)
+    const previous = r.prevCue ? normalizeCue(r.prevCue) : undefined
     const ctx: CardContext = { word, lemma, cue: line, lang, native, ...(r.nativeCue ? { nativeCue: normalizeCue(r.nativeCue) } : {}) }
     const done = (card: GlossCard, issues: string[], attempts: number, cached: boolean): GlossOutcome => {
       const c = pruneCard(card, lang)
@@ -148,7 +156,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
     try { marked = markTarget(line, word) } catch (e) {
       return { status: 'rejected', issues: [`MARK: ${(e as Error).message}`], lastOutput: null, attempts: 0, cached: false }
     }
-    const identity = { kind: 'gloss', v: GLOSS_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, level, lemma, word, cue: line, ...(hint ? { hint } : {}) }
+    const identity = { kind: 'gloss', v: GLOSS_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, level, lemma, word, cue: line, ...(previous ? { previous } : {}), ...(hint ? { hint } : {}) }
     const key = cacheKey(identity)
     const hit = await d.cache.get('gloss', key, GlossCard)
     if (hit) {
@@ -157,7 +165,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
       await d.cache.delete('gloss', key)
     }
     const res = await askWithRetry(d, {
-      kind: 'gloss', label: lemma, system: glossSystemPrompt(lang, native, level, lemma), payload: { line: marked, word, lemma },
+      kind: 'gloss', label: lemma, system: glossSystemPrompt(lang, native, level, lemma), payload: { ...(previous ? { previous } : {}), line: marked, word, lemma },
       ...(hint ? { extraText: [hint] } : {}),
       toolName: GLOSS_TOOL, toolConfig: glossToolConfig(lang, native), maxTokens: d.reasoning && d.reasoning !== 'off' ? 2000 : GLOSS_MAX_TOKENS,
       schema: GlossCard, check: (c) => cardIssues(c, ctx), soft: isSoftCardIssue,

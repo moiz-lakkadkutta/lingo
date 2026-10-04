@@ -7,8 +7,8 @@ import type { PreparedCost } from '@lingo/contracts'
  * Nova 2 extended thinking (reasoning tokens are billed as output): https://docs.aws.amazon.com/nova/latest/nova2-userguide/extended-thinking.html
  */
 export const NOVA_LITE_MODEL_ID_DEFAULT = 'us.amazon.nova-lite-v1:0'
-/** Lite v1 stays the default until the eval (0009 "Eval results") confirms another model. */
-export const AI_MODEL_ID_DEFAULT = NOVA_LITE_MODEL_ID_DEFAULT
+/** Nova Pro v1: best in the gloss eval (docs/decisions/0009, Eval results), approved 2026-10-04. Lite v1 stays selectable via LINGO_AI_MODEL. */
+export const AI_MODEL_ID_DEFAULT = 'us.amazon.nova-pro-v1:0'
 
 /** The single env-driven model id: LINGO_AI_MODEL, else NOVA_LITE_MODEL_ID, else the default (blank = unset). */
 export function aiModelId(env: Record<string, string | undefined> = process.env): string {

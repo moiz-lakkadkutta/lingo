@@ -145,7 +145,7 @@ function englishFormIssues(c: GlossCard, ctx: CardContext): string[] {
   }
   if (c.pos === 'adjective' && c.comparative !== undefined && !isNone(c.comparative)) {
     const k = c.comparative.trim().toLowerCase().replace(/\s+/g, ' ')
-    if (!englishComparatives(lemma).includes(k)) issues.push(`F-COMP-en: comparative "${c.comparative}" is not an English comparative of "${ctx.lemma}" (e.g. "${lemma}er" or "more ${lemma}"), or use "none"`)
+    if (!englishComparatives(lemma).includes(k)) issues.push(`F-COMP-en: comparative "${c.comparative}" is not an English comparative of "${ctx.lemma}" (e.g. "${lemma.length > 6 ? `more ${lemma}` : englishComparatives(lemma)[0]}"), or use "none"`)
   }
   if (c.pos === 'verb') {
     const forms = englishVerbForms(lemma)
@@ -204,11 +204,14 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
     const copied = contentWords(g, ctx.native).filter((w) => cueWords.has(w))
     if (copied.length) issues.push(`G-SOURCE: gloss "${g}" repeats "${copied[0]}", another word of the line; translate only the marked word`)
   }
-  // G-COMPOUND: a compound built on a word of the line (target or neighbour) + ≥ 4 more letters translates more than the marked word
+  // G-COMPOUND: a compound whose head is not the marked word translates more than it. German compounds put the head last: a gloss
+  // that starts with the target itself ("Tennisschläger" for tennis, "Baseballspiel" for baseball) or ends with another word of the line
+  // is rejected; one that starts with a neighbour ("Tennisschläger" for racket: head "Schläger" = the target) is allowed.
   const lineWords = [...new Set(wordsOf(ctx.cue).filter((w) => w.length >= 4))]
+  const isTarget = (x: string) => x === word || x === lemma
   for (const g of c.gloss) {
     for (const w of contentWords(g, ctx.native)) {
-      const base = lineWords.find((x) => w !== x && w.length - x.length >= 4 && (w.startsWith(x) || w.endsWith(x)))
+      const base = lineWords.find((x) => w !== x && w.length - x.length >= 4 && ((isTarget(x) && w.startsWith(x)) || (!isTarget(x) && w.endsWith(x))))
       if (base) issues.push(`G-COMPOUND: gloss "${g}" is a compound with "${base}" from the line; translate only the marked word`)
     }
   }

@@ -46,8 +46,9 @@ describe('CostLedger', () => {
     expect(Object.values(MODEL_PRICES).every((p) => p.verified === false)).toBe(true)
   })
 
-  it('LINGO_AI_MODEL wins over NOVA_LITE_MODEL_ID; Lite v1 stays the default until the eval confirms another model', () => {
-    expect(AI_MODEL_ID_DEFAULT).toBe('us.amazon.nova-lite-v1:0')
+  it('LINGO_AI_MODEL wins over NOVA_LITE_MODEL_ID; the default is Nova Pro v1 (eval 2026-10-03, approved) and Lite v1 stays selectable', () => {
+    expect(AI_MODEL_ID_DEFAULT).toBe('us.amazon.nova-pro-v1:0')
+    expect(aiModelId({ LINGO_AI_MODEL: 'us.amazon.nova-lite-v1:0' })).toBe('us.amazon.nova-lite-v1:0')
     expect(aiModelId({})).toBe(AI_MODEL_ID_DEFAULT)
     expect(aiModelId({ NOVA_LITE_MODEL_ID: 'eu.amazon.nova-lite-v1:0' })).toBe('eu.amazon.nova-lite-v1:0')
     expect(aiModelId({ NOVA_LITE_MODEL_ID: 'eu.amazon.nova-lite-v1:0', LINGO_AI_MODEL: 'us.amazon.nova-2-lite-v1:0' })).toBe('us.amazon.nova-2-lite-v1:0')

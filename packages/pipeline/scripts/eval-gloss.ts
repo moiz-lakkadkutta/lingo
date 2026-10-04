@@ -34,7 +34,7 @@ const log = o.verbose ? (m: string) => console.log(m) : () => {}
 const ai = createAi({ ...(o.model ? { model: o.model } : {}), reasoning: o.reasoning as Reasoning, cacheDir, log })
 const model = ai.config.model
 
-const items = gold.items.filter((g) => !isExcluded(g)).map((g) => ({ cueIndex: g.cueIndex, word: g.word, lemma: g.lemma, rank: 0, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}) }))
+const items = gold.items.filter((g) => !isExcluded(g)).map((g) => ({ cueIndex: g.cueIndex, word: g.word, lemma: g.lemma, rank: 0, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), ...(g.prevCue ? { prevCue: g.prevCue } : {}) }))
 const results = await glossClip(ai, items, gold.lang, gold.native, gold.level, log)
 let quiz
 if (o.quiz) {

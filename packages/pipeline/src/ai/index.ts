@@ -20,7 +20,7 @@ export interface Ai {
 }
 
 /**
- * Defaults: send = lazy Bedrock client in BEDROCK_REGION (us-east-1); model = LINGO_AI_MODEL or NOVA_LITE_MODEL_ID (us.amazon.nova-lite-v1:0,
+ * Defaults: send = lazy Bedrock client in BEDROCK_REGION (us-east-1); model = LINGO_AI_MODEL or NOVA_LITE_MODEL_ID (default us.amazon.nova-pro-v1:0,
  * see ./cost); prices = MODEL_PRICES of that model (unknown model without opts.prices → throws); reasoning = LINGO_AI_REASONING or off
  * (only Nova 2 Lite; `high` is not offered, it forbids temperature and maxTokens); cacheDir = LINGO_AI_CACHE_DIR or
  * packages/pipeline/data/.cache/ai; log = console.log.

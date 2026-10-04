@@ -14,10 +14,10 @@ afterEach(async () => {
 })
 
 describe('createAi', () => {
-  it('createAi reads NOVA_LITE_MODEL_ID / BEDROCK_REGION / LINGO_AI_CACHE_DIR and defaults to us.amazon.nova-lite-v1:0, us-east-1, data/.cache/ai', async () => {
+  it('createAi reads NOVA_LITE_MODEL_ID / BEDROCK_REGION / LINGO_AI_CACHE_DIR and defaults to us.amazon.nova-pro-v1:0, us-east-1, data/.cache/ai', async () => {
     for (const k of ENV) delete process.env[k]
     const d = createAi({ send: fakeSend(nova('gloss-v3-ok')) }).config
-    expect(d.model).toBe('us.amazon.nova-lite-v1:0')
+    expect(d.model).toBe('us.amazon.nova-pro-v1:0')
     expect(d.region).toBe('us-east-1')
     expect(d.cacheDir.endsWith(['pipeline', 'data', '.cache', 'ai'].join(sep))).toBe(true)
 
@@ -35,8 +35,8 @@ describe('createAi', () => {
   })
 
   it('cost() reflects gloss and quiz calls of one instance and is independent between instances', async () => {
-    const a = createAi({ send: fakeSend(nova('gloss-v3-ok')), cacheDir: join(dir, 'a'), log: () => {} })
-    const b = createAi({ send: fakeSend(nova('quiz-ok')), cacheDir: join(dir, 'b'), log: () => {} })
+    const a = createAi({ send: fakeSend(nova('gloss-v3-ok')), model: 'us.amazon.nova-lite-v1:0', cacheDir: join(dir, 'a'), log: () => {} })
+    const b = createAi({ send: fakeSend(nova('quiz-ok')), model: 'us.amazon.nova-lite-v1:0', cacheDir: join(dir, 'b'), log: () => {} })
     await a.gloss({ word: 'warte', lemma: 'warten', cue: 'Ich warte seit zwei Stunden auf dich.', lang: 'de', native: 'en', level: 'A2' })
     await a.gloss({ word: 'warte', lemma: 'warten', cue: 'Ich warte seit zwei Stunden auf dich.', lang: 'de', native: 'en', level: 'A2' })
     await b.quiz(QUIZ_CUES, 'de', 'en')

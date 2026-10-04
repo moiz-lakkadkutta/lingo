@@ -27,6 +27,8 @@ export const GoldItem = z.object({
   cueIndex: z.number().int(),
   cue: z.string(),
   nativeCue: z.string().optional(),
+  /** the cue before (context for the model, as prepare sends it); absent for the first cue */
+  prevCue: z.string().optional(),
   word: z.string(),
   lemma: z.string(),
   /** Transcribe confidence of the word, when known (an excluded ASR error carries it) */

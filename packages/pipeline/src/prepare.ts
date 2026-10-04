@@ -146,7 +146,7 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   const highlights: PreparedHighlight[] = []
   let quiz: PreparedQuizItem[] | undefined
   if (doAi) {
-    const results = await glossClip(deps, picked.map((h) => ({ cueIndex: h.cueIndex, word: h.word, lemma: h.lemma, rank: h.rank, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!] })), lang, natives[0]!, level, (m) => deps.log(m))
+    const results = await glossClip(deps, picked.map((h) => ({ cueIndex: h.cueIndex, word: h.word, lemma: h.lemma, rank: h.rank, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!], ...(h.cueIndex > 0 ? { prevCue: segs[h.cueIndex - 1]!.text } : {}) })), lang, natives[0]!, level, (m) => deps.log(m))
     const glossed: Array<PreparedHighlight & { gloss: string }> = []
     results.forEach((r, i) => {
       // a wrong explanation on screen is worse than one highlight fewer (docs/decisions/0009 decision 6)

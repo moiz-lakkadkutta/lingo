@@ -148,11 +148,14 @@ describe('glossCardIssues (validators v3)', () => {
     expect(contentWords('to call', 'en')).toEqual(['call'])
   })
 
-  it('G-COMPOUND rejects a compound of a word of the line ("Tennisschläger" for tennis or racket, "Baseballspiel" for baseball)', () => {
+  it('G-COMPOUND rejects a compound whose head is not the target ("Tennisschläger" for tennis, "Baseballspiel" for baseball) and allows one whose modifier is a neighbour ("Tennisschläger" for racket)', () => {
     const t = en('tennis', 'tennis', "I'll get my tennis racket.", 'Ich hol meinen Tennisschläger.')
     expect(ids(glossCardIssues(card({ gloss: ['Tennis (Sport)', 'Tennisschläger'], plural: 'none', example: 'We play tennis on Sundays.' }), t))).toContain('G-COMPOUND')
     const r = en('racket', 'racket', "I'll get my tennis racket.")
-    expect(ids(glossCardIssues(card({ gloss: ['Tennisschläger'], plural: 'rackets', example: 'My racket is new.' }), r))).toContain('G-COMPOUND')
+    expect(glossCardIssues(card({ gloss: ['Tennisschläger'], plural: 'rackets', example: 'My racket is new.' }), r)).toEqual([])
+    // the head is a neighbour of the line: rejected
+    const net = en('summer', 'summer', 'the summer tennis camp')
+    expect(ids(glossCardIssues(card({ gloss: ['Sommertennis'], plural: 'summers', example: 'I love the summer.' }), net))).toContain('G-COMPOUND')
     const b = en('baseball', 'baseball', 'go to a baseball game.')
     expect(ids(glossCardIssues(card({ gloss: ['Baseballspiel'], plural: 'none', example: 'We play baseball on Sundays.' }), b))).toContain('G-COMPOUND')
     expect(glossCardIssues(card({ gloss: ['Baseball (Sport)'], plural: 'none', example: 'We play baseball on Sundays.' }), b)).toEqual([])
