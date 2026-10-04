@@ -61,7 +61,77 @@ export function pruneCard(c: GlossCard, lang?: Lang): GlossCard {
   return out as GlossCard
 }
 
-export interface CardContext { word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string }
+export interface CardContext {
+  word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string
+  /** German word knowledge for G-NONWORD (native de); without it the rule is skipped */
+  lexicon?: GermanLexicon
+}
+
+/**
+ * What G-NONWORD knows about German words: the frequency list (lemmas, any rank) and simplemma's answer for a string (is_known, lemma).
+ * The pipeline fills it (packages/pipeline/src/ai/germanWords.ts) for the strings germanLookupKeys() names, so this check stays pure.
+ */
+export interface GermanLexicon { inFreq(s: string): boolean; lookup(s: string): { known: boolean; lemma: string } | undefined }
+
+/** Derivational endings that are never a compound head ("Wurst" + "chen" is not a compound; the real word must be known as a whole). */
+const SUFFIX_HEADS = new Set(['chen', 'lein', 'ling', 'heit', 'keit', 'ung', 'ungen', 'schaft', 'isch', 'lich', 'erei', 'erin', 'nis', 'tum', 'sam', 'bar', 'haft'])
+const LINKERS = ['', 's', 'es', 'n', 'en', 'er', 'e']
+const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+const variants = (s: string) => [...new Set([s, capFirst(s), s.toLowerCase()])]
+const isUpper = (s: string) => s.charAt(0) !== s.charAt(0).toLowerCase()
+
+/** The German words of the glosses that G-NONWORD checks: outside parentheses, no function words, hyphen parts of ≥ 4 letters. */
+export function germanGlossWords(glosses: string[]): string[] {
+  const fw = FUNCTION_WORDS.de!
+  return glosses.flatMap((g) => (stripParens(g).match(/\p{L}[\p{L}-]*/gu) ?? [])
+    .filter((w) => !fw.has(w.toLowerCase()))
+    .flatMap((w) => w.split('-'))
+    .filter((p) => p.length >= 4))
+}
+
+/** Every string isGermanWord() may look up for `word` (all its substrings of ≥ 3 letters, in three casings). */
+export function germanLookupKeys(word: string): string[] {
+  const out = new Set<string>()
+  for (const part of word.split('-')) {
+    for (let a = 0; a < part.length; a++) for (let b = a + 3; b <= part.length; b++) for (const v of variants(part.slice(a, b))) out.add(v)
+  }
+  return [...out]
+}
+
+function knownWhole(w: string, lex: GermanLexicon): boolean {
+  return lex.inFreq(w) || variants(w).some((v) => lex.lookup(v)?.known)
+}
+/** A modifier must be a lemma (in the frequency list, or its own simplemma lemma): "Brat" (a form of braten) is not. */
+function isLemma(m: string, lex: GermanLexicon): boolean {
+  if (lex.inFreq(m)) return true
+  return [capFirst(m), m.toLowerCase()].some((v) => { const r = lex.lookup(v); return !!r?.known && r.lemma.toLowerCase() === m.toLowerCase() })
+}
+/** A head must be a common word (it or its lemma in the frequency list) of the compound's word class (noun ↔ capitalised). */
+function headOk(h: string, upper: boolean, lex: GermanLexicon): boolean {
+  if (SUFFIX_HEADS.has(h.toLowerCase())) return false
+  if (lex.inFreq(h)) return true
+  const r = lex.lookup(upper ? capFirst(h) : h.toLowerCase())
+  return !!r?.known && lex.inFreq(r.lemma) && isUpper(r.lemma) === upper
+}
+function isCompound(w: string, lex: GermanLexicon, depth = 0): boolean {
+  const upper = isUpper(w)
+  for (let i = 3; i <= w.length - 4; i++) {
+    const mod = w.slice(0, i), head = w.slice(i)
+    if (!headOk(head, upper, lex)) continue
+    for (const ln of LINKERS) {
+      if (ln && !mod.toLowerCase().endsWith(ln)) continue
+      const m = ln ? mod.slice(0, mod.length - ln.length) : mod
+      if (m.length < 3) continue
+      if (isLemma(m, lex) || (depth < 1 && isCompound(capFirst(m), lex, depth + 1))) return true
+    }
+  }
+  return false
+}
+
+/** G-NONWORD: a known word (frequency list or simplemma), or a compound of a lemma and a known head; hyphen parts one by one. */
+export function isGermanWord(word: string, lex: GermanLexicon): boolean {
+  return word.split('-').filter((p) => p.length >= 4).every((p) => knownWhole(p, lex) || isCompound(p, lex))
+}
 
 const sentenceKey = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[\p{P}\s]+$/u, '')
 
@@ -223,6 +293,12 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
       if (cw.length < 2) continue
       const hit = cw.find((w) => nativeWords.some((n) => sameStem(w, n)))
       if (hit) issues.push(`G-NEIGHBOUR: gloss "${g}" contains "${hit}", which translates another word of the line; give only the translation of the marked word`)
+    }
+  }
+  // G-NONWORD: an invented or misspelled German word ("Bratfest", "Wurstchen")
+  if (ctx.native === 'de' && ctx.lexicon) {
+    for (const w of germanGlossWords(c.gloss)) {
+      if (!isGermanWord(w, ctx.lexicon)) issues.push(`G-NONWORD: "${w}" is not a German word I can find; use a real, correctly spelled dictionary word`)
     }
   }
   // X-LANG, X-CUE, X-USES

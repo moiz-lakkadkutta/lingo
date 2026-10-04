@@ -301,4 +301,20 @@ describe('gloss v3', () => {
     await mk('low').gloss(REQ)
     expect(send).toHaveBeenCalledTimes(2)
   })
+
+  it('G-NONWORD: an invented German gloss is retried once with the issue, then rejected (en → de, injected lexicon)', async () => {
+    const roast = { word: 'roast', lemma: 'roast', cue: 'Or a weenie roast.', lang: 'en' as const, native: 'de', level: 'A2' as const }
+    const bad = { sense: 'an outdoor party where food is cooked', pos: 'noun', gloss: ['Bratfest'], register: 'neutral', plural: 'roasts', example: 'We had a roast in the park.' }
+    const good = { ...bad, gloss: ['Grillfest'] }
+    const lexicon = async () => ({ inFreq: (s: string) => ['fest', 'grillfest'].includes(s.toLowerCase()), lookup: () => undefined })
+    const mk = (send: BedrockSend) => createAi({ send, model: MODEL, cacheDir: dir, log: () => {}, germanLexicon: lexicon })
+    const retry = fakeSend(withCard(bad), withCard(good))
+    const r = await mk(retry).gloss(roast)
+    expect(r).toMatchObject({ status: 'ok', attempts: 2 })
+    expect(userTexts(retry, 1).at(-1)).toContain('G-NONWORD: "Bratfest"')
+    const twice = fakeSend(withCard(bad))
+    const r2 = await createAi({ send: twice, model: MODEL, cacheDir: join(dir, 'b'), log: () => {}, germanLexicon: lexicon }).gloss(roast)
+    expect(r2.status).toBe('rejected')
+    expect(r2.issues.join(' ')).toContain('G-NONWORD')
+  })
 })

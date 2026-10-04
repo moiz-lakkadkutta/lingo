@@ -1,8 +1,9 @@
 import type { ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
-import { Gloss, GlossCard, glossCardIssues, isSoftCardIssue, pruneCard, type CardContext, type Lang, type Level } from '@lingo/contracts'
+import { germanGlossWords, Gloss, GlossCard, glossCardIssues, isSoftCardIssue, pruneCard, type CardContext, type Lang, type Level } from '@lingo/contracts'
 import { cacheKey, normalizeCue, type CacheEntry } from './cache'
 import { askWithRetry, type AiDeps } from './call'
 import { cardToGloss } from './grammar'
+import type { GermanLexiconFn } from './germanWords'
 import { languageName } from './lang'
 
 /**
@@ -131,8 +132,9 @@ export const GLOSS_MAX_TOKENS = 500
 const hardIssues = (issues: string[]) => issues.filter((i) => !isSoftCardIssue(i))
 
 /** All checks of a card in its context: glossCardIssues() plus the rendered Gloss must fit the app's limits. */
-export function cardIssues(card: GlossCard, ctx: CardContext): string[] {
-  const issues = glossCardIssues(card, ctx)
+export async function cardIssues(card: GlossCard, ctx: CardContext, germanLexicon?: GermanLexiconFn): Promise<string[]> {
+  const lexicon = ctx.native === 'de' && germanLexicon ? await germanLexicon(germanGlossWords(card.gloss)) : undefined
+  const issues = glossCardIssues(card, lexicon ? { ...ctx, lexicon } : ctx)
   const g = Gloss.safeParse(cardToGloss(pruneCard(card, ctx.lang), ctx.lang, ctx.native, ctx.lemma))
   if (!g.success) issues.push(`G-LEN: the rendered gloss is too long (${g.error.issues.map((i) => i.message).join(', ')})`)
   return issues
@@ -160,7 +162,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
     const key = cacheKey(identity)
     const hit = await d.cache.get('gloss', key, GlossCard)
     if (hit) {
-      const issues = cardIssues(hit.output, ctx)
+      const issues = await cardIssues(hit.output, ctx, d.germanLexicon)
       if (!hardIssues(issues).length) { d.ledger.hit(); d.log(`ai gloss ${lemma} cached`); return done(hit.output, issues, hit.attempts ?? 1, true) }
       await d.cache.delete('gloss', key)
     }
@@ -168,7 +170,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
       kind: 'gloss', label: lemma, system: glossSystemPrompt(lang, native, level, lemma), payload: { ...(previous ? { previous } : {}), line: marked, word, lemma },
       ...(hint ? { extraText: [hint] } : {}),
       toolName: GLOSS_TOOL, toolConfig: glossToolConfig(lang, native), maxTokens: d.reasoning && d.reasoning !== 'off' ? 2000 : GLOSS_MAX_TOKENS,
-      schema: GlossCard, check: (c) => cardIssues(c, ctx), soft: isSoftCardIssue,
+      schema: GlossCard, check: (c) => cardIssues(c, ctx, d.germanLexicon), soft: isSoftCardIssue,
     })
     if (!res.ok) return { status: 'rejected', issues: res.issues, lastOutput: res.lastOutput, attempts: 2, cached: false }
     const entry: CacheEntry<GlossCard> = { v: 1, kind: 'gloss', identity, model: d.model, output: res.output, usage: res.usage, at: d.now().toISOString(), attempts: res.attempt }

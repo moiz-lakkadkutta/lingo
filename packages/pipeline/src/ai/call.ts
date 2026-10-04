@@ -3,10 +3,11 @@ import type { z } from 'zod'
 import type { AiCache, AiKind } from './cache'
 import { toolUseInput, type BedrockSend } from './client'
 import type { CostLedger } from './cost'
+import type { GermanLexiconFn } from './germanWords'
 
 /** Everything a gloss or quiz call needs; injected so tests never reach Bedrock. */
 export type Reasoning = 'off' | 'low' | 'medium'
-export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning }
+export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn }
 
 export interface AskSpec<T> {
   kind: AiKind
@@ -21,7 +22,7 @@ export interface AskSpec<T> {
   maxTokens: number
   schema: z.ZodType<T, z.ZodTypeDef, unknown>
   /** context rules beyond the schema; [] = acceptable */
-  check: (value: T) => string[]
+  check: (value: T) => string[] | Promise<string[]>
   /** issues that only nudge: on the retry, an answer whose remaining issues are all soft is accepted with a warning */
   soft?: (issue: string) => boolean
 }
@@ -91,7 +92,7 @@ export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskR
     lastOutput = input
     if (input === null) { issues = [`no tool call in the response (stopReason=${out.stopReason})`]; continue }
     const parsed = spec.schema.safeParse(input)
-    issues = parsed.success ? spec.check(parsed.data) : zodIssues(parsed.error)
+    issues = parsed.success ? await spec.check(parsed.data) : zodIssues(parsed.error)
     const usage = { inputTokens: out.usage?.inputTokens ?? 0, outputTokens: out.usage?.outputTokens ?? 0 }
     if (parsed.success && !issues.length) return { ok: true, output: parsed.data, usage, attempt, issues: [] }
     if (parsed.success && attempt === 2 && spec.soft && issues.every(spec.soft)) {

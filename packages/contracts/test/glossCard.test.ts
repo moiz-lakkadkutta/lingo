@@ -1,4 +1,4 @@
-import { contentWords, englishComparatives, englishPlurals, englishVerbForms, GlossCard, glossCardIssues, isSoftCardIssue, pruneCard, stopwordScore, type CardContext } from '../src/index'
+import { contentWords, germanGlossWords, isGermanWord, englishComparatives, englishPlurals, englishVerbForms, GlossCard, glossCardIssues, isSoftCardIssue, pruneCard, stopwordScore, type CardContext } from '../src/index'
 
 /** LING-002-gate-c §4: one `it` per validator row plus the passing case. */
 const en = (word: string, lemma: string, cue: string, nativeCue?: string): CardContext => ({ word, lemma, cue, lang: 'en', native: 'de', ...(nativeCue ? { nativeCue } : {}) })
@@ -174,5 +174,40 @@ describe('glossCardIssues (validators v3)', () => {
   it('the sense may run a little over the 12 words the prompt asks for (≤ 20 words, 160 characters)', () => {
     expect(GlossCard.safeParse({ sense: 'a piece of sports equipment used to hit a ball in tennis, badminton, etc.', pos: 'noun', gloss: ['Schläger'], register: 'neutral', example: 'x' }).success).toBe(true)
     expect(GlossCard.safeParse({ sense: Array.from({ length: 21 }, () => 'w').join(' '), pos: 'noun', gloss: ['Schläger'], register: 'neutral', example: 'x' }).success).toBe(false)
+  })
+
+  describe('G-NONWORD (German glosses must be real words)', () => {
+    // A hand-made lexicon: freq lemmas and simplemma answers (known, lemma) for the strings the check looks up.
+    const freq = new Set(['fest', 'schläger', 'tennis', 'markt', 'floh', 'heft', 'zweck', 'wurst', 'ling', 'toll'])
+    const simple: Record<string, { known: boolean; lemma: string }> = {
+      Brat: { known: true, lemma: 'braten' }, Fest: { known: true, lemma: 'Fest' }, Tennisschläger: { known: true, lemma: 'Tennisschläger' },
+      Zwecke: { known: true, lemma: 'Zweck' }, Würstchen: { known: true, lemma: 'Würstchen' }, Chen: { known: true, lemma: 'Chen' },
+      Ling: { known: true, lemma: 'Ling' }, Faul: { known: true, lemma: 'faul' }, faul: { known: true, lemma: 'faul' },
+    }
+    const lex = { inFreq: (s: string) => freq.has(s.toLowerCase()), lookup: (s: string) => simple[s] }
+    const ctx = { ...en('roast', 'roast', 'Or a weenie roast.'), lexicon: lex }
+    const c = (gloss: string[]) => card({ gloss, plural: 'roasts', example: 'We had a roast in the park.' })
+
+    it('rejects an invented compound or a misspelling, accepts known words and compounds of a known word and a known head', () => {
+      expect(isGermanWord('Bratfest', lex)).toBe(false) // "Brat" is only a form of braten, not a lemma
+      expect(isGermanWord('Wurstchen', lex)).toBe(false) // "-chen" is a suffix, not a compound head
+      expect(isGermanWord('Faulling', lex)).toBe(false)
+      expect(isGermanWord('tollerisch', lex)).toBe(false)
+      expect(isGermanWord('Tennisschläger', lex)).toBe(true)
+      expect(isGermanWord('Würstchen', lex)).toBe(true)
+      expect(isGermanWord('Heftzwecke', lex)).toBe(true) // Heft + Zwecke (lemma Zweck)
+      expect(isGermanWord('Flohmarkt', lex)).toBe(true)
+      expect(isGermanWord('Hot-Wurst', lex)).toBe(true) // hyphen parts are checked one by one; parts under 4 letters are skipped
+    })
+
+    it('is a hard issue naming the word, checks only German glosses and skips clarifiers in parentheses', () => {
+      const issues = glossCardIssues(c(['Bratfest']), ctx)
+      expect(ids(issues)).toEqual(['G-NONWORD'])
+      expect(issues[0]).toContain('"Bratfest"')
+      expect(isSoftCardIssue(issues[0]!)).toBe(false)
+      expect(glossCardIssues(c(['Fest (Bratwurst)']), ctx)).toEqual([])
+      expect(glossCardIssues(c(['Bratfest']), { ...ctx, lexicon: undefined })).toEqual([])
+      expect(germanGlossWords(['ein Bratfest', 'Tennis (Sport)', 'Hot-Dog-Würstchen'])).toEqual(['Bratfest', 'Tennis', 'Würstchen'])
+    })
   })
 })
