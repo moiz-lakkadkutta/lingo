@@ -183,7 +183,7 @@ describe('quiz', () => {
   it('QUIZ_PROMPT_VERSION must be bumped when the system prompt changes (sha256 snapshot)', () => {
     const sha = createHash('sha256').update(quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 })).digest('hex')
     // If this fails because you edited the prompt: bump QUIZ_PROMPT_VERSION and update both values here.
-    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 3, sha: '16aa0bc0862df8c6a33ca3a85b89832cb57ea6ed94894c58b4c2c033427c3aaf' })
+    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 4, sha: 'a28fb253e43b452c9f36312ed3d2a65d97e4d2677b8310207b22e3be928c529a' })
   })
 
   it('drops an item it cannot build (word not found as a whole word in its cue) instead of failing the clip, and logs why', async () => {
@@ -248,5 +248,17 @@ describe('quiz v2 distractor rules (LING-002-gate-c §6)', () => {
       const src = base.find((h) => (it.kind === 'meaning' ? h.word === it.prompt : clozePrompt(h.cue, h.word) === it.prompt))!
       expect(it.options[it.answer]).toBe(it.kind === 'meaning' ? src.gloss : src.word)
     }
+  })
+
+  it('fallbackPlan honours the cloze checks: "go to a ____ game." never offers "tennis" (noun modifier) and is skipped and logged when fewer than 3 distractors pass', () => {
+    const q = (id: number, cueIndex: number, word: string, cue: string): QuizHighlight => ({ id, cueIndex, word, lemma: word, pos: 'noun', gloss: ['Baseball (Sport)', 'Tennis (Sport)', 'Faulenzer', 'Schläger', 'Wagen', 'Kosten'][id]!, cue, number: 'sg' })
+    const lines = ["Wonder if she'd like to go to a baseball game.", "I'll get my tennis racket.", 'you loafer. What are you doing', 'Good picture, wagon train.', 'not much expense,']
+    const E = [q(0, 0, 'baseball', lines[0]!), q(1, 1, 'tennis', lines[1]!), q(2, 2, 'loafer', lines[2]!), q(3, 1, 'racket', lines[1]!), q(4, 3, 'wagon', lines[3]!), q(5, 4, 'expense', lines[4]!)]
+    const skipped: string[] = []
+    const plan = fallbackPlan(E, { meaning: 0, cloze: 6 }, undefined, { lang: 'en', clipCues: lines, onSkip: (kind, h, reason) => skipped.push(`${kind} ${h.word}: ${reason}`) })
+    const baseballCloze = plan.items.find((i) => i.kind === 'cloze' && i.highlightId === 0)
+    expect(baseballCloze).toBeUndefined()
+    expect(skipped.some((l) => l.startsWith('cloze baseball: fewer than 3 distractors'))).toBe(true)
+    for (const it of plan.items) expect(quizPlanIssues({ items: [it] }, E, { meaning: 0, cloze: 1 }, { lang: 'en', clipCues: lines })).toEqual([])
   })
 })

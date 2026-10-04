@@ -36,11 +36,14 @@ describe('eval scorer (LING-002-gate-c §9)', () => {
     expect(scoreItem(baseball, result(baseball, { gloss: ['Baseball (Sport)'], plural: 'none', example: 'We play baseball on Sundays.' }), set).pass).toBe(true)
   })
 
-  it('scoreItem fails S-SENSE when any gloss hits reject, even if another gloss is accepted ("Verkauf, Angebot")', () => {
+  it('scoreItem scores the displayed (first) gloss only: "Verkauf, Ausverkauf" passes S-SENSE, "Ausverkauf, Verkauf" fails it', () => {
     const sale = item('c12-sale')
-    const s = scoreItem(sale, result(sale, { gloss: ['Verkauf', 'Angebot'], plural: 'sales', example: 'The sale starts on Friday.' }), set)
-    expect(s.checks['S-SENSE']).toBe(false)
-    expect(s.pass).toBe(false)
+    const ok = scoreItem(sale, result(sale, { gloss: ['Verkauf', 'Ausverkauf'], plural: 'sales', example: 'The sale starts on Friday.' }), set)
+    expect(ok.checks['S-SENSE']).toBe(true)
+    expect(ok.gloss).toBe('Verkauf')
+    const bad = scoreItem(sale, result(sale, { gloss: ['Ausverkauf', 'Verkauf'], plural: 'sales', example: 'The sale starts on Friday.' }), set)
+    expect(bad.checks['S-SENSE']).toBe(false)
+    expect(bad.pass).toBe(false)
   })
 
   it('scoreItem fails S-FORMS for plural "refreshment" and S-POS for a verb card on a noun item', () => {

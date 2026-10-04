@@ -60,6 +60,14 @@ export async function glossClip(ai: { gloss: GlossFn }, items: ClipGlossItem[], 
 export function quizInput(cues: Array<{ index: number; text: string; native: string }>, results: ClipGlossResult[]): QuizCueInput[] {
   return cues.map((c) => ({
     index: c.index, text: c.text, native: c.native,
-    highlights: results.filter((r) => r.cueIndex === c.index).flatMap((r) => (r.status === 'ok' ? [{ word: r.word, lemma: r.lemma, pos: r.card.pos, gloss: r.card.gloss[0]! }] : [])),
+    highlights: results.filter((r) => r.cueIndex === c.index).flatMap((r) => (r.status === 'ok' ? [{ word: r.word, lemma: r.lemma, pos: r.card.pos, gloss: r.card.gloss[0]!, ...nounForms(r) }] : [])),
   }))
+}
+
+/** A noun's number in its line (the word equals the card's plural and not the lemma → plural; equals the lemma → singular) and article. */
+function nounForms(r: AcceptedGloss): { number?: 'sg' | 'pl'; gender?: 'der' | 'die' | 'das' } {
+  if (r.card.pos !== 'noun') return {}
+  const w = r.word.toLowerCase(), l = r.lemma.toLowerCase(), p = r.card.plural?.toLowerCase()
+  const number = p && p !== 'none' && w === p && w !== l ? 'pl' : w === l ? 'sg' : undefined
+  return { ...(number ? { number } : {}), ...(r.card.article ? { gender: r.card.article } : {}) }
 }

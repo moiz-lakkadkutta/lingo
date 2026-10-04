@@ -59,9 +59,10 @@ export function renderGrammar(card: GlossCard, lang: Lang, native: string, lemma
   return { noun: L.noun, verb: L.verb, adjective: L.adjective, adverb: L.adverb, other: L.other }[c.pos]
 }
 
-/** gloss = the headwords joined with ", " (the first alone if both do not fit); grammar = renderGrammar(); example = card.example. */
+/**
+ * gloss = the FIRST headword only (human ruling 2026-10-05: a second gloss was a frequent wrong sense, e.g. "Verkauf, Ausverkauf"); the
+ * alternatives stay in the raw card (cache, spot-check.json). grammar = renderGrammar(); example = card.example.
+ */
 export function cardToGloss(card: GlossCard, lang: Lang, native: string, lemma: string): Gloss {
-  const both = { gloss: card.gloss.join(', '), grammar: renderGrammar(card, lang, native, lemma), example: card.example }
-  if (Gloss.safeParse(both).success) return Gloss.parse(both)
-  return Gloss.parse({ ...both, gloss: card.gloss[0]! })
+  return Gloss.parse({ gloss: card.gloss[0]!, grammar: renderGrammar(card, lang, native, lemma), example: card.example })
 }
