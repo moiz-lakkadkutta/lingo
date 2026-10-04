@@ -29,6 +29,8 @@ export const GoldItem = z.object({
   nativeCue: z.string().optional(),
   /** the cue before (context for the model, as prepare sends it); absent for the first cue */
   prevCue: z.string().optional(),
+  /** a fixed expression (data/phrases-<lang>.txt); word = the span */
+  phrase: z.literal(true).optional(),
   word: z.string(),
   lemma: z.string(),
   /** Transcribe confidence of the word, when known (an excluded ASR error carries it) */

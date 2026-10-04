@@ -11,7 +11,7 @@ let dir: string
 let logs: string[]
 beforeEach(async () => { dir = await mkdtemp(join(tmpdir(), 'lingo-quiz-')); logs = [] })
 afterEach(async () => { await rm(dir, { recursive: true, force: true }) })
-const ai = (send: ReturnType<typeof fakeSend>) => createAi({ send, model: 'us.amazon.nova-lite-v1:0', cacheDir: dir, log: (m) => logs.push(m), now: () => new Date('2026-10-01T12:00:00Z') })
+const ai = (send: ReturnType<typeof fakeSend>) => createAi({ send, model: 'us.amazon.nova-lite-v1:0', quiz: 'model', cacheDir: dir, log: (m) => logs.push(m), now: () => new Date('2026-10-01T12:00:00Z') })
 const H = flattenHighlights(QUIZ_CUES)
 const okPlan = () => QuizPlan.parse((nova('quiz-ok').output!.message!.content![0]!.toolUse!.input))
 
@@ -158,7 +158,7 @@ describe('quiz', () => {
 
   it('falls back (not throws) when send rejects with a ValidationException', async () => {
     const send = vi.fn(async () => { throw Object.assign(new Error('malformed input'), { name: 'ValidationException' }) })
-    const { items } = await createAi({ send, cacheDir: dir, log: (m) => logs.push(m) }).quiz(QUIZ_CUES, 'de', 'en')
+    const { items } = await createAi({ send, quiz: 'model', cacheDir: dir, log: (m) => logs.push(m) }).quiz(QUIZ_CUES, 'de', 'en')
     expect(send).toHaveBeenCalledTimes(1)
     expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(quizEligible(H).length), spreadOf(QUIZ_CUES)), H, 'de', 'en'))
     expect(logs).toContain('quiz: fallback builder used: ValidationException: malformed input')
@@ -260,5 +260,35 @@ describe('quiz v2 distractor rules (LING-002-gate-c §6)', () => {
     expect(baseballCloze).toBeUndefined()
     expect(skipped.some((l) => l.startsWith('cloze baseball: fewer than 3 distractors'))).toBe(true)
     for (const it of plan.items) expect(quizPlanIssues({ items: [it] }, E, { meaning: 0, cloze: 1 }, { lang: 'en', clipCues: lines })).toEqual([])
+  })
+
+  it('by default the quiz plan is built by code: no Bedrock call, no cost, source "code"; LINGO_AI_QUIZ=model asks Nova', async () => {
+    const send = fakeSend(nova('quiz-ok'))
+    const saved = process.env.LINGO_AI_QUIZ
+    delete process.env.LINGO_AI_QUIZ
+    try {
+      const a = createAi({ send, model: 'us.amazon.nova-lite-v1:0', cacheDir: dir, log: (m) => logs.push(m) })
+      const r = await a.quiz(QUIZ_CUES, 'de', 'en')
+      expect(send).not.toHaveBeenCalled()
+      expect(a.cost()).toMatchObject({ calls: 0, usd: 0 })
+      expect(r.source).toBe('code')
+      expect(r.items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(quizEligible(H).length), spreadOf(QUIZ_CUES), { lang: 'de', clipCues: QUIZ_CUES.map((c) => c.text) }), H, 'de', 'en'))
+      expect(logs).toContain('quiz: plan built by code (5 meaning + 4 cloze)')
+      process.env.LINGO_AI_QUIZ = 'model'
+      const m = await createAi({ send, model: 'us.amazon.nova-lite-v1:0', cacheDir: join(dir, 'm'), log: () => {} }).quiz(QUIZ_CUES, 'de', 'en')
+      expect(send).toHaveBeenCalledTimes(1)
+      expect(m.source).toBe('model')
+    } finally {
+      if (saved === undefined) delete process.env.LINGO_AI_QUIZ; else process.env.LINGO_AI_QUIZ = saved
+    }
+  })
+
+  it('a phrase gets only meaning items; with fewer than 3 other phrases its distractors are nouns', () => {
+    const q = (id: number, cueIndex: number, word: string, pos: 'noun' | 'phrase', gloss: string): QuizHighlight => ({ id, cueIndex, word, lemma: word, pos, gloss, cue: `x ${word} y` })
+    const E = [q(0, 0, 'scavenger sale', 'phrase', 'Wohltätigkeitsbasar'), q(1, 1, 'tennis', 'noun', 'Tennis (Sport)'), q(2, 2, 'wagon', 'noun', 'Wagen'), q(3, 3, 'loafer', 'noun', 'Faulenzer'), q(4, 4, 'racket', 'noun', 'Schläger')]
+    const plan = fallbackPlan(E, { meaning: 5, cloze: 5 })
+    expect(plan.items.filter((i) => i.highlightId === 0).map((i) => i.kind)).toEqual(['meaning'])
+    expect(plan.items.find((i) => i.highlightId === 0)!.distractorIds.every((d) => E[d]!.pos === 'noun')).toBe(true)
+    for (const it of plan.items.filter((i) => i.highlightId !== 0)) expect(it.distractorIds).not.toContain(0)
   })
 })

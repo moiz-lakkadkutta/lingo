@@ -6,6 +6,7 @@ import { createAi, type Ai, type AiOptions } from './ai/index'
 import { loadFreqList, rankFn } from './freq'
 import { NEXT, pickHighlights } from './highlights'
 import { asrSuspects, MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
+import { loadPhrases, mergeExpressions, type Phrase } from './phrases'
 
 /**
  * LING-002 §8 (as amended by LING-002-gate-c §7): the Gate C quality check. Glosses every clip highlight (then wider-band words while fewer
@@ -15,31 +16,35 @@ import { asrSuspects, MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
 /** The minimum number of rows per clip (every clip highlight is always a row). */
 export const DEFAULT_PER_CLIP = 15
 
-export interface SpotCandidate { cueIndex: number; cue: string; word: string; lemma: string; rank: number; fromClip: boolean }
+export interface SpotCandidate { cueIndex: number; cue: string; word: string; lemma: string; rank: number; fromClip: boolean; /** a fixed expression and its sense note */ phrase?: { note?: string } }
 
 /**
  * Pure. Every clip highlight first (in clip order; dropped only by the ASR filter: confidence < 0.4 or asrSuspects), then, while fewer than `perClip`, words picked by pickHighlights() at the
  * clip level and the next two levels with maxShare 1 (so names, digits and number words never appear), minus lemmas already present,
  * ordered by cue index then rank.
  */
-export function spotCheckCandidates(clip: PreparedClip, rank: (lemma: string) => number | undefined, perClip: number): SpotCandidate[] {
+export function spotCheckCandidates(clip: PreparedClip, rank: (lemma: string) => number | undefined, perClip: number, phrases: Phrase[] = []): SpotCandidate[] {
+  const notes = new Map(phrases.map((p) => [p.lemma, p.note]))
+  const phraseOf = (h: { lemma: string; phrase?: true }) => (h.phrase ? { phrase: notes.get(h.lemma) ? { note: notes.get(h.lemma)! } : {} } : {})
   const cueText = (i: number) => clip.cues[i]!.text
   // the ASR filter of LING-002-gate-c §2 also applies to a clip.json prepared before it existed
   const cues = clip.cues.map((c) => ({ index: c.index, tokens: c.tokens }))
   const exclude = asrSuspects(cues, rank)
   const lowConfidence = (h: { cueIndex: number; word: string }) => clip.cues[h.cueIndex]?.tokens.some((t) => t.word === h.word && t.asr !== undefined && t.asr < MIN_HIGHLIGHT_CONFIDENCE) ?? false
-  const out: SpotCandidate[] = clip.highlights.filter((h) => !exclude.has(tokenKey(h.cueIndex, h.word)) && !lowConfidence(h)).map((h) => ({ cueIndex: h.cueIndex, cue: cueText(h.cueIndex), word: h.word, lemma: h.lemma, rank: h.rank, fromClip: true }))
+  // fixed expressions also apply to a clip.json prepared before they existed
+  const kept = mergeExpressions(clip.highlights.filter((h) => !exclude.has(tokenKey(h.cueIndex, h.word)) && !lowConfidence(h)).map(({ cueIndex, word, lemma, rank }) => ({ cueIndex, word, lemma, rank })), cues, phrases)
+  const out: SpotCandidate[] = kept.map((h) => ({ cueIndex: h.cueIndex, cue: cueText(h.cueIndex), word: h.word, lemma: h.lemma, rank: h.rank, fromClip: true, ...phraseOf(h) }))
   const seen = new Set(out.map((c) => c.lemma.toLowerCase()))
   if (out.length >= perClip) return out
   const levels = [...new Set([clip.level, NEXT[clip.level], NEXT[NEXT[clip.level]]])]
-  const wider = levels.flatMap((lvl) => pickHighlights(cues, rank, lvl, 1.0, exclude))
+  const wider = mergeExpressions(levels.flatMap((lvl) => pickHighlights(cues, rank, lvl, 1.0, exclude)), cues, phrases)
     .sort((a, b) => a.cueIndex - b.cueIndex || a.rank - b.rank)
   for (const w of wider) {
     if (out.length >= perClip) break
     const k = w.lemma.toLowerCase()
     if (seen.has(k)) continue
     seen.add(k)
-    out.push({ cueIndex: w.cueIndex, cue: cueText(w.cueIndex), word: w.word, lemma: w.lemma, rank: w.rank, fromClip: false })
+    out.push({ cueIndex: w.cueIndex, cue: cueText(w.cueIndex), word: w.word, lemma: w.lemma, rank: w.rank, fromClip: false, ...phraseOf(w) })
   }
   return out
 }
@@ -82,6 +87,8 @@ export interface SpotCheckOptions {
   jsonFile?: string
   /** default: data/freq-{lang}.txt */
   freqList?: string[]
+  /** default: data/phrases-{lang}.txt */
+  phrases?: Phrase[]
   log?: (m: string) => void
 }
 
@@ -103,9 +110,9 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const native = clip.natives[0]!
   const ai = o.ai ?? createAi({ ...o.aiOptions, log })
   const rank = rankFn(o.freqList ?? (await loadFreqList(clip.sourceLang)))
-  const candidates = spotCheckCandidates(clip, rank, perClip)
+  const candidates = spotCheckCandidates(clip, rank, perClip, o.phrases ?? (await loadPhrases(clip.sourceLang)))
 
-  const results = await glossClip(ai, candidates.map((c) => ({ cueIndex: c.cueIndex, word: c.word, lemma: c.lemma, rank: c.rank, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], ...(c.cueIndex > 0 ? { prevCue: clip.cues[c.cueIndex - 1]!.text } : {}) })),
+  const results = await glossClip(ai, candidates.map((c) => ({ cueIndex: c.cueIndex, word: c.word, lemma: c.lemma, rank: c.rank, cue: c.cue, nativeCue: clip.cues[c.cueIndex]!.native[native], ...(c.cueIndex > 0 ? { prevCue: clip.cues[c.cueIndex - 1]!.text } : {}), ...(c.phrase ? { phrase: c.phrase } : {}) })),
     clip.sourceLang, native, clip.level, log)
   const glosses = results.map((r, i) => toRow(r, candidates[i]!.fromClip))
 
@@ -121,7 +128,7 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   await mkdir(dirname(files.markdown), { recursive: true })
   await (o.append ? appendFile(files.markdown, `\n${markdown}`) : writeFile(files.markdown, markdown))
   const counts = Object.entries(glosses.reduce<Record<string, number>>((a, g) => ({ ...a, [g.status]: (a[g.status] ?? 0) + 1 }), {})).map(([k, v]) => `${v} ${k}`).join(', ')
-  const summary = `spot-check ${slug}: ${glosses.length} glosses (${counts}), ${quiz.length} quiz items (${quiz.filter((q) => q.kind === 'meaning').length} meaning + ${quiz.filter((q) => q.kind === 'cloze').length} cloze${quizSet.fallback ? ', fallback plan' : ''}), $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${files.markdown}`
+  const summary = `spot-check ${slug}: ${glosses.length} glosses (${counts}), ${quiz.length} quiz items (${quiz.filter((q) => q.kind === 'meaning').length} meaning + ${quiz.filter((q) => q.kind === 'cloze').length} cloze${quizSet.source ? `, plan: ${quizSet.source}` : ''}), $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${files.markdown}`
   log(summary)
   return { ...partial, markdown, summary }
 }

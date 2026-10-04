@@ -7,7 +7,7 @@ import type { QuizCueInput } from './quiz'
  * each accepted item whose gloss overlaps a sibling's in the same cue (tennis/racket → "Tennisschläger"); still overlapping → 'conflict'.
  * One code path for prepare and the spot check.
  */
-export interface ClipGlossItem { cueIndex: number; word: string; lemma: string; rank: number; cue: string; nativeCue?: string; /** the cue before, as context (absent for the first cue) */ prevCue?: string }
+export interface ClipGlossItem { cueIndex: number; word: string; lemma: string; rank: number; cue: string; nativeCue?: string; /** the cue before, as context (absent for the first cue) */ prevCue?: string; /** a fixed expression and its sense note */ phrase?: { note?: string } }
 interface Meta { /** attempts of the final answer (1 = accepted first time); 0 when never asked */ attempts: number; cached: boolean; /** asked again with a sibling hint */ reasked: boolean }
 export type AcceptedGloss = ClipGlossItem & Meta & { status: 'ok' | 'soft'; card: GlossCard; gloss: Gloss; issues: string[] }
 export type FailedGloss = ClipGlossItem & Meta & { status: 'rejected' | 'conflict'; issues: string[]; card?: GlossCard; lastOutput?: unknown }
@@ -28,7 +28,7 @@ export function siblingHint(word: string, sibling: { word: string; gloss: string
 
 export async function glossClip(ai: { gloss: GlossFn }, items: ClipGlossItem[], lang: Lang, native: string, level: Level, log: (m: string) => void): Promise<ClipGlossResult[]> {
   const ask = (it: ClipGlossItem, hint?: string) =>
-    ai.gloss({ word: it.word, lemma: it.lemma, cue: it.cue, ...(it.nativeCue !== undefined ? { nativeCue: it.nativeCue } : {}), ...(it.prevCue !== undefined ? { prevCue: it.prevCue } : {}), lang, native, level, ...(hint ? { hint } : {}) })
+    ai.gloss({ word: it.word, lemma: it.lemma, cue: it.cue, ...(it.nativeCue !== undefined ? { nativeCue: it.nativeCue } : {}), ...(it.prevCue !== undefined ? { prevCue: it.prevCue } : {}), ...(it.phrase ? { phrase: it.phrase } : {}), lang, native, level, ...(hint ? { hint } : {}) })
   // 1. every item, sequentially
   const results: ClipGlossResult[] = []
   for (const it of items) results.push(toResult(it, await ask(it), false))

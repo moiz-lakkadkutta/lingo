@@ -6,16 +6,16 @@ import { Gloss, GRAMMAR_MAX_CHARS, GRAMMAR_MAX_WORDS, pruneCard, type GlossCard,
  */
 interface Labels {
   noun: string; pl: string; noPlural: string; verb: string; separable: string; adjective: string; comparative: string; noComparative: string
-  adverb: string; other: string; register: Record<Exclude<Register, 'neutral'>, string>
+  adverb: string; other: string; phrase: string; register: Record<Exclude<Register, 'neutral'>, string>
 }
 export const LABELS: Record<string, Labels> = {
   en: {
     noun: 'noun', pl: 'pl.', noPlural: 'no plural', verb: 'verb', separable: 'separable verb', adjective: 'adjective', comparative: 'comparative',
-    noComparative: 'no comparative', adverb: 'adverb', other: 'word', register: { informal: 'informal', formal: 'formal', dated: 'dated', slang: 'slang' },
+    noComparative: 'no comparative', adverb: 'adverb', other: 'word', phrase: 'phrase', register: { informal: 'informal', formal: 'formal', dated: 'dated', slang: 'slang' },
   },
   de: {
     noun: 'Nomen', pl: 'Pl.', noPlural: 'ohne Plural', verb: 'Verb', separable: 'trennbares Verb', adjective: 'Adjektiv', comparative: 'Komparativ',
-    noComparative: 'ohne Komparativ', adverb: 'Adverb', other: 'Wort', register: { informal: 'umgangssprachlich', formal: 'gehoben', dated: 'veraltet', slang: 'Slang' },
+    noComparative: 'ohne Komparativ', adverb: 'Adverb', other: 'Wort', phrase: 'Redewendung', register: { informal: 'umgangssprachlich', formal: 'gehoben', dated: 'veraltet', slang: 'Slang' },
   },
 }
 
@@ -39,6 +39,8 @@ function body(c: GlossCard, lang: Lang, L: Labels, lemma: string): string {
     }
     case 'adjective':
       return !c.comparative ? L.adjective : isNone(c.comparative) ? `${L.adjective}, ${L.noComparative}` : `${L.adjective}, ${L.comparative} ${c.comparative}`
+    case 'phrase':
+      return L.phrase
     case 'adverb':
       return L.adverb
     default:
@@ -56,7 +58,7 @@ export function renderGrammar(card: GlossCard, lang: Lang, native: string, lemma
   const full = c.register !== 'neutral' ? `${main}, ${L.register[c.register]}` : main
   if (fits(full)) return full
   if (fits(main)) return main
-  return { noun: L.noun, verb: L.verb, adjective: L.adjective, adverb: L.adverb, other: L.other }[c.pos]
+  return { noun: L.noun, verb: L.verb, adjective: L.adjective, adverb: L.adverb, other: L.other, phrase: L.phrase }[c.pos]
 }
 
 /**

@@ -10,7 +10,7 @@ import { makeQuiz, type QuizFn } from './quiz'
 
 export { AiSchemaError } from './errors'
 
-export interface AiOptions { send?: BedrockSend; model?: string; region?: string; cacheDir?: string; prices?: Prices; log?: (m: string) => void; now?: () => Date; /** Nova 2 Lite extended thinking; default LINGO_AI_REASONING or off */ reasoning?: Reasoning; /** G-NONWORD for German glosses; default freq-de + simplemma; false = off */ germanLexicon?: GermanLexiconFn | false }
+export interface AiOptions { send?: BedrockSend; model?: string; region?: string; cacheDir?: string; prices?: Prices; log?: (m: string) => void; now?: () => Date; /** Nova 2 Lite extended thinking; default LINGO_AI_REASONING or off */ reasoning?: Reasoning; /** G-NONWORD for German glosses; default freq-de + simplemma; false = off */ germanLexicon?: GermanLexiconFn | false; /** quiz planner; default LINGO_AI_QUIZ ('model') or 'code' */ quiz?: 'code' | 'model' }
 export interface Ai {
   gloss: GlossFn
   quiz: QuizFn
@@ -45,6 +45,7 @@ export function createAi(opts: AiOptions = {}): Ai {
     log: opts.log ?? ((m: string) => console.log(m)),
     now: opts.now ?? (() => new Date()),
     reasoning,
+    ...(opts.quiz ? { quizMode: opts.quiz } : {}),
     ...(opts.germanLexicon === false ? {} : { germanLexicon: opts.germanLexicon ?? simplemmaGermanLexicon({ log: opts.log ?? ((m: string) => console.log(m)) }) }),
   }
   return { gloss: makeGloss(deps), quiz: makeQuiz(deps), cost: () => ledger.snapshot(), config: { model, region, cacheDir, reasoning } }

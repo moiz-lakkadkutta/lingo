@@ -129,6 +129,7 @@ export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: Qu
     const other = kind === 'meaning' ? used.cloze : used.meaning
     const candidates = [...order.filter((h) => !other.has(h.id)), ...order.filter((h) => other.has(h.id))]
     for (const h of candidates) {
+      if (kind === 'cloze' && h.pos === 'phrase') continue // phrases get meaning items only
       if (used[kind].has(h.id) || !fits(h.cueIndex)) continue
       const ds = distractors(kind, h)
       if (!ds) {
@@ -183,6 +184,11 @@ export function makeQuiz(d: QuizDeps): QuizFn {
     const reachable = fallbackPlan(H, counts, spread, { ...cloze, onSkip: (kind, h, reason) => d.log(`quiz: skipped ${kind} item "${h.word}": ${reason}`) })
     const min = { meaning: reachable.items.filter((i) => i.kind === 'meaning').length, cloze: reachable.items.filter((i) => i.kind === 'cloze').length }
     if (min.meaning + min.cloze === 0) { d.log('quiz: skipped, no item satisfies the distractor and spread rules'); return { items: [] } }
+    if ((d.quizMode ?? (process.env.LINGO_AI_QUIZ === 'model' ? 'model' : 'code')) === 'code') {
+      // round 6: the plan is built by code (zero valid model plans in three real runs; docs/decisions/0009); no Bedrock call
+      d.log(`quiz: plan built by code (${min.meaning} meaning + ${min.cloze} cloze)`)
+      return { items: buildQuizItems(reachable, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`)), source: 'code' }
+    }
     const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, spread, highlights: H.map((h) => [h.cueIndex, h.word, h.lemma, h.pos, h.gloss, normalizeCue(h.cue)]) }
     const key = cacheKey(identity)
     const check = (p: QuizPlan) => quizPlanIssues(p, H, counts, { spread, min, ...cloze })
@@ -217,6 +223,6 @@ export function makeQuiz(d: QuizDeps): QuizFn {
       }
     }
     const items = buildQuizItems(plan, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`))
-    return usedFallback ? { items, fallback: true } : { items }
+    return usedFallback ? { items, fallback: true, source: 'fallback' } : { items, source: 'model' }
   }
 }

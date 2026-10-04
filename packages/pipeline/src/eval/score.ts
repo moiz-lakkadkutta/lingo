@@ -31,7 +31,7 @@ export function scoreItem(g: GoldItem, r: ClipGlossResult | undefined, set: { la
   const glosses = card.gloss.slice(0, 1).map(normGloss)
   const accept = new Set(e.accept.map(normGloss)), reject = new Set(e.reject.map(normGloss))
   const rejectHit = glosses.some((x) => reject.has(x))
-  const issues = glossCardIssues(card, { word: g.word, lemma: g.lemma, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), lang: set.lang, native: set.native })
+  const issues = glossCardIssues(card, { word: g.word, lemma: g.lemma, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), lang: set.lang, native: set.native, ...(g.phrase ? { phrase: true } : {}) })
   const forms = (['plural', 'comparative', 'past', 'participle'] as const).every((f) => {
     const want = e[f]
     if (!want || FORM_POS[f] !== card.pos) return true

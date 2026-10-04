@@ -7,7 +7,8 @@ import { boundedLine, countWords, EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MA
  * Gloss card v3 (docs/plans/LING-002-gate-c.md §3–4, docs/decisions/0009 decisions 3–4): what Nova returns for one highlight. Code
  * renders the app's `Gloss` from it (packages/pipeline/src/ai/grammar.ts) and checks it with glossCardIssues().
  */
-export const POS = z.enum(['noun', 'verb', 'adjective', 'adverb', 'other'])
+/** "phrase": a fixed expression glossed as one unit (data/phrases-<lang>.txt); it has no grammar forms. */
+export const POS = z.enum(['noun', 'verb', 'adjective', 'adverb', 'other', 'phrase'])
 export const REGISTER = z.enum(['neutral', 'informal', 'formal', 'dated', 'slang'])
 export type Pos = z.infer<typeof POS>
 export type Register = z.infer<typeof REGISTER>
@@ -46,6 +47,7 @@ const FIELDS_BY_POS: Record<Pos, Array<keyof GlossCard>> = {
   adjective: ['comparative'],
   adverb: [],
   other: [],
+  phrase: [],
 }
 const FORM_FIELDS = ['article', 'plural', 'past', 'participle', 'separable', 'comparative'] as const
 
@@ -63,6 +65,8 @@ export function pruneCard(c: GlossCard, lang?: Lang): GlossCard {
 
 export interface CardContext {
   word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string
+  /** the target is a fixed expression (the word may span several tokens) */
+  phrase?: boolean
   /** German word knowledge for G-NONWORD (native de); without it the rule is skipped */
   lexicon?: GermanLexicon
 }
@@ -255,13 +259,17 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   const issues: string[] = []
   const word = ctx.word.toLowerCase(), lemma = ctx.lemma.toLowerCase()
   const glossText = c.gloss.join(' ')
+  // a fixed expression: every word of its span (and of its lemma) counts as the target
+  const span = new Set([word, lemma, ...wordsOf(ctx.word), ...wordsOf(ctx.lemma)])
   // G-COPY
   for (const g of c.gloss) {
     const bare = g.trim().replace(/\.+$/, '').toLowerCase()
     if (bare === word || bare === lemma) issues.push(`G-COPY: gloss "${g}" copies the word; give a translation, or add a short clarifier in parentheses if it is spelled the same`)
   }
-  // G-LEN: a one-token target gets headwords, not phrases.
-  if (!/\s/.test(ctx.word.trim())) {
+  // G-LEN: a one-token target gets headwords, not phrases; a fixed expression up to 4 words per gloss.
+  if (ctx.phrase) {
+    for (const g of c.gloss) if (countWords(stripParens(g)) > 4) issues.push(`G-LEN: gloss "${g}" is too long; give a translation of the expression in at most 4 words`)
+  } else if (!/\s/.test(ctx.word.trim())) {
     for (const g of c.gloss) {
       const n = contentWords(g, ctx.native).length
       if (n > 2 || countWords(stripParens(g)) > 3) issues.push(`G-LEN: gloss "${g}" is a phrase; give a dictionary headword of one word (two only if there is no single word)`)
@@ -269,7 +277,7 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   }
   if (countWords(glossText) > GLOSS_MAX_WORDS || c.gloss.join(', ').length > GLOSS_MAX_CHARS) issues.push(`G-LEN: the glosses together are longer than ${GLOSS_MAX_WORDS} words or ${GLOSS_MAX_CHARS} characters`)
   // G-SOURCE: a word copied from the subtitle line (other than the target itself).
-  const cueWords = new Set(wordsOf(ctx.cue).filter((w) => w.length >= 3 && w !== word && w !== lemma))
+  const cueWords = new Set(wordsOf(ctx.cue).filter((w) => w.length >= 3 && !span.has(w)))
   for (const g of c.gloss) {
     const copied = contentWords(g, ctx.native).filter((w) => cueWords.has(w))
     if (copied.length) issues.push(`G-SOURCE: gloss "${g}" repeats "${copied[0]}", another word of the line; translate only the marked word`)
@@ -278,15 +286,16 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   // that starts with the target itself ("Tennisschläger" for tennis, "Baseballspiel" for baseball) or ends with another word of the line
   // is rejected; one that starts with a neighbour ("Tennisschläger" for racket: head "Schläger" = the target) is allowed.
   const lineWords = [...new Set(wordsOf(ctx.cue).filter((w) => w.length >= 4))]
-  const isTarget = (x: string) => x === word || x === lemma
+  const isTarget = (x: string) => span.has(x)
   for (const g of c.gloss) {
     for (const w of contentWords(g, ctx.native)) {
       const base = lineWords.find((x) => w !== x && w.length - x.length >= 4 && ((isTarget(x) && w.startsWith(x)) || (!isTarget(x) && w.endsWith(x))))
       if (base) issues.push(`G-COMPOUND: gloss "${g}" is a compound with "${base}" from the line; translate only the marked word`)
     }
   }
-  // G-NEIGHBOUR: a multi-word gloss that shares a stem with the translated line copies a neighbour's translation.
-  if (ctx.nativeCue) {
+  // G-NEIGHBOUR: a multi-word gloss that shares a stem with the translated line copies a neighbour's translation. Skipped for a fixed
+  // expression: its own translation is a multi-word stretch of the native line, which this rule cannot tell from a neighbour's.
+  if (ctx.nativeCue && !ctx.phrase) {
     const nativeWords = wordsOf(ctx.nativeCue)
     for (const g of c.gloss) {
       const cw = contentWords(g, ctx.native)
@@ -308,7 +317,8 @@ export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
   }
   if (sentenceKey(c.example) === sentenceKey(ctx.cue)) issues.push('X-CUE: example must be a new sentence, not the subtitle line')
   const ex = c.example.toLowerCase()
-  if (!ex.includes(word) && !ex.includes(lemma)) issues.push(`X-USES: example must use the word "${ctx.word}" or its base form "${ctx.lemma}"`)
+  const usesPhrase = !!ctx.phrase && [...span].some((w) => w.length >= 4 && ex.includes(w))
+  if (!ex.includes(word) && !ex.includes(lemma) && !usesPhrase) issues.push(`X-USES: example must use the word "${ctx.word}" or its base form "${ctx.lemma}"`)
   // Forms
   if (ctx.lang === 'en') issues.push(...englishFormIssues(c, ctx))
   else issues.push(...germanFormIssues(c, ctx))
@@ -337,6 +347,29 @@ export function siblingConflicts(items: SiblingGloss[]): Array<[number, number]>
       const a = items[i]!, b = items[j]!
       if (!a.gloss || !b.gloss || a.cueIndex !== b.cueIndex || a.lemma.toLowerCase() === b.lemma.toLowerCase()) continue
       if (glossesOverlap(a.gloss, b.gloss)) out.push([i, j])
+    }
+  }
+  return out
+}
+
+/** Verbal and particle prefixes: "Ausverkauf" is not a kind of "Verkauf" in the hypernym sense below. */
+const PREFIXES = new Set(['aus', 'ein', 'ver', 'vor', 'ab', 'an', 'auf', 'um', 'über', 'unter', 'durch', 'gegen', 'hinter', 'wieder', 'zurück', 'nach', 'mit', 'zu', 'be', 'ent', 'er', 'zer'])
+
+/**
+ * Most precise gloss first (round 6): a later gloss that is a compound ending in an earlier gloss, with a modifier of ≥ 4 letters that is
+ * not a prefix ("Pinnnadel" after "Nadel", "Tennisschläger" after "Schläger"), is the more specific word and moves in front of it. A cheap
+ * German-head check, not a hypernym dictionary: "Nadel, Reißzwecke" is not reordered (the prompt asks for the precise word first).
+ */
+export function preciseFirst(glosses: string[]): string[] {
+  const out = [...glosses]
+  for (let i = 0; i < out.length; i++) {
+    for (let j = i + 1; j < out.length; j++) {
+      const general = normGloss(out[i]!), specific = normGloss(out[j]!)
+      const mod = specific.slice(0, specific.length - general.length)
+      if (general.length >= 4 && specific.endsWith(general) && mod.length >= 4 && !PREFIXES.has(mod) && !/\s/.test(specific)) {
+        const [g] = out.splice(j, 1)
+        out.splice(i, 0, g!)
+      }
     }
   }
   return out

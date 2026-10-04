@@ -76,7 +76,8 @@ const optionKey = (s: string) => s.trim().toLowerCase()
  * be at edit distance ≤ 1 from it (sale / sal), or already occur in the answer's line (Or a ____ roast. / roast). undefined = fine.
  */
 export function distractorIssue(kind: 'meaning' | 'cloze', answer: QuizHighlight, d: QuizHighlight, ctx: ClozeContext = {}): string | undefined {
-  if (answer.pos !== d.pos) return `has pos ${d.pos}, the answer "${answer.word}" is a ${answer.pos}; choose a distractor of the same part of speech`
+  if (!peerPos(answer).includes(d.pos)) return `has pos ${d.pos}, the answer "${answer.word}" is a ${answer.pos}; choose a distractor of the same part of speech`
+  if (kind === 'cloze' && answer.pos === 'phrase') return 'a phrase gets no cloze items (only meaning items); test it as "meaning"'
   if (kind === 'meaning') {
     const a = normGloss(answer.gloss), g = normGloss(d.gloss)
     const contains = (x: string, y: string) => y.length >= 4 && x.includes(y)
@@ -155,8 +156,10 @@ function secondTrueAnswerIssue(answer: QuizHighlight, d: QuizHighlight, ctx: Clo
   return undefined
 }
 
-/** Peers of h: other highlights (another lemma) with the same part of speech. */
-const samePosPeers = (H: QuizHighlight[], h: QuizHighlight) => H.filter((x) => x.id !== h.id && x.pos === h.pos && x.lemma.toLowerCase() !== h.lemma.toLowerCase())
+/** The parts of speech a distractor may have: the answer's own; a phrase may also take nouns (round 6: few clips have 3 phrases). */
+const peerPos = (h: QuizHighlight): Pos[] => (h.pos === 'phrase' ? ['phrase', 'noun'] : [h.pos])
+/** Peers of h: other highlights (another lemma) whose pos may serve as h's distractors. */
+const samePosPeers = (H: QuizHighlight[], h: QuizHighlight) => H.filter((x) => x.id !== h.id && peerPos(h).includes(x.pos) && x.lemma.toLowerCase() !== h.lemma.toLowerCase())
 /** Quiz v3: a highlight can be tested only when at least 3 other highlights share its part of speech (same-pos distractors). */
 export function quizEligible(H: QuizHighlight[]): QuizHighlight[] {
   return H.filter((h) => samePosPeers(H, h).length >= 3)
@@ -231,6 +234,9 @@ export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizC
   return issues
 }
 
-/** `fallback`: the items come from fallbackPlan (the model's plan failed twice, or Bedrock failed); not stored in clip.json. */
-export const QuizSet = z.object({ items: z.array(PreparedQuizItem), fallback: z.boolean().optional() })
+/**
+ * `source`: who planned the items: 'code' (fallbackPlan, the default since round 6), 'model' (Nova, LINGO_AI_QUIZ=model) or 'fallback'
+ * (model mode, but the model's plan failed twice or Bedrock failed). `fallback` = source 'fallback' (kept for older callers). Not stored in clip.json.
+ */
+export const QuizSet = z.object({ items: z.array(PreparedQuizItem), fallback: z.boolean().optional(), source: z.enum(['code', 'model', 'fallback']).optional() })
 export type QuizSet = z.infer<typeof QuizSet>

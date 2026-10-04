@@ -16,6 +16,14 @@ describe('alignHighlights', () => {
       [['Stunden', 0], ['gewartet', null]],
     ])
   })
+  it('places a fixed expression ("scavenger sale") on its consecutive slots, also across a line break', () => {
+    expect(slots('on Friday to fix up\nthat scavenger sale?', [w('scavenger sale')])).toEqual([
+      [['on', null], ['Friday', null], ['to', null], ['fix', null], ['up', null]],
+      [['that', null], ['scavenger', 0], ['sale?', 0]],
+    ])
+    expect(slots('Or a weenie\nroast.', [w('weenie roast')]).flat().filter(([, i]) => i === 0).map(([t]) => t)).toEqual(['weenie', 'roast.'])
+    expect(alignHighlights('a scavenger hunt', [w('scavenger sale')]).unmatched).toEqual([0])
+  })
   it('matches through trailing punctuation and surrounding quotes', () => {
     expect(stripToken('„Hallo!“')).toBe('Hallo')
     expect(stripToken("geht's,")).toBe("geht's")
