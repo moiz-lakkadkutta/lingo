@@ -181,6 +181,7 @@ export function makeQuiz(d: QuizDeps): QuizFn {
     const key = cacheKey(identity)
     const check = (p: QuizPlan) => quizPlanIssues(p, H, counts, { spread, min })
     let plan: QuizPlan | undefined
+    let usedFallback = false
     const hit = await d.cache.get('quiz', key, QuizPlan)
     if (hit) {
       if (!check(hit.output).length) { d.ledger.hit(); d.log('ai quiz clip cached'); plan = hit.output }
@@ -204,10 +205,12 @@ export function makeQuiz(d: QuizDeps): QuizFn {
         reason = errText(e)
       }
       if (!plan) {
+        usedFallback = true
         plan = reachable
         d.log(`quiz: fallback builder used: ${reason}`)
       }
     }
-    return { items: buildQuizItems(plan, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`)) }
+    const items = buildQuizItems(plan, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`))
+    return usedFallback ? { items, fallback: true } : { items }
   }
 }

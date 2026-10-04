@@ -157,5 +157,6 @@ export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizC
   return issues
 }
 
-export const QuizSet = z.object({ items: z.array(PreparedQuizItem) })
+/** `fallback`: the items come from fallbackPlan (the model's plan failed twice, or Bedrock failed); not stored in clip.json. */
+export const QuizSet = z.object({ items: z.array(PreparedQuizItem), fallback: z.boolean().optional() })
 export type QuizSet = z.infer<typeof QuizSet>

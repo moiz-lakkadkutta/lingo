@@ -35,7 +35,8 @@ describe('quiz', () => {
 
   it('builds 6 meaning + 4 cloze items from a valid plan: prompts, 4 distinct options, answer index points at the correct gloss/word, cueIndex = the highlight cue', async () => {
     const send = fakeSend(nova('quiz-ok'))
-    const { items } = await ai(send).quiz(QUIZ_CUES, 'de', 'en')
+    const { items, fallback } = await ai(send).quiz(QUIZ_CUES, 'de', 'en')
+    expect(fallback).toBeUndefined()
     expect(send).toHaveBeenCalledTimes(1)
     const input = send.mock.calls[0]![0]
     expect(input.toolConfig?.toolChoice).toEqual({ tool: { name: 'plan_quiz' } })
@@ -93,7 +94,8 @@ describe('quiz', () => {
   it('retries once with issues when the plan breaks the rules (fixture quiz-bad), then falls back to fallbackPlan and logs it', async () => {
     const send = fakeSend(nova('quiz-bad'), nova('quiz-bad'))
     const a = ai(send)
-    const { items } = await a.quiz(QUIZ_CUES, 'de', 'en')
+    const { items, fallback } = await a.quiz(QUIZ_CUES, 'de', 'en')
+    expect(fallback).toBe(true)
     expect(send).toHaveBeenCalledTimes(2)
     expect(userTexts(send, 1)[1]).toMatch(/^Your previous tool call was rejected: .*is already in the line of "Bahnhof"; 3 items within cues 1–1/)
     expect(userTexts(send, 1)[1]).toMatch(/Call plan_quiz again with a corrected answer\.$/)

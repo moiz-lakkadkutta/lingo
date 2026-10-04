@@ -110,7 +110,8 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   const glosses = results.map((r, i) => toRow(r, candidates[i]!.fromClip))
 
   const fromClip = results.filter((_, i) => candidates[i]!.fromClip)
-  const quiz = (await ai.quiz(quizInput(clip.cues.map((c) => ({ index: c.index, text: c.text, native: c.native[native] ?? '' })), fromClip), clip.sourceLang, native)).items
+  const quizSet = await ai.quiz(quizInput(clip.cues.map((c) => ({ index: c.index, text: c.text, native: c.native[native] ?? '' })), fromClip), clip.sourceLang, native)
+  const quiz = quizSet.items
 
   const files = { json: join(dirname(o.clipJson), o.jsonFile ?? 'spot-check.json'), markdown: o.out ?? join('work', 'spot-check.md') }
   const partial = { slug: clip.slug, sourceLang: clip.sourceLang, native, level: clip.level, perClip, available: candidates.length, glosses, quiz, cost: ai.cost(), files }
@@ -120,7 +121,7 @@ export async function runSpotCheck(o: SpotCheckOptions): Promise<SpotCheckResult
   await mkdir(dirname(files.markdown), { recursive: true })
   await (o.append ? appendFile(files.markdown, `\n${markdown}`) : writeFile(files.markdown, markdown))
   const counts = Object.entries(glosses.reduce<Record<string, number>>((a, g) => ({ ...a, [g.status]: (a[g.status] ?? 0) + 1 }), {})).map(([k, v]) => `${v} ${k}`).join(', ')
-  const summary = `spot-check ${slug}: ${glosses.length} glosses (${counts}), ${quiz.length} quiz items, $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${files.markdown}`
+  const summary = `spot-check ${slug}: ${glosses.length} glosses (${counts}), ${quiz.length} quiz items (${quiz.filter((q) => q.kind === 'meaning').length} meaning + ${quiz.filter((q) => q.kind === 'cloze').length} cloze${quizSet.fallback ? ', fallback plan' : ''}), $${cost.usd.toFixed(4)} (${cost.calls} calls, ${cost.cachedCalls} cached) → ${files.markdown}`
   log(summary)
   return { ...partial, markdown, summary }
 }

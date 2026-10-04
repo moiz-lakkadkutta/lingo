@@ -176,7 +176,7 @@ describe('spot check', () => {
     const quiet: string[] = []
     const r2 = await spotCheckCli({ clipJson, perClip: 15, out, append: true, echo: false, ai: createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-cli2'), log: () => {} }), freqList: shifted }, (m) => quiet.push(m))
     expect(quiet).toEqual([r2.summary])
-    expect(r2.summary).toMatch(/^spot-check demo-de: 15 glosses \(15 ok\), \d+ quiz items, \$/)
+    expect(r2.summary).toMatch(/^spot-check demo-de: 15 glosses \(15 ok\), \d+ quiz items \(\d+ meaning \+ \d+ cloze\), \$/)
     for (const g of r2.glosses) expect(quiet[0]).not.toContain(g.word)
   })
 
