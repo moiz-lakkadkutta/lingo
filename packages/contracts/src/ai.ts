@@ -62,11 +62,12 @@ export function quizCounts(highlightCount: number): QuizCounts {
 const optionKey = (s: string) => s.trim().toLowerCase()
 
 /**
- * LING-002-gate-c §6 distractor rules (quizPlanIssues and fallbackPlan): meaning: the distractor gloss must not share a stem with,
+ * LING-002-gate-c §6 distractor rules (quizPlanIssues and fallbackPlan), plus quiz v3: the same part of speech as the answer. Meaning: the distractor gloss must not share a stem with,
  * contain or be contained in the answer gloss (Schläger / Tennisschläger); cloze: the distractor word must not have the answer's lemma,
  * be at edit distance ≤ 1 from it (sale / sal), or already occur in the answer's line (Or a ____ roast. / roast). undefined = fine.
  */
 export function distractorIssue(kind: 'meaning' | 'cloze', answer: QuizHighlight, d: QuizHighlight): string | undefined {
+  if (answer.pos !== d.pos) return `has pos ${d.pos}, the answer "${answer.word}" is a ${answer.pos}; choose a distractor of the same part of speech`
   if (kind === 'meaning') {
     const a = normGloss(answer.gloss), g = normGloss(d.gloss)
     const contains = (x: string, y: string) => y.length >= 4 && x.includes(y)
@@ -81,17 +82,55 @@ export function distractorIssue(kind: 'meaning' | 'cloze', answer: QuizHighlight
   return undefined
 }
 
+/** Peers of h: other highlights (another lemma) with the same part of speech. */
+const samePosPeers = (H: QuizHighlight[], h: QuizHighlight) => H.filter((x) => x.id !== h.id && x.pos === h.pos && x.lemma.toLowerCase() !== h.lemma.toLowerCase())
+/** Quiz v3: a highlight can be tested only when at least 3 other highlights share its part of speech (same-pos distractors). */
+export function quizEligible(H: QuizHighlight[]): QuizHighlight[] {
+  return H.filter((h) => samePosPeers(H, h).length >= 3)
+}
+
+/** The clip's cue range, for the spread rules. */
+export interface QuizSpread { cueMin: number; cueMax: number }
+export const QUIZ_WINDOW_CUES = 10, QUIZ_MAX_PER_WINDOW = 2
+/** 10 cues; on a clip shorter than 50 cues a fifth of it (at least 1), so a short clip can still have a full quiz. */
+export function quizWindow(s: QuizSpread): number {
+  return Math.max(1, Math.min(QUIZ_WINDOW_CUES, Math.floor((s.cueMax - s.cueMin + 1) / 5)))
+}
+/** Which third of the clip's cue range a cue is in (0, 1, 2). */
+export function quizThird(cueIndex: number, s: QuizSpread): number {
+  const n = s.cueMax - s.cueMin + 1
+  return Math.min(2, Math.max(0, Math.floor((3 * (cueIndex - s.cueMin)) / n)))
+}
+/**
+ * Spread rules (quiz v3): the items' cues touch every third of the clip that has a testable highlight, and no window of quizWindow()
+ * consecutive cues holds more than 2 items. `itemCues` = the cue index of each item (meaning and cloze together).
+ */
+export function spreadIssues(itemCues: number[], eligible: QuizHighlight[], s: QuizSpread): string[] {
+  const issues: string[] = []
+  const want = new Set(eligible.map((h) => quizThird(h.cueIndex, s))).size
+  const got = new Set(itemCues.map((c) => quizThird(c, s))).size
+  if (got < Math.min(3, want)) issues.push(`items cover ${got} of the clip's thirds; spread them over all ${Math.min(3, want)} thirds (cue ${s.cueMin}–${s.cueMax})`)
+  const w = quizWindow(s)
+  for (const start of [...new Set(itemCues)].sort((a, b) => a - b)) {
+    const n = itemCues.filter((c) => c >= start && c <= start + w - 1).length
+    if (n > QUIZ_MAX_PER_WINDOW) { issues.push(`${n} items within cues ${start}–${start + w - 1}; at most ${QUIZ_MAX_PER_WINDOW} items in any ${w} consecutive cues`); break }
+  }
+  return issues
+}
+
 /**
  * [] when acceptable. Checks: every id < H.length; distractorIds distinct and ≠ highlightId; exactly counts.meaning 'meaning' and
  * counts.cloze 'cloze' items; no highlightId repeated within a kind; meaning: the 3 distractor glosses and the correct gloss are pairwise
  * distinct (case-insensitive, trimmed); cloze: the 3 distractor words and the correct word are pairwise distinct (case-insensitive).
  */
-export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizCounts): string[] {
+export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizCounts, opts: { spread?: QuizSpread; min?: QuizCounts } = {}): string[] {
+  const { spread, min } = opts
   const issues: string[] = []
   const max = H.length - 1
   for (const kind of ['meaning', 'cloze'] as const) {
     const n = plan.items.filter((it) => it.kind === kind).length
-    if (n !== counts[kind]) issues.push(`expected exactly ${counts[kind]} "${kind}" items, got ${n}`)
+    if (!min && n !== counts[kind]) issues.push(`expected exactly ${counts[kind]} "${kind}" items, got ${n}`)
+    if (min && (n < min[kind] || n > counts[kind])) issues.push(`expected ${min[kind] === counts[kind] ? `exactly ${counts[kind]}` : `${min[kind]}–${counts[kind]}`} "${kind}" items, got ${n}`)
   }
   const seen = { meaning: new Set<number>(), cloze: new Set<number>() }
   plan.items.forEach((it, i) => {
@@ -108,11 +147,13 @@ export function quizPlanIssues(plan: QuizPlan, H: QuizHighlight[], counts: QuizC
     const values = ids.map((id) => optionKey(H[id]![field]))
     const dup = values.find((v, j) => values.indexOf(v) !== j)
     if (dup !== undefined && new Set(ids).size === ids.length) issues.push(`${at}: options repeat the ${field} "${dup}"; choose distractors with different ${field}s`)
+    if (samePosPeers(H, H[it.highlightId]!).length < 3) issues.push(`${at}: highlightId ${it.highlightId} has fewer than 3 other highlights of its part of speech (${H[it.highlightId]!.pos}); it cannot be tested`)
     for (const id of it.distractorIds) {
       const why = id === it.highlightId ? undefined : distractorIssue(it.kind, H[it.highlightId]!, H[id]!)
       if (why) issues.push(`${at}: distractor ${id} ${why}`)
     }
   })
+  if (spread && plan.items.every((it) => it.highlightId < H.length)) issues.push(...spreadIssues(plan.items.map((it) => H[it.highlightId]!.cueIndex), quizEligible(H), spread))
   return issues
 }
 

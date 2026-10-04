@@ -12,7 +12,7 @@ import { tableLemmatizer, type LemmaResult } from './lemmatize'
 import { DATA_DIR, loadFreqList } from './freq'
 import { loadNames } from './names'
 import { TranscribeJson, type Lang, type PrepareDeps } from './types'
-import { quizCounts, type QuizHighlight } from '@lingo/contracts'
+import { quizCounts, quizEligible, type QuizHighlight, type QuizSpread } from '@lingo/contracts'
 import type { BedrockSend } from './ai/client'
 import { GLOSS_TOOL } from './ai/gloss'
 import { fallbackPlan, QUIZ_TOOL } from './ai/quiz'
@@ -33,8 +33,8 @@ export function fixtureSend(): BedrockSend {
       const english = /ONE word of a English subtitle line/.test(input.system?.[0]?.text ?? '')
       toolInput = { sense: `stub sense of ${lemma}`, pos: 'other', gloss: [`${lemma} (stub)`], register: 'neutral', example: english ? `Here is the word ${word} once more.` : `Hier steht das Wort ${word} noch einmal.` }
     } else if (tool === QUIZ_TOOL) {
-      const H = (payload.highlights as Array<Omit<QuizHighlight, 'cueIndex' | 'lemma'>>).map((h) => ({ ...h, lemma: h.word, cueIndex: 0 }))
-      toolInput = fallbackPlan(H, quizCounts(H.length))
+      const H = (payload.highlights as Array<Omit<QuizHighlight, 'lemma'>>).map((h) => ({ ...h, lemma: h.word }))
+      toolInput = fallbackPlan(H, quizCounts(quizEligible(H).length), payload.cueRange as QuizSpread | undefined)
     } else throw new Error(`fixtureSend: unknown tool ${String(tool)}`)
     return {
       $metadata: {}, stopReason: 'tool_use', usage: { inputTokens: 300, outputTokens: 60, totalTokens: 360 }, metrics: { latencyMs: 0 },

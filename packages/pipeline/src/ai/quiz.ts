@@ -1,12 +1,12 @@
 import type { ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
-import { distractorIssue, QuizPlan, quizCounts, quizPlanIssues, type Lang, type Pos, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
+import { distractorIssue, QUIZ_MAX_PER_WINDOW, quizEligible, QuizPlan, quizCounts, quizPlanIssues, quizThird, quizWindow, type Lang, type Pos, type QuizSpread, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
 import { cacheKey, normalizeCue, type CacheEntry } from './cache'
 import { askWithRetry, type AiDeps } from './call'
 import { languageName } from './lang'
 import { fnv1a, seededShuffle } from './seed'
 
 /** Bump whenever quizSystemPrompt() or the tool spec changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const QUIZ_PROMPT_VERSION = 2 // v2: pos per highlight (LING-002 Gate C)
+export const QUIZ_PROMPT_VERSION = 3 // v2: pos per highlight; v3: same-pos distractors, spread over the clip (LING-002 Gate C)
 export const QUIZ_TOOL = 'plan_quiz'
 
 /** = prepare.ts's call shape (built by quizInput() in ./glossClip): only status-ok cards, gloss = the card's first headword. */
@@ -32,10 +32,11 @@ export function quizSystemPrompt(lang: Lang, native: string, counts: QuizCounts)
   const T = languageName(lang), N = languageName(native)
   return [
     `You are a ${T} teacher choosing vocabulary quiz items from one video clip's subtitles for a learner who speaks ${N}.`,
-    `You receive JSON {"highlights":[{"id","word","pos","gloss","cue"}]}: the words the learner saw highlighted, each with its part of speech, its ${N} gloss and the subtitle line it appeared in.`,
+    `You receive JSON {"highlights":[{"id","cueIndex","word","pos","gloss","cue"}],"cueRange":{"cueMin","cueMax"},"window"}: the words the learner saw highlighted, each with the index of its subtitle line, its part of speech, its ${N} gloss and the line itself, plus the clip's range of line indexes.`,
     `Call the tool ${QUIZ_TOOL} exactly once with "items":`,
-    `- exactly ${counts.meaning} items with "kind":"meaning": the learner sees the word and picks its gloss among 4. "distractorIds" = 3 OTHER highlight ids whose glosses are plausible but clearly different in meaning (prefer the same part of speech; never a synonym of the correct gloss).`,
-    `- exactly ${counts.cloze} items with "kind":"cloze": the learner sees the line with the word blanked and picks the word among 4. "distractorIds" = 3 OTHER highlight ids whose words would fit the line grammatically but not in meaning (prefer the same part of speech; never a word that also makes the line true).`,
+    `- ${counts.meaning} items with "kind":"meaning": the learner sees the word and picks its gloss among 4. "distractorIds" = 3 OTHER highlight ids with the SAME "pos" whose glosses are plausible but clearly different in meaning (never a synonym of the correct gloss).`,
+    `- ${counts.cloze} items with "kind":"cloze": the learner sees the line with the word blanked and picks the word among 4. "distractorIds" = 3 OTHER highlight ids with the SAME "pos" whose words would fit the line grammatically but not in meaning (never a word that also makes the line true, never a word already in the line).`,
+    'Only test a highlight that has at least 3 other highlights of its "pos". Spread the items over the whole clip: cover the first, middle and last third of the cueRange, and put at most 2 items (meaning and cloze together) within any "window" consecutive cueIndex values. Give fewer items only if these rules leave no choice.',
     'Rules: never repeat a highlightId within one kind; a highlight may appear once as "meaning" and once as "cloze"; prefer lines where the blank cannot be guessed without knowing the word. Output only the tool call.',
   ].join('\n')
 }
@@ -96,29 +97,63 @@ export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, n
 }
 
 /**
- * Deterministic plan: meaning = H[0..counts.meaning), cloze = H[0..counts.cloze); distractors for H[i] = the next ids cyclically,
- * skipping any whose gloss (meaning) / word (cloze) duplicates one already chosen or the correct one, or that breaks a distractor rule
- * (distractorIssue); an item that cannot reach 3 is dropped.
+ * Deterministic plan (quiz v3). Targets: only highlights with ≥ 3 same-pos peers (quizEligible), visited thirds-interleaved (first of each
+ * third, then the second of each, …) so items cover the whole clip; meaning and cloze items are picked alternately, a highlight not yet
+ * used by the other kind first. Distractors: the next same-pos highlights cyclically that pass distractorIssue() and repeat no option.
+ * With `spread`, an item is only placed where its 10-cue window (quizWindow) still has room (≤ 2 items). An item that cannot reach 3
+ * distractors or a free window is skipped, so the plan may have fewer items than `counts`.
  */
-export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts): QuizPlan {
-  const items: QuizPlanItem[] = []
-  for (const kind of ['meaning', 'cloze'] as const) {
-    const key = (h: QuizHighlight) => (kind === 'meaning' ? h.gloss : h.word).trim().toLowerCase()
-    for (let i = 0; i < Math.min(counts[kind], H.length); i++) {
-      const seen = new Set([key(H[i]!)])
-      const distractorIds: number[] = []
-      for (let step = 1; step < H.length && distractorIds.length < 3; step++) {
-        const j = (i + step) % H.length
-        const k = key(H[j]!)
-        if (seen.has(k) || distractorIssue(kind, H[i]!, H[j]!)) continue
-        seen.add(k)
-        distractorIds.push(j)
-      }
-      if (distractorIds.length === 3) items.push({ kind, highlightId: i, distractorIds })
+export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: QuizSpread): QuizPlan {
+  const E = quizEligible(H)
+  const order = spread ? interleaveThirds(E, spread) : E
+  const w = spread ? quizWindow(spread) : 0
+  const placed: number[] = []
+  const fits = (c: number) => !spread || [...Array(w).keys()].every((k) => placed.filter((p) => p >= c - k && p <= c - k + w - 1).length < QUIZ_MAX_PER_WINDOW)
+  const distractors = (kind: 'meaning' | 'cloze', h: QuizHighlight): number[] | undefined => {
+    const key = (x: QuizHighlight) => (kind === 'meaning' ? x.gloss : x.word).trim().toLowerCase()
+    const seen = new Set([key(h)])
+    const out: number[] = []
+    for (let step = 1; step < H.length && out.length < 3; step++) {
+      const d = H[(h.id + step) % H.length]!
+      if (seen.has(key(d)) || d.lemma.toLowerCase() === h.lemma.toLowerCase() || distractorIssue(kind, h, d)) continue
+      seen.add(key(d))
+      out.push(d.id)
     }
+    return out.length === 3 ? out : undefined
   }
-  return { items }
+  const items: QuizPlanItem[] = []
+  const used = { meaning: new Set<number>(), cloze: new Set<number>() }
+  const pick = (kind: 'meaning' | 'cloze'): boolean => {
+    const other = kind === 'meaning' ? used.cloze : used.meaning
+    const candidates = [...order.filter((h) => !other.has(h.id)), ...order.filter((h) => other.has(h.id))]
+    for (const h of candidates) {
+      if (used[kind].has(h.id) || !fits(h.cueIndex)) continue
+      const ds = distractors(kind, h)
+      if (!ds) continue
+      used[kind].add(h.id); placed.push(h.cueIndex)
+      items.push({ kind, highlightId: h.id, distractorIds: ds })
+      return true
+    }
+    return false
+  }
+  let more = true
+  while (more) {
+    more = false
+    for (const kind of ['meaning', 'cloze'] as const) if (used[kind].size < counts[kind] && pick(kind)) more = true
+  }
+  return { items: [...items.filter((i) => i.kind === 'meaning'), ...items.filter((i) => i.kind === 'cloze')] }
 }
+
+function interleaveThirds(E: QuizHighlight[], spread: QuizSpread): QuizHighlight[] {
+  const thirds: QuizHighlight[][] = [[], [], []]
+  for (const h of [...E].sort((a, b) => a.cueIndex - b.cueIndex)) thirds[quizThird(h.cueIndex, spread)]!.push(h)
+  const out: QuizHighlight[] = []
+  for (let i = 0; out.length < E.length; i++) for (const t of thirds) if (t[i]) out.push(t[i]!)
+  return out
+}
+
+/** The clip's cue range from the quiz input (every cue of the clip is passed, with or without highlights). */
+export const spreadOf = (cues: QuizCueInput[]): QuizSpread => ({ cueMin: Math.min(...cues.map((c) => c.index)), cueMax: Math.max(...cues.map((c) => c.index)) })
 
 export type QuizDeps = AiDeps
 export type QuizFn = (cues: QuizCueInput[], lang: Lang, native: string) => Promise<QuizSet>
@@ -132,11 +167,19 @@ const errText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` 
 export function makeQuiz(d: QuizDeps): QuizFn {
   return async (cues, lang, native) => {
     const H = flattenHighlights(cues)
-    const counts = quizCounts(H.length)
-    if (counts.meaning === 0) { d.log(`quiz: skipped, ${H.length} highlights < 4`); return { items: [] } }
-    const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, highlights: H.map((h) => [h.cueIndex, h.word, h.lemma, h.pos, h.gloss, normalizeCue(h.cue)]) }
+    const E = quizEligible(H)
+    for (const [pos, n] of Object.entries(H.reduce<Record<string, number>>((a, h) => ({ ...a, [h.pos]: (a[h.pos] ?? 0) + 1 }), {}))) {
+      if (n < 4 && n > 0) d.log(`quiz: no items for pos ${pos}: ${n} highlight${n === 1 ? '' : 's'} < 4 (needs 3 same-pos distractors)`)
+    }
+    const counts = quizCounts(E.length)
+    if (counts.meaning === 0) { d.log(`quiz: skipped, ${E.length} testable highlights < 4`); return { items: [] } }
+    const spread = spreadOf(cues)
+    const reachable = fallbackPlan(H, counts, spread)
+    const min = { meaning: reachable.items.filter((i) => i.kind === 'meaning').length, cloze: reachable.items.filter((i) => i.kind === 'cloze').length }
+    if (min.meaning + min.cloze === 0) { d.log('quiz: skipped, no item satisfies the distractor and spread rules'); return { items: [] } }
+    const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, spread, highlights: H.map((h) => [h.cueIndex, h.word, h.lemma, h.pos, h.gloss, normalizeCue(h.cue)]) }
     const key = cacheKey(identity)
-    const check = (p: QuizPlan) => quizPlanIssues(p, H, counts)
+    const check = (p: QuizPlan) => quizPlanIssues(p, H, counts, { spread, min })
     let plan: QuizPlan | undefined
     const hit = await d.cache.get('quiz', key, QuizPlan)
     if (hit) {
@@ -148,7 +191,7 @@ export function makeQuiz(d: QuizDeps): QuizFn {
       try {
         const r = await askWithRetry(d, {
           kind: 'quiz', label: 'clip', system: quizSystemPrompt(lang, native, counts),
-          payload: { highlights: H.map((h) => ({ id: h.id, word: h.word, pos: h.pos, gloss: h.gloss, cue: normalizeCue(h.cue) })) },
+          payload: { highlights: H.map((h) => ({ id: h.id, cueIndex: h.cueIndex, word: h.word, pos: h.pos, gloss: h.gloss, cue: normalizeCue(h.cue) })), cueRange: spread, window: quizWindow(spread) },
           toolName: QUIZ_TOOL, toolConfig: quizToolConfig(), maxTokens: 1500, schema: QuizPlan, check,
         })
         if (r.ok) {
@@ -161,7 +204,7 @@ export function makeQuiz(d: QuizDeps): QuizFn {
         reason = errText(e)
       }
       if (!plan) {
-        plan = fallbackPlan(H, counts)
+        plan = reachable
         d.log(`quiz: fallback builder used: ${reason}`)
       }
     }

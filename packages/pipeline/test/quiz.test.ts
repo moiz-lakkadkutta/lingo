@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { PreparedQuizItem, QuizPlan, quizCounts, quizPlanIssues, type QuizHighlight } from '@lingo/contracts'
+import { PreparedQuizItem, QuizPlan, quizCounts, quizEligible, quizPlanIssues, quizThird, spreadIssues, type QuizHighlight } from '@lingo/contracts'
 import { createAi } from '../src/ai/index'
-import { buildQuizItems, clozePrompt, fallbackPlan, flattenHighlights, QUIZ_PROMPT_VERSION, quizSystemPrompt } from '../src/ai/quiz'
+import { buildQuizItems, clozePrompt, fallbackPlan, flattenHighlights, QUIZ_PROMPT_VERSION, quizSystemPrompt, spreadOf } from '../src/ai/quiz'
 import { fakeSend, nova, QUIZ_CUES, userTexts } from './novaFake'
 
 let dir: string
@@ -30,7 +30,7 @@ describe('quiz', () => {
     expect(await a.quiz(QUIZ_CUES.slice(0, 1).concat(QUIZ_CUES.slice(5)), 'de', 'en')).toEqual({ items: [] })
     expect(send).not.toHaveBeenCalled()
     expect(a.cost()).toEqual({ calls: 0, cachedCalls: 0, inputTokens: 0, outputTokens: 0, usd: 0 })
-    expect(logs).toEqual(['quiz: skipped, 2 highlights < 4'])
+    expect(logs).toEqual(['quiz: no items for pos verb: 1 highlight < 4 (needs 3 same-pos distractors)', 'quiz: no items for pos noun: 1 highlight < 4 (needs 3 same-pos distractors)', 'quiz: skipped, 0 testable highlights < 4'])
   })
 
   it('builds 6 meaning + 4 cloze items from a valid plan: prompts, 4 distinct options, answer index points at the correct gloss/word, cueIndex = the highlight cue', async () => {
@@ -41,7 +41,8 @@ describe('quiz', () => {
     expect(input.toolConfig?.toolChoice).toEqual({ tool: { name: 'plan_quiz' } })
     expect(input.inferenceConfig).toEqual({ maxTokens: 1500, temperature: 0 })
     expect(input.system).toEqual([{ text: quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 }) }])
-    expect(JSON.parse(userTexts(send)[0]!).highlights[0]).toEqual({ id: 0, word: 'warte', pos: 'verb', gloss: 'wait', cue: 'Ich warte seit zwei Stunden auf dich.' })
+    expect(JSON.parse(userTexts(send)[0]!).highlights[0]).toEqual({ id: 0, cueIndex: 0, word: 'warte', pos: 'verb', gloss: 'wait', cue: 'Ich warte seit zwei Stunden auf dich.' })
+    expect(JSON.parse(userTexts(send)[0]!)).toMatchObject({ cueRange: { cueMin: 0, cueMax: 5 }, window: 1 })
     expect(items.map((i) => i.kind)).toEqual(['meaning', 'meaning', 'meaning', 'meaning', 'meaning', 'meaning', 'cloze', 'cloze', 'cloze', 'cloze'])
     const plan = okPlan()
     items.forEach((item, n) => {
@@ -59,7 +60,7 @@ describe('quiz', () => {
       }
     })
     expect(items[6]!.prompt).toBe('Ich ____ seit zwei Stunden auf dich.')
-    expect(items[9]!.prompt).toBe('Ich suche meinen ____.')
+    expect(items[9]!.prompt).toBe('Ich ____ immer alles.')
   })
 
   it('clozePrompt blanks only the first whole-word occurrence, keeps punctuation and joins lines with a space', () => {
@@ -89,40 +90,75 @@ describe('quiz', () => {
     }
   })
 
-  it('retries once with issues when the plan has the wrong counts (fixture quiz-bad), then falls back to fallbackPlan and logs it', async () => {
+  it('retries once with issues when the plan breaks the rules (fixture quiz-bad), then falls back to fallbackPlan and logs it', async () => {
     const send = fakeSend(nova('quiz-bad'), nova('quiz-bad'))
     const a = ai(send)
     const { items } = await a.quiz(QUIZ_CUES, 'de', 'en')
     expect(send).toHaveBeenCalledTimes(2)
-    expect(userTexts(send, 1)[1]).toMatch(/^Your previous tool call was rejected: expected exactly 6 "meaning" items, got 5/)
+    expect(userTexts(send, 1)[1]).toMatch(/^Your previous tool call was rejected: .*is already in the line of "Bahnhof"; 3 items within cues 1–1/)
     expect(userTexts(send, 1)[1]).toMatch(/Call plan_quiz again with a corrected answer\.$/)
-    expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(H.length)), H, 'de', 'en'))
-    expect(items).toHaveLength(10)
-    expect(logs.some((l) => l.startsWith('quiz: fallback builder used: expected exactly 6 "meaning" items, got 5'))).toBe(true)
+    expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(quizEligible(H).length), spreadOf(QUIZ_CUES)), H, 'de', 'en'))
+    expect(items).toHaveLength(9)
+    expect(logs.some((l) => l.startsWith('quiz: fallback builder used: '))).toBe(true)
     expect(a.cost().calls).toBe(2)
     expect(await readdir(join(dir, 'quiz')).catch(() => [])).toEqual([])
   })
 
-  it('fallbackPlan uses the first M/C highlights with cyclic distinct distractors and drops an item that cannot reach 3', () => {
-    const plan = fallbackPlan(H, { meaning: 6, cloze: 4 })
-    expect(plan.items.filter((i) => i.kind === 'meaning').map((i) => [i.highlightId, i.distractorIds])).toEqual([[0, [1, 2, 3]], [1, [2, 3, 4]], [2, [3, 4, 5]], [3, [4, 5, 6]], [4, [5, 6, 7]], [5, [6, 7, 8]]])
-    expect(plan.items.filter((i) => i.kind === 'cloze').map((i) => i.highlightId)).toEqual([0, 1, 2, 3])
-    const h = (id: number, word: string, gloss: string): QuizHighlight => ({ id, cueIndex: id, word, lemma: word, pos: 'noun', gloss, cue: `x ${word} y` })
-    // cyclic wrap + skipping a gloss already chosen
-    const five = [h(0, 'a', 'x'), h(1, 'b', 'y'), h(2, 'c', 'Y'), h(3, 'd', 'z'), h(4, 'e', 'w')]
-    expect(fallbackPlan(five, { meaning: 5, cloze: 0 }).items.map((i) => i.distractorIds)).toEqual([[1, 3, 4], [3, 4, 0], [3, 4, 0], [4, 0, 1], [0, 1, 3]])
+  it('fallbackPlan tests only highlights with 3 same-pos peers, uses same-pos distractors, and keeps the window rule (QUIZ_CUES: 5 meaning + 4 cloze)', () => {
+    const spread = spreadOf(QUIZ_CUES)
+    const plan = fallbackPlan(H, { meaning: 6, cloze: 4 }, spread)
+    expect(plan.items.filter((i) => i.kind === 'meaning')).toHaveLength(5)
+    expect(plan.items.filter((i) => i.kind === 'cloze')).toHaveLength(4)
+    for (const it of plan.items) {
+      expect(['adverb']).not.toContain(H[it.highlightId]!.pos) // morgen, immer: only 2 adverbs
+      for (const d of it.distractorIds) expect(H[d]!.pos).toBe(H[it.highlightId]!.pos)
+    }
+    expect(quizPlanIssues(plan, H, { meaning: 6, cloze: 4 }, { spread, min: { meaning: 5, cloze: 4 } })).toEqual([])
     // only 3 distinct glosses among 4 highlights: no meaning item can reach 3 distractors; cloze words are distinct
+    const h = (id: number, word: string, gloss: string): QuizHighlight => ({ id, cueIndex: id, word, lemma: word, pos: 'noun', gloss, cue: `x ${word} y` })
     const four = [h(0, 'apple', 'x'), h(1, 'house', 'y'), h(2, 'river', 'y'), h(3, 'cloud', 'z')]
     const p = fallbackPlan(four, { meaning: 4, cloze: 4 })
     expect(p.items.filter((i) => i.kind === 'meaning')).toEqual([])
     expect(p.items.map((i) => [i.highlightId, i.distractorIds])).toEqual([[0, [1, 2, 3]], [1, [2, 3, 0]], [2, [3, 0, 1]], [3, [0, 1, 2]]])
   })
 
+  it('fallbackPlan spreads items over the thirds of a 120-cue clip and keeps at most 2 items in any 10 cues', () => {
+    // 12 nouns crowded at the start (cues 0–11), 3 in the middle, 3 at the end
+    const cues = [...Array(12).keys(), 50, 55, 60, 100, 105, 110]
+    const big: QuizHighlight[] = cues.map((c, id) => ({ id, cueIndex: c, word: `wort${String.fromCharCode(97 + id)}x${id}`, lemma: `wort${id}`, pos: 'noun', gloss: ['Haus', 'Baum', 'Tisch', 'Lampe', 'Fenster', 'Garten', 'Wolke', 'Brücke', 'Stuhl', 'Kerze', 'Spiegel', 'Teller', 'Gabel', 'Löffel', 'Kissen', 'Decke', 'Vogel', 'Fluss'][id]!, cue: `x wort${String.fromCharCode(97 + id)}x${id} y` }))
+    const spread = { cueMin: 0, cueMax: 119 }
+    const plan = fallbackPlan(big, { meaning: 6, cloze: 4 }, spread)
+    expect(plan.items).toHaveLength(10)
+    const itemCues = plan.items.map((i) => big[i.highlightId]!.cueIndex)
+    expect(new Set(itemCues.map((c) => quizThird(c, spread))).size).toBe(3)
+    expect(spreadIssues(itemCues, big, spread)).toEqual([])
+    expect(itemCues.filter((c) => c < 12).length).toBeLessThanOrEqual(4) // ≤ 2 per 10-cue window over cues 0–11
+  })
+
+  it('a model plan that ignores the pos or the spread rules gets one retry with the issue, then the fallback', async () => {
+    const bad = structuredClone(nova('quiz-ok'))
+    const input = bad.output!.message!.content![0]!.toolUse!.input as { items: Array<{ distractorIds: number[] }> }
+    input.items[0]!.distractorIds = [5, 4, 6] // morgen (adverb) for suche (verb)
+    const send = fakeSend(bad, bad)
+    const { items } = await ai(send).quiz(QUIZ_CUES, 'de', 'en')
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(userTexts(send, 1)[1]).toMatch(/distractor 5 has pos adverb, the answer "suche" is a verb/)
+    expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(quizEligible(H).length), spreadOf(QUIZ_CUES)), H, 'de', 'en'))
+    expect(logs.some((l) => l.startsWith('quiz: fallback builder used: '))).toBe(true)
+  })
+
+  it('a pos with fewer than 4 highlights gets no items and is logged', async () => {
+    const send = fakeSend(nova('quiz-ok'))
+    const { items } = await ai(send).quiz(QUIZ_CUES, 'de', 'en')
+    expect(logs).toContain('quiz: no items for pos adverb: 2 highlights < 4 (needs 3 same-pos distractors)')
+    expect(items.some((i) => i.prompt === 'morgen' || i.prompt === 'immer')).toBe(false)
+  })
+
   it('falls back (not throws) when send rejects with a ValidationException', async () => {
     const send = vi.fn(async () => { throw Object.assign(new Error('malformed input'), { name: 'ValidationException' }) })
     const { items } = await createAi({ send, cacheDir: dir, log: (m) => logs.push(m) }).quiz(QUIZ_CUES, 'de', 'en')
     expect(send).toHaveBeenCalledTimes(1)
-    expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(H.length)), H, 'de', 'en'))
+    expect(items).toEqual(buildQuizItems(fallbackPlan(H, quizCounts(quizEligible(H).length), spreadOf(QUIZ_CUES)), H, 'de', 'en'))
     expect(logs).toContain('quiz: fallback builder used: ValidationException: malformed input')
   })
 
@@ -145,17 +181,17 @@ describe('quiz', () => {
   it('QUIZ_PROMPT_VERSION must be bumped when the system prompt changes (sha256 snapshot)', () => {
     const sha = createHash('sha256').update(quizSystemPrompt('de', 'en', { meaning: 6, cloze: 4 })).digest('hex')
     // If this fails because you edited the prompt: bump QUIZ_PROMPT_VERSION and update both values here.
-    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 2, sha: '5d45a16961e7047700004b166de2408b44e5226dbee2b022d3d5800843c2782b' })
+    expect({ version: QUIZ_PROMPT_VERSION, sha }).toEqual({ version: 3, sha: '16aa0bc0862df8c6a33ca3a85b89832cb57ea6ed94894c58b4c2c033427c3aaf' })
   })
 
   it('drops an item it cannot build (word not found as a whole word in its cue) instead of failing the clip, and logs why', async () => {
-    const cues = QUIZ_CUES.map((c) => (c.index === 4 ? { ...c, text: 'Der Zug steht am Bahnhofsplatz.' } : c))
+    const cues = QUIZ_CUES.map((c) => (c.index === 3 ? { ...c, text: 'Ich vergessen immer alles.' } : c))
     const send = fakeSend(nova('quiz-ok'))
     const { items } = await ai(send).quiz(cues, 'de', 'en')
     expect(items).toHaveLength(9)
     expect(items.filter((i) => i.kind === 'cloze')).toHaveLength(3)
-    expect(items.some((i) => i.kind === 'meaning' && i.prompt === 'Zug')).toBe(true)
-    expect(logs.some((l) => l.startsWith('quiz: dropped cloze item "Bahnhof": cloze: "Bahnhof" not found'))).toBe(true)
+    expect(items.some((i) => i.kind === 'meaning' && i.prompt === 'vergesse')).toBe(true)
+    expect(logs.some((l) => l.startsWith('quiz: dropped cloze item "vergesse": cloze: "vergesse" not found'))).toBe(true)
     // the pure builder still throws when no onDrop is given
     expect(() => buildQuizItems(okPlan(), flattenHighlights(cues), 'de', 'en')).toThrow(/not found/)
   })
