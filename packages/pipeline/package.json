@@ -10,7 +10,8 @@
     "build:names": "tsx scripts/build-names.ts",
     "gen:fixtures": "tsx scripts/gen-fixtures.ts",
     "lemma:smoke": "tsx scripts/lemma-smoke.ts",
-    "stats": "tsx scripts/stats.ts"
+    "stats": "tsx scripts/stats.ts",
+    "eval:gloss": "tsx scripts/eval-gloss.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",

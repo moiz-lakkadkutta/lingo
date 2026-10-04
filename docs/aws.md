@@ -12,12 +12,14 @@ LING-005/006/007 merged on 2026-10-02 without adding an AWS call.
 | S3 | `aws s3 cp s3://…/clips/<slug>.mp4 work/<slug>/source.*` | `packages/pipeline/src/steps/normalize.ts` | eu-central-1 | each prepare without `--reuse` / `--cues` | prepare downloads its own source to build the mezzanine | transfer cents |
 | Amazon Transcribe | `StartTranscriptionJob` (de-DE / en-US, `ShowSpeakerLabels`, `MaxSpeakerLabels: 6`), `GetTranscriptionJob` every 5 s (≤ 30 min), HTTPS GET of `TranscriptFileUri` | `packages/pipeline/src/steps/transcribe.ts` | eu-central-1 | once per clip segment; afterwards `transcript.json` is reused (`--reuse`). The batch deletes it only when the segment or source in content/clips.json changes, and the dry run shows that clip under "Transcribe will run for" | word timestamps, punctuation and speaker labels for the target cues | $0.024/min |
 | Amazon Translate | `TranslateText` per cue × native, `Settings.Brevity: ON`, `Formality` where the target supports it; two-speaker cues per line; spelled letters not sent | `packages/pipeline/src/steps/translate.ts` | eu-central-1 | every prepare (batch draft and final) | the native line, aligned 1:1 with the target cues | $15 per million characters |
-| Amazon Bedrock (Nova Lite) | `Converse` with forced tool use, `us.amazon.nova-lite-v1:0` | `packages/pipeline/src/ai/*` | us-east-1 (`us.` inference profile) | batch final phase and spot checks; one call per highlight (gloss) + one per clip (quiz plan); file cache makes repeats free | glosses, grammar notes, examples; quiz plan | ≤ $0.005 per clip (measured $0.0010–0.0014 per clip, Gate C run) |
+| Amazon Bedrock (Nova Pro v1 default; Nova Lite v1 selectable) | `Converse` with forced tool use, `us.amazon.nova-pro-v1:0` (env `LINGO_AI_MODEL`; older `NOVA_LITE_MODEL_ID` still read); previous cue sent as context (gloss prompt v6) | `packages/pipeline/src/ai/*` | us-east-1 (`us.` inference profile) | batch final phase and spot checks; one call per highlight (gloss) + one per clip (quiz plan); file cache makes repeats free | glosses, grammar notes, examples; quiz plan (items built by code) | ≈ $0.035–0.042 per clip on Nova Pro (measured, decision 0009); Nova Lite measured $0.0010–0.0014 per clip in the first Gate C run |
 | S3 | `aws s3 sync work/<slug>/hls s3://…/published/<slug>/ --delete` + `cp` of master playlist, VTTs, clip.json | `packages/pipeline/src/steps/publish.ts` | eu-central-1 | batch final phase | HLS segments (immutable, 1 year) and the 60 s-cached playlist, VTTs and clip manifest | storage cents/month |
 | S3 | `aws s3 cp poster.jpg s3://…/published/<slug>/poster.jpg` | batch `publish-extra` stage | eu-central-1 | batch final phase | catalog poster | negligible |
 | CloudFront | serves `published/*` from the media bucket (Origin Access Control, HTTPS only, PriceClass 100) | `infra/lib/media-stack.ts` | global | app playback | HLS + WebVTT to the TV | free tier / cents for demo traffic (verify) |
 | CloudFormation via CDK | `cdk deploy lingo-media-dev --exclusively` | `infra/` | eu-central-1 | deploys | media bucket, CDN, PipelineRole | free |
 | IAM | `PipelineRole` (assumable by the account; S3 read/write, Transcribe, Translate, Polly, Bedrock Converse on `amazon.nova-*`) | `infra/lib/media-stack.ts` | global | defined | least-privilege role for the pipeline | free |
+
+Orchestration is a plain commander CLI (`pnpm pipeline prepare` / `batch`) that runs the steps in order; no agent framework.
 
 Not AWS, listed so every outbound call is in one place: the **Amazon Appstore Receipt Verification Service (RVS)**,
 `GET https://appstore-sdk.amazon.com[/sandbox]/version/1.0/verifyReceiptId/developer/<secret>/user/<userId>/receiptId/<receiptId>`
@@ -50,9 +52,9 @@ Per clip: Transcribe `minutes × $0.024` (once) + Translate `seconds × 15 chars
 | Transcribe | 58.9 new min (4 217 s of clips; rows 3 and 7 are already transcribed) × $0.024 | $1.41 (all 70.3 min: $1.69) |
 | Translate, one native per clip | 4 217 s × 15 ch/s ≈ 63 k chars × 2 phases × $15/M | $1.90 |
 | Translate, if tr/ar/uk are added | + 3 × 63 k chars in the final phase | + $2.85 (option, not chosen: natives are en/de for now; `ar` would also need Noto Sans Arabic) |
-| Bedrock Nova Lite | 12 × ≤ $0.005 | ≤ $0.06 |
+| Bedrock Nova Pro (default) | 12 × ≤ $0.05 | ≤ $0.60 (Nova Lite: ≤ $0.06) |
 | S3 storage and transfer, CloudFront demo traffic | ≈ 1.2 GB cuts + ≈ 2.4 GB HLS (estimate) | cents per month; free-tier coverage to verify |
-| **Total** | one native per clip | **≈ $3.4** (four natives ≈ $6.3), below the ~$10 per-run escalation line (docs/KICKOFF.md) |
+| **Total** | one native per clip | **≈ $3.9** (four natives ≈ $6.8), below the ~$10 per-run escalation line (docs/KICKOFF.md) |
 
 Pricing pages to verify against (eu-central-1 may differ from us-east-1; Transcribe bills per second with a per-request minimum):
 https://aws.amazon.com/transcribe/pricing/ · https://aws.amazon.com/translate/pricing/ · https://aws.amazon.com/bedrock/pricing/ ·
@@ -81,9 +83,10 @@ Builder Tools MCP were used: **TBD by human**.
 - Clip video/audio: per-clip licence and attribution recorded in Clip.license / Clip.attribution.
 
 ## Bedrock / Nova Lite (LING-002)
-- *Prices: the cost ledger (`packages/pipeline/src/ai/cost.ts`) uses $0.06 per million input tokens and $0.24 per million output tokens for Nova Lite on demand in US East (N. Virginia). **These figures come from search summaries and have not yet been checked against the pricing page** — verify at https://aws.amazon.com/bedrock/pricing/ (Amazon Nova tab) and correct `NOVA_LITE_USD_PER_M` if they differ. `clip.json.cost` is an estimate until then.
+- *Prices: the cost ledger (`packages/pipeline/src/ai/cost.ts`) prices each call from `MODEL_PRICES`, keyed by model id without its geo prefix (USD per 1M tokens, input/output, on demand, US East): Nova Micro 0.035/0.14, Nova Lite v1 0.06/0.24, Nova 2 Lite 0.30/2.50, Nova Pro v1 0.80/3.20, Nova Premier 2.50/12.50. **None of these figures has been checked against the pricing page** (all `verified: false`; plan LING-002-gate-c H4) — verify at https://aws.amazon.com/bedrock/pricing/ (Amazon Nova tab). Extended-thinking tokens are billed as output tokens. `clip.json.cost` is an estimate until then.
 - Request shape: Converse with one `toolSpec` and `toolChoice.tool` (forced tool use), `temperature: 0`; Zod validates the tool input; one retry with the validation issues, then a gloss fails the clip and a quiz falls back to a deterministic builder. SDK retries (`standard`, 5 attempts) cover throttling and 5xx.
-- Switching models (e.g. Nova 2 Lite, or the EU profile `eu.amazon.nova-lite-v1:0` with `BEDROCK_REGION=eu-central-1`) is `NOVA_LITE_MODEL_ID` plus the price constants next to the default id in `cost.ts`.
+- Switching models is `LINGO_AI_MODEL` (e.g. `us.amazon.nova-2-lite-v1:0`; the older `NOVA_LITE_MODEL_ID` is still read as a fallback); a model without a `MODEL_PRICES` entry is refused. `LINGO_AI_REASONING=low|medium` turns on Nova 2 Lite extended thinking (`reasoningConfig` in `additionalModelRequestFields`, gloss maxTokens 2000; part of the cache key). Nova 2 Lite is only reachable through inference profiles (`us.`/`global.`), and a `us.` profile routes to us-east-1, us-east-2 and us-west-2, so the pipeline role allows `arn:aws:bedrock:*::foundation-model/amazon.nova-*` (https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-prereq.html).
+- Model choice is measured, not assumed: `pnpm --filter @lingo/pipeline eval:gloss` on the English gold set; results per model in docs/decisions/0009 (Eval results). Since 2026-10-04 the default is Nova Pro v1 (`us.amazon.nova-pro-v1:0`, best in the eval, ≈ $0.035–0.042 per clip, approved by the human); Lite v1 stays selectable with `LINGO_AI_MODEL=us.amazon.nova-lite-v1:0`.
 - Spot check (quality gate C): `pnpm --filter @lingo/pipeline cli spot-check --clip-json work/<slug>/clip.json`; see docs/spot-checks/README.md. Result: pending.
 - Docs read:
   - Converse API reference: https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html

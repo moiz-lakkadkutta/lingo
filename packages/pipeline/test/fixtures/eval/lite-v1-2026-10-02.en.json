@@ -1,0 +1,416 @@
+{
+  "note": "Replay of the 2026-10-02 Gate C run (Nova Lite v1, gloss prompt v2) on the English clip: the 15 sheet rows, v2 glosses split into card fields by script. Known-bad baseline for test/eval-score.test.ts.",
+  "results": [
+    {
+      "cueIndex": 9,
+      "word": "tennis",
+      "lemma": "tennis",
+      "rank": 3478,
+      "cue": "Just a minute, Jeff.\nI'll get my tennis racket.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Tennisschläger"
+        ],
+        "register": "neutral",
+        "example": "Ich spiele Tennis mit meinem Freund.",
+        "plural": "tennisschläger"
+      },
+      "gloss": {
+        "gloss": "Tennisschläger",
+        "grammar": "Nomen, Pl. tennisschläger",
+        "example": "Ich spiele Tennis mit meinem Freund."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 9,
+      "word": "racket",
+      "lemma": "racket",
+      "rank": 5048,
+      "cue": "Just a minute, Jeff.\nI'll get my tennis racket.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Tennisschläger"
+        ],
+        "register": "neutral",
+        "example": "I need my racket for tennis.",
+        "plural": "rackets"
+      },
+      "gloss": {
+        "gloss": "Tennisschläger",
+        "grammar": "Nomen, Pl. rackets",
+        "example": "I need my racket for tennis."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 12,
+      "word": "sale",
+      "lemma": "sale",
+      "rank": 2121,
+      "cue": "on Friday to fix up\nthat scavenger sale?",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Verkauf",
+          "Angebot"
+        ],
+        "register": "neutral",
+        "example": "I found a sale on shoes.",
+        "plural": "sales"
+      },
+      "gloss": {
+        "gloss": "Verkauf, Angebot",
+        "grammar": "Nomen, Pl. sales",
+        "example": "I found a sale on shoes."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 12,
+      "word": "scavenger",
+      "lemma": "scavenger",
+      "rank": 10858,
+      "cue": "on Friday to fix up\nthat scavenger sale?",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Abfallverwerter",
+          "jemand der Müll sammelt"
+        ],
+        "register": "neutral",
+        "example": "I saw a scavenger in the park.",
+        "plural": "scavengers"
+      },
+      "gloss": {
+        "gloss": "Abfallverwerter, jemand der Müll sammelt",
+        "grammar": "Nomen, Pl. scavengers",
+        "example": "I saw a scavenger in the park."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 22,
+      "word": "swell",
+      "lemma": "swell",
+      "rank": 2477,
+      "cue": "Well, Kay's a swell girl.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "adjective",
+        "gloss": [
+          "eine tolle Frau"
+        ],
+        "register": "neutral",
+        "example": "She is a swell girl.",
+        "comparative": "besser"
+      },
+      "gloss": {
+        "gloss": "eine tolle Frau",
+        "grammar": "Adjektiv, Komparativ besser",
+        "example": "She is a swell girl."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 25,
+      "word": "wagon",
+      "lemma": "wagon",
+      "rank": 3098,
+      "cue": "Good picture, wagon train.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Wagen",
+          "ein Transportmittel"
+        ],
+        "register": "neutral",
+        "example": "I see a wagon in the park.",
+        "plural": "wagons"
+      },
+      "gloss": {
+        "gloss": "Wagen, ein Transportmittel",
+        "grammar": "Nomen, Pl. wagons",
+        "example": "I see a wagon in the park."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 42,
+      "word": "sal",
+      "lemma": "sal",
+      "rank": 4972,
+      "cue": "the scavenger sal.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "der Sal"
+        ],
+        "register": "neutral",
+        "example": "I found a sal in the forest."
+      },
+      "gloss": {
+        "gloss": "der Sal",
+        "grammar": "Nomen, Singular",
+        "example": "I found a sal in the forest."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 66,
+      "word": "old-timer",
+      "lemma": "old-timer",
+      "rank": 14058,
+      "cue": "that is an old-timer.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "ein erfahrener Mensch"
+        ],
+        "register": "neutral",
+        "example": "He is an old-timer in this town.",
+        "plural": "old-timers"
+      },
+      "gloss": {
+        "gloss": "ein erfahrener Mensch",
+        "grammar": "Nomen, Pl. old-timers",
+        "example": "He is an old-timer in this town."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 78,
+      "word": "refreshments",
+      "lemma": "refreshment",
+      "rank": 9082,
+      "cue": "OK, how about helping with\nrefreshments for the game?",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Getränke",
+          "Essen"
+        ],
+        "register": "neutral",
+        "example": "We need refreshments for the party.",
+        "plural": "refreshment"
+      },
+      "gloss": {
+        "gloss": "Getränke, Essen",
+        "grammar": "Nomen, Pl. refreshment",
+        "example": "We need refreshments for the party."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 81,
+      "word": "tacks",
+      "lemma": "tack",
+      "rank": 8995,
+      "cue": "Got any more tacks?",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "mehr Heftklammern"
+        ],
+        "register": "neutral",
+        "example": "I need more tacks for the poster.",
+        "plural": "tack"
+      },
+      "gloss": {
+        "gloss": "mehr Heftklammern",
+        "grammar": "Nomen, Pl. tack, tacks",
+        "example": "I need more tacks for the poster."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 87,
+      "word": "activities",
+      "lemma": "activity",
+      "rank": 2056,
+      "cue": "A list of coming activities.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "kommende Aktivitäten"
+        ],
+        "register": "neutral",
+        "example": "We have many activities next week."
+      },
+      "gloss": {
+        "gloss": "kommende Aktivitäten",
+        "grammar": "Nomen, Plural von activity",
+        "example": "We have many activities next week."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 90,
+      "word": "acquainted",
+      "lemma": "acquaint",
+      "rank": 6596,
+      "cue": "A chance to do things with\na group, to get acquainted.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "verb",
+        "gloss": [
+          "mit etwas vertraut machen"
+        ],
+        "register": "neutral",
+        "example": "I want to get acquainted with my new team.",
+        "past": "acquainted",
+        "participle": "acquainted"
+      },
+      "gloss": {
+        "gloss": "mit etwas vertraut machen",
+        "grammar": "Verb, acquaint, acquainted, acquainted",
+        "example": "I want to get acquainted with my new team."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 93,
+      "word": "roast",
+      "lemma": "roast",
+      "rank": 3321,
+      "cue": "Or a weenie roast.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Wurstbraten",
+          "ein Grillfest"
+        ],
+        "register": "neutral",
+        "example": "We had a roast at the park.",
+        "plural": "weenie roasts"
+      },
+      "gloss": {
+        "gloss": "Wurstbraten, ein Grillfest",
+        "grammar": "Nomen, Pl. weenie roasts",
+        "example": "We had a roast at the park."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 93,
+      "word": "weenie",
+      "lemma": "weenie",
+      "rank": 12388,
+      "cue": "Or a weenie roast.",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "kleine Wurst",
+          "oft gegrillt"
+        ],
+        "register": "neutral",
+        "example": "Let's have a weenie for dinner.",
+        "plural": "weenies"
+      },
+      "gloss": {
+        "gloss": "kleine Wurst, oft gegrillt",
+        "grammar": "Nomen, Pl. weenies",
+        "example": "Let's have a weenie for dinner."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    },
+    {
+      "cueIndex": 95,
+      "word": "expense",
+      "lemma": "expense",
+      "rank": 2869,
+      "cue": "together. Not much arranging\nneeded, not much expense,",
+      "status": "ok",
+      "card": {
+        "sense": "(v2 prompt: no sense field)",
+        "pos": "noun",
+        "gloss": [
+          "Kosten",
+          "nicht viel"
+        ],
+        "register": "neutral",
+        "example": "The trip was cheap, no big expense.",
+        "plural": "expenses"
+      },
+      "gloss": {
+        "gloss": "Kosten, nicht viel",
+        "grammar": "Nomen, Pl. expenses",
+        "example": "The trip was cheap, no big expense."
+      },
+      "issues": [],
+      "attempts": 1,
+      "cached": true,
+      "reasked": false
+    }
+  ]
+}

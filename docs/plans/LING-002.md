@@ -423,7 +423,7 @@ Score columns are left blank for the reviewer.
 - **Item pass** = Q1 ∧ Q2 ∧ Q3.
 
 ### 8.5 Scoring and verdict
-- 30 gloss items; **accept at ≥ 27 passes (90 %, PLAN §12)**. Quiz: accept at ≥ 90 % of items.
+- Every row of both sheets (all clip highlights, at least 15 per clip); **accept at ≥ 90 % of rows, rounded up (PLAN §12; amended by LING-002-gate-c §7 / H2, 2026-10-03; was 30 items, ≥ 27)**. Quiz: accept at ≥ 90 % of items.
 - Hard stop: ≥ 2 items failing G5 → the ticket does not pass review regardless of totals.
 - Two-person rule (PLAN §5): the reviewer scores all rows; the human spot-confirms every row the reviewer marked 0 plus 5 random passes. Disagreements count as fails.
 - Below threshold → one prompt revision (bump the prompt version, re-run; the cache guarantees only changed prompts re-ask) → re-score. At most two loops (`docs/ORCHESTRATOR.md` §3.4), then escalate.

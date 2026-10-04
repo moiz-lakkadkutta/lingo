@@ -7,6 +7,9 @@ export * from './ai'
 export * from './review'
 export * from './iap'
 export * from './tv'
+export * from './glossCard'
+export * from './lexicon'
+export { levenshtein, normGloss, sameStem, wordsOf, countWords } from './text'
 export const ClipCard = z.object({ slug: z.string(), title: z.string(), level: Level, durationS: z.number(), posterUrl: z.string().url().nullable(), resumeS: z.number().nullable(), completed: z.boolean().default(false), attribution: z.string().default('') })
 export const Catalog = z.object({ continue: z.array(ClipCard), justRight: z.array(ClipCard), harder: z.array(ClipCard), fresh: z.array(ClipCard) })
 export const HighlightDto = z.object({ id: z.string(), word: z.string(), lemma: z.string(), rank: z.number().int(), gloss: z.string(), grammar: z.string(), example: z.string(), level: Level })

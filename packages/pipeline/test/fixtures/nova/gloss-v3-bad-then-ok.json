@@ -1,0 +1,14 @@
+[
+  {
+    "output": { "message": { "role": "assistant", "content": [ { "toolUse": { "toolUseId": "t1", "name": "explain_word", "input": { "sense": "bleiben, bis jemand kommt", "pos": "verb", "gloss": ["warten"], "register": "neutral", "past": "wartete", "participle": "hat gewartet", "example": "Wir warten auf den Bus." } } } ] } },
+    "stopReason": "tool_use",
+    "usage": { "inputTokens": 287, "outputTokens": 58, "totalTokens": 345 },
+    "metrics": { "latencyMs": 790 }
+  },
+  {
+    "output": { "message": { "role": "assistant", "content": [ { "toolUse": { "toolUseId": "t2", "name": "explain_word", "input": { "sense": "bleiben, bis jemand kommt oder etwas passiert", "pos": "verb", "gloss": ["to wait"], "register": "neutral", "past": "wartete", "participle": "hat gewartet", "example": "Wir warten auf den Bus." } } } ] } },
+    "stopReason": "tool_use",
+    "usage": { "inputTokens": 402, "outputTokens": 61, "totalTokens": 463 },
+    "metrics": { "latencyMs": 805 }
+  }
+]

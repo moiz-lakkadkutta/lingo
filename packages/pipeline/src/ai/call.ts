@@ -3,9 +3,11 @@ import type { z } from 'zod'
 import type { AiCache, AiKind } from './cache'
 import { toolUseInput, type BedrockSend } from './client'
 import type { CostLedger } from './cost'
+import type { GermanLexiconFn } from './germanWords'
 
 /** Everything a gloss or quiz call needs; injected so tests never reach Bedrock. */
-export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date }
+export type Reasoning = 'off' | 'low' | 'medium'
+export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn }
 
 export interface AskSpec<T> {
   kind: AiKind
@@ -13,18 +15,20 @@ export interface AskSpec<T> {
   label: string
   system: string
   payload: unknown
+  /** further user text blocks after the payload (e.g. the sibling hint of glossClip) */
+  extraText?: string[]
   toolName: string
   toolConfig: ToolConfiguration
   maxTokens: number
-  schema: z.ZodType<T>
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>
   /** context rules beyond the schema; [] = acceptable */
-  check: (value: T) => string[]
+  check: (value: T) => string[] | Promise<string[]>
   /** issues that only nudge: on the retry, an answer whose remaining issues are all soft is accepted with a warning */
   soft?: (issue: string) => boolean
 }
 
 export type AskResult<T> =
-  | { ok: true; output: T; usage: { inputTokens: number; outputTokens: number } }
+  | { ok: true; output: T; usage: { inputTokens: number; outputTokens: number }; /** 1 or 2 */ attempt: number; /** soft issues left on an answer accepted on the retry */ issues: string[] }
   | { ok: false; issues: string[]; lastOutput: unknown }
 
 /**
@@ -53,6 +57,15 @@ async function converse(d: AiDeps, input: ConverseCommandInput): Promise<Convers
   }
 }
 
+/**
+ * With extended thinking on, a forced tool choice is replaced by `any` (one tool, so equivalent): the Nova 2 docs do not say that a
+ * forced `tool` choice works together with reasoning (docs/plans/LING-002-gate-c.md §8.5).
+ * https://docs.aws.amazon.com/nova/latest/nova2-userguide/extended-thinking.html
+ */
+function withReasoningToolChoice(tc: ToolConfiguration): ToolConfiguration {
+  return tc.toolChoice && 'tool' in tc.toolChoice && tc.toolChoice.tool ? { ...tc, toolChoice: { any: {} } } : tc
+}
+
 const zodIssues = (e: z.ZodError) => e.issues.map((i) => `${i.path.join('.')}: ${i.message}`)
 
 /**
@@ -62,14 +75,16 @@ const zodIssues = (e: z.ZodError) => e.issues.map((i) => `${i.path.join('.')}: $
 export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskResult<T>> {
   let issues: string[] = []
   let lastOutput: unknown = null
+  const reasoningOn = !!d.reasoning && d.reasoning !== 'off'
   for (let attempt = 1; attempt <= 2; attempt++) {
     const feedback = attempt === 2 ? [{ text: `Your previous tool call was rejected: ${issues.join('; ')}. Previous answer: ${JSON.stringify(lastOutput)}. Call ${spec.toolName} again with a corrected answer.` }] : []
     const out = await converse(d, {
       modelId: d.model,
       system: [{ text: spec.system }],
-      messages: [{ role: 'user', content: [{ text: JSON.stringify(spec.payload) }, ...feedback] }],
-      toolConfig: spec.toolConfig,
+      messages: [{ role: 'user', content: [{ text: JSON.stringify(spec.payload) }, ...(spec.extraText ?? []).map((text) => ({ text })), ...feedback] }],
+      toolConfig: reasoningOn ? withReasoningToolChoice(spec.toolConfig) : spec.toolConfig,
       inferenceConfig: { maxTokens: spec.maxTokens },
+      ...(reasoningOn ? { additionalModelRequestFields: { reasoningConfig: { type: 'enabled', maxReasoningEffort: d.reasoning as string } } } : {}),
     })
     const usd = d.ledger.record(out.usage)
     d.log(`ai ${spec.kind} ${spec.label} attempt=${attempt} in=${out.usage?.inputTokens ?? 0} out=${out.usage?.outputTokens ?? 0} ms=${out.metrics?.latencyMs ?? 0} usd=${usd.toFixed(6)} stop=${out.stopReason ?? 'unknown'}`)
@@ -77,12 +92,12 @@ export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskR
     lastOutput = input
     if (input === null) { issues = [`no tool call in the response (stopReason=${out.stopReason})`]; continue }
     const parsed = spec.schema.safeParse(input)
-    issues = parsed.success ? spec.check(parsed.data) : zodIssues(parsed.error)
+    issues = parsed.success ? await spec.check(parsed.data) : zodIssues(parsed.error)
     const usage = { inputTokens: out.usage?.inputTokens ?? 0, outputTokens: out.usage?.outputTokens ?? 0 }
-    if (parsed.success && !issues.length) return { ok: true, output: parsed.data, usage }
+    if (parsed.success && !issues.length) return { ok: true, output: parsed.data, usage, attempt, issues: [] }
     if (parsed.success && attempt === 2 && spec.soft && issues.every(spec.soft)) {
       d.log(`WARNING ai ${spec.kind} ${spec.label} accepted on retry with a soft issue: ${issues.join('; ')}`)
-      return { ok: true, output: parsed.data, usage }
+      return { ok: true, output: parsed.data, usage, attempt, issues }
     }
   }
   return { ok: false, issues, lastOutput }

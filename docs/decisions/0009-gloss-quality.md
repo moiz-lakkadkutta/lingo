@@ -82,5 +82,87 @@ facts measured on that clip:
 
 ## Eval results
 
-To be filled by the implementer after plan §10 step 3: one row per configuration (model, reasoning, prompt version, passed/19, reject hits,
-quiz auto-checks, USD), then the chosen default.
+English gold set `eval/gold/en-de.what-to-do-on-a-date-1950.json` (19 scored items, `sal` excluded), run 2026-10-03 with
+`pnpm --filter @lingo/pipeline eval:gloss --quiz`, us-east-1, no cache. Bar (plan §9.4): ≥ 18/19, 0 reject hits, `sal` excluded, all quiz
+auto-checks true. USD = one run (19 gloss items with retries and sibling re-asks, plus one quiz call), i.e. about one clip; prices unverified (H4).
+
+| model | reasoning | gloss prompt | passed | reject hits | first try | `sal` excluded | quiz auto-checks | USD |
+|---|---|---|---|---|---|---|---|---|
+| Nova Lite v1 | – | v3 | 8/19 | 4 | 15/19 | yes | 4/5 | 0.0026 |
+| Nova 2 Lite | off | v3 | 11/19 | 1 | 16/19 | yes | 4/5 | 0.0215 |
+| Nova Lite v1 | – | v4 | 12/19 | 3 | 13/19 | yes | 4/5 | 0.0031 |
+| Nova 2 Lite | off | v4 | 13/19 | 1 | 16/19 | yes | 4/5 | 0.0218 |
+| Nova 2 Lite | low | v4 | 14/19 | 1 | 17/19 | yes | 4/5 | 0.0621 |
+| Nova Pro v1 | – | v4 | 15/19 | 1 | 16/19 | yes | 4/5 | 0.0346 |
+| Nova Lite v1 | – | v5 | 11/19 | 3 | 12/19 | yes | 4/5 | 0.0032 |
+| Nova 2 Lite | off | v5 | 12/19 | 1 | 16/19 | yes | 4/5 | 0.0205 |
+| Nova 2 Lite | low | v5 | 14/19 | 0 | 18/19 | yes | 4/5 | 0.0621 |
+| **Nova Pro v1** | – | **v5** | **16/19** | 1 | 16/19 | yes | 4/5 | 0.0350 |
+| Nova Pro v1 | – | v6 | 15/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
+| Nova Lite v1 | – | v6 | 11/19 | 3 | 13/19 | yes | 4/5 | 0.0032 |
+| Nova Pro v1 | – | v6 + G-NONWORD | 14/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
+
+v3 = the plan's prompt with the plan's validators. Between v3 and v4 the validators gained G-COMPOUND (a gloss compounded from a word of
+the line: "Tennisschläger" for tennis, "Baseballspiel") and F-MISSING-en (a noun/verb/adjective card must carry its forms), and the card's
+`sense` may run to 20 words (Lite v1 had three good cards rejected twice for a 13-word sense). v4 prompt: decide the referent first, real
+and correctly spelled words, all forms of the pos. v5: a second gloss only if it means exactly the same here; plural "in this sense"
+("none" for a sport). The only failing quiz check in every run is Q-PASSING-GLOSSES (an option comes from a card that fails S-SENSE),
+i.e. a consequence of the gloss failures, not of the quiz code.
+
+Mechanics confirmed on Bedrock: Nova Lite v1 accepts `enum` in the tool input schema (no fallback needed); Nova 2 Lite with
+`reasoningConfig` works with `toolChoice: { any: {} }` (the code never sends a forced `tool` choice together with reasoning).
+
+Remaining failures of the best configuration (Pro v1, v5): `sale` → "Verkauf, Ausverkauf" (second gloss is a clearance sale, a reject),
+`old-timer` → "Alter, Senior" (person sense; the line alone, "that is an old-timer.", cannot tell, the thing is named in the previous
+cue), `roast` → "Bratparty" (not a German word). Failures common to all models: `old-timer` (every model picks the person sense), `sale`
+(Ausverkauf), and on the Lite models `tacks` (Nägel/Nadeln), `weenie` (Nova 2 Lite: "Wurstchen" without umlaut), `loafer` (invented words
+"Faulenz", "Faulenzerr").
+
+**No configuration meets the bar; two prompt iterations are spent (ORCHESTRATOR §3.4), so this goes back to the human.** Per H1 the default
+stays Nova Lite v1. The measurement favours Nova Pro v1 (16/19, ≈ $0.035 per clip, ≈ 13× Lite v1, still cents), then Nova 2 Lite
+reasoning low (14/19, 0 reject hits, ≈ $0.062 per clip). Nova 2 Lite with reasoning off (12–13/19) does not justify replacing Lite v1 on
+its own. The largest single remaining gap is sense selection that needs the neighbouring cue (`old-timer`); sending the previous cue as
+context is the next candidate change (not in this plan).
+
+### Round 2 (2026-10-04, the one further iteration the human approved)
+
+Approved: Nova Pro v1 becomes the default for gloss and quiz (`AI_MODEL_ID_DEFAULT = us.amazon.nova-pro-v1:0`, priced in `MODEL_PRICES`;
+Lite v1 stays selectable with `LINGO_AI_MODEL`). Prompt v6 sends the previous cue as `"previous"`, marked context only (never glossed);
+it is part of the cache key, the first cue sends none, and its Translate line is not sent and not used by any validator (decision 4), so
+G-NEIGHBOUR and G-SOURCE only ever look at the current line.
+
+Validator change: G-COMPOUND now uses the German head-last rule. It rejects a gloss that starts with the target itself plus ≥ 4 letters
+("Tennisschläger" for tennis, "Baseballspiel" for baseball) or ends with another word of the line, and allows one that starts with a
+neighbour, since its head is then the target's translation ("Tennisschläger" for racket). This removes the conflict with the gold set,
+which accepts "tennisschläger" for racket.
+
+Gold-set review (no item loosened):
+- `prevCue` added to every item (the cue before, copied from clip.json), so the eval sends the same context as prepare. Additive.
+- `baseball` plural stays `none`. In "go to a baseball game" the word names the sport, an uncountable noun; "baseballs" is the plural of
+  the other sense (the ball). The prompt asks for the plural in this sense, and Pro v1 answers "none" in v5 and v6.
+- `sale`: "Ausverkauf" stays a reject. It is a shop selling off its stock at reduced prices (seasonal or closing-down clearance, the usual
+  1950s sense too), while a scavenger sale is a club selling collected, donated things to raise money. A learner would read the line as
+  a discount sale. This is a judgement the human may overrule; it is the only reject hit of Pro v1 apart from `old-timer`.
+- `racket` keeps "tennisschläger" in accept (now consistent with G-COMPOUND).
+
+Result: Pro v1 v6 15/19 (v5: 16/19). The previous cue did not fix `old-timer`: the sense became "a person or thing that is very old"
+with "Altes, Veteran" ("Veteran" is a reject). Pro v1 v6 failures: `sale` (Ausverkauf as the second gloss), `scavenger` ("Flohmarkt":
+it glossed the phrase "scavenger sale", i.e. the neighbour), `old-timer` (Veteran), `roast` ("Bratfest", not a German word). Lite v1 v6
+failures: tennis, baseball and inexpensive rejected twice (missing plural; "Baseballspiel (Sport)"; comparative "less expensive"),
+swell "tollerisch", old-timer "Alter, Veteran", tacks "Nägel, Hefte", roast "braten", weenie "Mini-Hot-Dog". The bar (18/19) is not met
+by any configuration; the approved iteration is used up. The default is Nova Pro v1 as approved.
+
+### Round 3 (2026-10-04): G-NONWORD, then human scoring
+
+The human moved Gate C to human scoring; the eval stays a guide. New hard rule G-NONWORD (native de): every German gloss word of ≥ 4
+letters (outside parentheses, hyphen parts one by one) must be in data/freq-de.txt (any rank), known to simplemma (de), or a compound of a
+lemma (freq list, or its own simplemma lemma) and a common head (the head or its lemma in the freq list, same word class; derivational
+endings such as -chen, -ling, -keit are never heads). Checked against the real lists: it rejects "Bratfest" ("Brat" is only a form of
+braten), "tollerisch", "Faulenzerr", "Faulling", "Wurstchen", "Bratparty" and accepts "Tennisschläger", "Würstchen", "Heftzwecke",
+"Ausflug", "Flohmarkt", "Reißzwecken", "Grillfest", "Altwarensammler". Example changed: "Faulenz" cannot be caught, because simplemma
+knows it as a form of faulenzen (a real word, wrong as a noun gloss). Gold accept words it would reject: "Altertümchen", "Cookout".
+
+Pro v1 v6 + G-NONWORD: 14/19. `roast` "Bratfest" was retried into "Bratwurstparty" (a real compound, still not in accept); `tennis` was
+rejected twice this run ("Tennis" without clarifier and no plural; it passed in the previous Pro v6 run, so this is run-to-run variance
+at temperature 0); `sale`, `scavenger`, `old-timer` as before.
+

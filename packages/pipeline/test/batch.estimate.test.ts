@@ -37,6 +37,8 @@ describe('estimateBatch', () => {
     expect(e.transcribe.minutes.toFixed(1)).toBe('58.9')
     expect(e.transcribe.usd.toFixed(2)).toBe('1.41')
     expect(e.translate.usd.toFixed(2)).toBe('1.90')
-    expect(e.totalUsd.toFixed(1)).toBe('3.4')
+    // Bedrock at the Nova Pro v1 default (decision 0009): 12 × $0.05 = $0.60; was $3.4 at the Nova Lite bound.
+    expect(e.bedrock.usd.toFixed(2)).toBe('0.60')
+    expect(e.totalUsd.toFixed(1)).toBe('3.9')
   })
 })

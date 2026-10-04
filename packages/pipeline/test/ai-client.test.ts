@@ -22,6 +22,12 @@ describe('client', () => {
     expect(toolUseInput({ $metadata: {} } as ConverseCommandOutput, 'explain_word')).toBeNull()
   })
 
+  it('toolUseInput ignores reasoningContent blocks before the toolUse block', () => {
+    const input = { gloss: ['Schläger'] }
+    expect(toolUseInput(out([{ reasoningContent: { reasoningText: { text: 'The word racket here means…' } } }, { toolUse: { toolUseId: 't1', name: 'explain_word', input } }]), 'explain_word')).toEqual(input)
+    expect(toolUseInput(out([{ reasoningContent: { redactedContent: new Uint8Array([1]) } }], 'end_turn'), 'explain_word')).toBeNull()
+  })
+
   it('createBedrockSend is lazy: no client until the first call, then one client with SDK retries (standard, 5 attempts) reused', async () => {
     const send = createBedrockSend({ region: 'us-east-1' })
     expect(sdk.configs).toHaveLength(0)

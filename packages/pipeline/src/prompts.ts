@@ -1,5 +1,5 @@
 import type { Gloss, Lang, Level, QuizSet } from '@lingo/contracts'
-import { createAi, type Ai } from './ai/index'
+import { AiSchemaError, createAi, type Ai } from './ai/index'
 import type { QuizCueInput } from './ai/quiz'
 
 /** Thin module: a default Ai bound to the environment (created on first use). prepare() builds its own via createAi() to get the cost ledger. */
@@ -10,7 +10,9 @@ let defaultAi: Ai | undefined
 const ai = () => (defaultAi ??= createAi())
 
 export async function glossWord(word: string, lemma: string, cue: string, lang: Lang, native: string, level: Level): Promise<Gloss> {
-  return ai().gloss(word, lemma, cue, lang, native, level)
+  const r = await ai().gloss({ word, lemma, cue, lang, native, level })
+  if (r.status === 'rejected') throw new AiSchemaError('gloss', r.issues, r.lastOutput)
+  return r.gloss
 }
 export async function quizForClip(cues: QuizCueInput[], lang: Lang, native: string): Promise<QuizSet> {
   return ai().quiz(cues, lang, native)

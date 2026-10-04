@@ -6,7 +6,7 @@ import { DATA_DIR } from '../freq'
 
 /** File cache for Nova responses (LING-002 §4). Gitignored under packages/pipeline/data/.cache/. */
 export type AiKind = 'gloss' | 'quiz'
-export interface CacheEntry<T> { v: 1; kind: AiKind; identity: Record<string, unknown>; model: string; output: T; usage: { inputTokens: number; outputTokens: number }; at: string }
+export interface CacheEntry<T> { v: 1; kind: AiKind; identity: Record<string, unknown>; model: string; output: T; usage: { inputTokens: number; outputTokens: number }; at: string; /** gloss: the attempt that was accepted (1 = first) */ attempts?: number }
 
 /** '\n' → ' ', collapse whitespace, trim (case preserved). */
 export function normalizeCue(cue: string): string {
@@ -34,7 +34,7 @@ export class AiCache {
   }
 
   /** Missing / unparsable / schema-failing → null (and the bad file is deleted). Context checks (glossIssues, quizPlanIssues) are the caller's. */
-  async get<T>(kind: AiKind, key: string, schema: z.ZodType<T>): Promise<CacheEntry<T> | null> {
+  async get<T>(kind: AiKind, key: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<CacheEntry<T> | null> {
     const file = this.path(kind, key)
     let raw: string
     try { raw = await readFile(file, 'utf8') } catch { return null }

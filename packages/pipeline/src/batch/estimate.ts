@@ -12,9 +12,10 @@ export const PRICES = {
   translatePerMillionChars: 15,
   /** characters of subtitle text per second of clip — an upper estimate; replace with the measured mean of the Phase 1 cue text */
   speechCharsPerSecond: 15,
-  /** USD per clip for Nova Lite glosses + quiz plan, upper bound (Gate C measured $0.0010 for 16 calls and $0.0014 for 21: docs/spot-checks/2026-10-02-gate-c.md;
-   * the per-token prices in src/ai/cost.ts are themselves unverified). verify: https://aws.amazon.com/bedrock/pricing/ */
-  bedrockPerClipUpperBound: 0.005,
+  /** USD per clip for glosses + quiz plan on the default model, Nova Pro v1, upper bound (decision 0009 eval measured ≈ $0.035–0.042 per clip;
+   * Nova Lite v1 measured $0.0010–0.0014: docs/spot-checks/2026-10-02-gate-c.md). The per-token prices in src/ai/cost.ts are themselves unverified.
+   * verify: https://aws.amazon.com/bedrock/pricing/ */
+  bedrockPerClipUpperBound: 0.05,
 } as const
 
 export const PRICING_PAGES = [
