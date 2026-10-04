@@ -100,6 +100,7 @@ auto-checks true. USD = one run (19 gloss items with retries and sibling re-asks
 | **Nova Pro v1** | – | **v5** | **16/19** | 1 | 16/19 | yes | 4/5 | 0.0350 |
 | Nova Pro v1 | – | v6 | 15/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
 | Nova Lite v1 | – | v6 | 11/19 | 3 | 13/19 | yes | 4/5 | 0.0032 |
+| Nova Pro v1 | – | v6 + G-NONWORD | 14/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
 
 v3 = the plan's prompt with the plan's validators. Between v3 and v4 the validators gained G-COMPOUND (a gloss compounded from a word of
 the line: "Tennisschläger" for tennis, "Baseballspiel") and F-MISSING-en (a noun/verb/adjective card must carry its forms), and the card's
@@ -150,4 +151,18 @@ it glossed the phrase "scavenger sale", i.e. the neighbour), `old-timer` (Vetera
 failures: tennis, baseball and inexpensive rejected twice (missing plural; "Baseballspiel (Sport)"; comparative "less expensive"),
 swell "tollerisch", old-timer "Alter, Veteran", tacks "Nägel, Hefte", roast "braten", weenie "Mini-Hot-Dog". The bar (18/19) is not met
 by any configuration; the approved iteration is used up. The default is Nova Pro v1 as approved.
+
+### Round 3 (2026-10-04): G-NONWORD, then human scoring
+
+The human moved Gate C to human scoring; the eval stays a guide. New hard rule G-NONWORD (native de): every German gloss word of ≥ 4
+letters (outside parentheses, hyphen parts one by one) must be in data/freq-de.txt (any rank), known to simplemma (de), or a compound of a
+lemma (freq list, or its own simplemma lemma) and a common head (the head or its lemma in the freq list, same word class; derivational
+endings such as -chen, -ling, -keit are never heads). Checked against the real lists: it rejects "Bratfest" ("Brat" is only a form of
+braten), "tollerisch", "Faulenzerr", "Faulling", "Wurstchen", "Bratparty" and accepts "Tennisschläger", "Würstchen", "Heftzwecke",
+"Ausflug", "Flohmarkt", "Reißzwecken", "Grillfest", "Altwarensammler". Example changed: "Faulenz" cannot be caught, because simplemma
+knows it as a form of faulenzen (a real word, wrong as a noun gloss). Gold accept words it would reject: "Altertümchen", "Cookout".
+
+Pro v1 v6 + G-NONWORD: 14/19. `roast` "Bratfest" was retried into "Bratwurstparty" (a real compound, still not in accept); `tennis` was
+rejected twice this run ("Tennis" without clarifier and no plural; it passed in the previous Pro v6 run, so this is run-to-run variance
+at temperature 0); `sale`, `scavenger`, `old-timer` as before.
 
