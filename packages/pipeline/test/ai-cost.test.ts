@@ -1,4 +1,4 @@
-import { CostLedger, NOVA_LITE_MODEL_ID_DEFAULT, NOVA_LITE_USD_PER_M, novaLiteModelId } from '../src/ai/cost'
+import { AI_MODEL_ID_DEFAULT, aiModelId, CostLedger, MODEL_PRICES, NOVA_LITE_MODEL_ID_DEFAULT, NOVA_LITE_USD_PER_M, novaLiteModelId, pricesFor } from '../src/ai/cost'
 
 describe('CostLedger', () => {
   it('record sums tokens and prices them at $0.06 / $0.24 per million; snapshot rounds usd to 6 dp', () => {
@@ -32,5 +32,25 @@ describe('CostLedger', () => {
     expect(novaLiteModelId({})).toBe('us.amazon.nova-lite-v1:0')
     expect(novaLiteModelId({ NOVA_LITE_MODEL_ID: '' })).toBe('us.amazon.nova-lite-v1:0')
     expect(novaLiteModelId({ NOVA_LITE_MODEL_ID: 'eu.amazon.nova-lite-v1:0' })).toBe('eu.amazon.nova-lite-v1:0')
+  })
+
+  it('pricesFor strips the geo prefix and knows Lite v1, 2 Lite, Pro and Premier', () => {
+    expect(pricesFor('us.amazon.nova-lite-v1:0')).toMatchObject({ input: 0.06, output: 0.24 })
+    expect(pricesFor('global.amazon.nova-2-lite-v1:0')).toMatchObject({ input: 0.3, output: 2.5 })
+    expect(pricesFor('us.amazon.nova-pro-v1:0')).toMatchObject({ input: 0.8, output: 3.2 })
+    expect(pricesFor('us.amazon.nova-premier-v1:0')).toMatchObject({ input: 2.5, output: 12.5 })
+    expect(pricesFor('eu.amazon.nova-lite-v1:0')).toBe(MODEL_PRICES['amazon.nova-lite-v1:0'])
+    expect(pricesFor('apac.amazon.nova-micro-v1:0')).toBeDefined()
+    expect(pricesFor('anthropic.some-model')).toBeUndefined()
+    // H4: no figure is verified against the official pricing page yet
+    expect(Object.values(MODEL_PRICES).every((p) => p.verified === false)).toBe(true)
+  })
+
+  it('LINGO_AI_MODEL wins over NOVA_LITE_MODEL_ID; the default is Nova Pro v1 (eval 2026-10-03, approved) and Lite v1 stays selectable', () => {
+    expect(AI_MODEL_ID_DEFAULT).toBe('us.amazon.nova-pro-v1:0')
+    expect(aiModelId({ LINGO_AI_MODEL: 'us.amazon.nova-lite-v1:0' })).toBe('us.amazon.nova-lite-v1:0')
+    expect(aiModelId({})).toBe(AI_MODEL_ID_DEFAULT)
+    expect(aiModelId({ NOVA_LITE_MODEL_ID: 'eu.amazon.nova-lite-v1:0' })).toBe('eu.amazon.nova-lite-v1:0')
+    expect(aiModelId({ NOVA_LITE_MODEL_ID: 'eu.amazon.nova-lite-v1:0', LINGO_AI_MODEL: 'us.amazon.nova-2-lite-v1:0' })).toBe('us.amazon.nova-2-lite-v1:0')
   })
 })

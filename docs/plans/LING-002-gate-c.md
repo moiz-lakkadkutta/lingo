@@ -633,6 +633,15 @@ in the same format before the final Gate C run, or Gate C relies on human scorin
 - **H6 Ambiguous senses.** Confirm the two ambiguous gold senses: `old-timer` = an old object (not a person) and `scavenger` in
   "scavenger sale" (rummage sale of collected items).
 
+### Answers (orchestrator, 2026-10-03)
+
+- H1: build the model table; Nova Lite v1 stays the default until the eval proves Nova 2 Lite; the fallback order is approved.
+- H2: Gate C scores every sheet row and passes at ≥ 90 % (docs/decisions/0001 and LING-002 §8.5 updated).
+- H3: drop unfixable highlights with a warning (implemented: rejected and conflict items are left out of clip.highlights).
+- H4: prices stay marked unverified (`MODEL_PRICES` all `verified: false`).
+- H5: there is no German gold set; the German rows rely on human scoring.
+- H6: `old-timer` and `scavenger` (sale) are marked "needs human confirmation" in the gold set.
+
 ## 13. Doc URLs (cite in the PR)
 
 - Nova tool use (tool choice tool/any/auto, best practices: enums, ≤ 2 nesting levels, long strings last, constrained decoding):

@@ -1,11 +1,11 @@
 import { Command } from 'commander'
 import { prepare } from './prepare'
-import { mkdtemp, readFile } from 'node:fs/promises'
+import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fixtureDeps, fixtureSend } from './fixtureDeps'
 import { createAi } from './ai/index'
-import { DEFAULT_PER_CLIP, runSpotCheck } from './spotCheck'
+import { DEFAULT_PER_CLIP, spotCheckCli } from './spotCheck'
 import type { Lang } from './types'
 
 /**
@@ -55,24 +55,25 @@ When the quality gate fails, fix work/<slug>/<lang>.vtt and re-run the same comm
     await prepare({ slug: o.clip, source: o.source, lang, natives: String(o.native).split(',').map((s) => s.trim()).filter(Boolean), workRoot: o.work, publish: o.publish, ai: o.ai, ...(o.cues ? { cues: o.cues } : {}), ...(o.reuse ? { reuse: true } : {}), formality: o.formality }, deps)
   })
 program.command('spot-check')
-  .description('LING-002 quality check: gloss the clip highlights (widening to --per-clip words) and build its quiz with Nova Lite, then write a rubric sheet with blank score columns. Accepts a --no-ai clip.json.')
+  .description('LING-002 quality check: gloss every clip highlight (widening to --per-clip words) and build its quiz with Nova, then write a rubric sheet with blank score columns. Accepts a --no-ai clip.json.')
   .requiredOption('--clip-json <path>', 'clip.json written by prepare, e.g. work/demo-de/clip.json')
-  .option('--per-clip <n>', 'gloss rows for this clip', String(DEFAULT_PER_CLIP))
+  .option('--per-clip <n>', 'minimum gloss rows for this clip (every clip highlight is always a row)', String(DEFAULT_PER_CLIP))
   .option('--out <md>', 'markdown rubric sheet (default work/spot-check.md; with --fixture work/spot-check.fixture.md)')
   .option('--append', 'append to --out instead of overwriting (second clip)')
   .option('--fixture', 'offline: stub Nova answers (fixtureSend) and a throwaway cache; writes spot-check.fixture.json, never spot-check.json; not a real spot check')
+  .option('--no-echo', 'print only the summary line (no rows, no per-word log lines); for clips whose rows must not reach a terminal log')
   .addHelpText('after', `
+Prints only the section it just wrote (with --append, earlier sections stay in the file but are not printed).
 Examples:
-  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --out work/spot-check.md
-  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-en/clip.json --out work/spot-check.md --append
+  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-en/clip.json --out work/spot-check.md
+  $ AWS_PROFILE=… pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --out work/spot-check.md --append --no-echo
   $ pnpm --filter @lingo/pipeline cli spot-check --clip-json work/demo-de/clip.json --fixture`)
-  .action(async (o: { clipJson: string; perClip: string; out?: string; append?: boolean; fixture?: boolean }) => {
+  .action(async (o: { clipJson: string; perClip: string; out?: string; append?: boolean; fixture?: boolean; echo: boolean }) => {
     const perClip = Number(o.perClip)
     if (!Number.isInteger(perClip) || perClip < 1) throw new Error(`--per-clip must be a positive integer, got ${o.perClip}`)
-    const log = (m: string) => console.log(m)
-    const ai = o.fixture ? createAi({ send: fixtureSend(), cacheDir: await mkdtemp(join(tmpdir(), 'lingo-spot-fixture-')), log }) : undefined
+    const print = (m: string) => console.log(m)
+    const ai = o.fixture ? createAi({ send: fixtureSend(), cacheDir: await mkdtemp(join(tmpdir(), 'lingo-spot-fixture-')), log: o.echo ? print : () => {} }) : undefined
     const out = o.out ?? (o.fixture ? 'work/spot-check.fixture.md' : 'work/spot-check.md')
-    const r = await runSpotCheck({ clipJson: o.clipJson, perClip, out, append: o.append, ai, log, jsonFile: o.fixture ? 'spot-check.fixture.json' : undefined })
-    console.log(`\n${await readFile(r.files.markdown, 'utf8')}`)
+    await spotCheckCli({ clipJson: o.clipJson, perClip, out, append: o.append, echo: o.echo, ai, jsonFile: o.fixture ? 'spot-check.fixture.json' : undefined }, print)
   })
 await program.parseAsync()

@@ -16,6 +16,12 @@ describe('PreparedClip', () => {
     expect(PreparedClip.safeParse({ ...clip, slug: 'Demo DE' }).success).toBe(false)
     expect(PreparedClip.safeParse({ ...clip, cues: [{ ...cue, endMs: 400 }] }).success).toBe(false)
   })
+  it('accepts an optional asr confidence in 0–1 on a token, and a token without it (older clip.json files)', () => {
+    const tok = cue.tokens[0]!
+    expect(PreparedCue.parse({ ...cue, tokens: [{ ...tok, asr: 0.158 }] }).tokens[0]!.asr).toBe(0.158)
+    expect(PreparedCue.parse(cue).tokens[0]!.asr).toBeUndefined()
+    expect(PreparedCue.safeParse({ ...cue, tokens: [{ ...tok, asr: 1.5 }] }).success).toBe(false)
+  })
   it('accepts the optional cost block LING-002 fills', () => {
     expect(PreparedClip.parse({ ...clip, cost: { calls: 3, cachedCalls: 1, inputTokens: 1200, outputTokens: 300, usd: 0.002 } }).cost?.calls).toBe(3)
     expect(PreparedClip.safeParse({ ...clip, cost: { calls: 'x' } }).success).toBe(false)

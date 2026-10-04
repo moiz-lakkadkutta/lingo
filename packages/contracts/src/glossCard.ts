@@ -1,0 +1,343 @@
+import { z } from 'zod'
+import type { Lang } from './base'
+import { FUNCTION_WORDS, GERMAN_IRREGULAR_COMPARATIVES, INVARIANT_NOUNS, IRREGULAR_COMPARATIVES, IRREGULAR_PLURALS, irregularVerb, STOPWORDS } from './lexicon'
+import { boundedLine, countWords, EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS, GLOSS_MAX_CHARS, GLOSS_MAX_WORDS, normGloss, sameStem, wordsOf } from './text'
+
+/**
+ * Gloss card v3 (docs/plans/LING-002-gate-c.md §3–4, docs/decisions/0009 decisions 3–4): what Nova returns for one highlight. Code
+ * renders the app's `Gloss` from it (packages/pipeline/src/ai/grammar.ts) and checks it with glossCardIssues().
+ */
+export const POS = z.enum(['noun', 'verb', 'adjective', 'adverb', 'other'])
+export const REGISTER = z.enum(['neutral', 'informal', 'formal', 'dated', 'slang'])
+export type Pos = z.infer<typeof POS>
+export type Register = z.infer<typeof REGISTER>
+
+const form = z.string().trim().min(1).max(40)
+
+/** Nova sometimes returns "" or null for an unused optional field, or one gloss as a plain string: normalised before parsing. */
+function tidy(v: unknown): unknown {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return v
+  const o = Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== '' && x !== null && x !== undefined))
+  if (typeof o.gloss === 'string') o.gloss = o.gloss.split(/\s*[;,]\s*/).filter(Boolean)
+  return o
+}
+
+const CardObject = z.object({
+  /** the prompt asks for ≤ 12 words; the schema allows a little more, since the sense is only shown to the reviewer (eval 2026-10-03) */
+  sense: boundedLine(160, 20),
+  pos: POS,
+  gloss: z.array(boundedLine(40, 4)).min(1).max(2),
+  register: REGISTER,
+  article: z.enum(['der', 'die', 'das']).optional(),
+  plural: form.optional(),
+  past: form.optional(),
+  participle: form.optional(),
+  separable: z.string().trim().min(1).max(10).optional(),
+  comparative: form.optional(),
+  example: boundedLine(EXAMPLE_MAX_CHARS, EXAMPLE_MAX_WORDS),
+}).strict()
+
+export const GlossCard = z.preprocess(tidy, CardObject)
+export type GlossCard = z.infer<typeof CardObject>
+
+const FIELDS_BY_POS: Record<Pos, Array<keyof GlossCard>> = {
+  noun: ['article', 'plural'],
+  verb: ['past', 'participle', 'separable'],
+  adjective: ['comparative'],
+  adverb: [],
+  other: [],
+}
+const FORM_FIELDS = ['article', 'plural', 'past', 'participle', 'separable', 'comparative'] as const
+
+/**
+ * Fields that do not belong to card.pos are removed (never rendered, never an issue): a "comparative" on a noun cannot reach the note.
+ * With `lang`, German-only fields (article, separable) are also removed from an English card.
+ */
+export function pruneCard(c: GlossCard, lang?: Lang): GlossCard {
+  const keep = new Set<string>(FIELDS_BY_POS[c.pos])
+  if (lang === 'en') { keep.delete('article'); keep.delete('separable') }
+  const out: Record<string, unknown> = { ...c }
+  for (const f of FORM_FIELDS) if (!keep.has(f)) delete out[f]
+  return out as GlossCard
+}
+
+export interface CardContext {
+  word: string; lemma: string; cue: string; nativeCue?: string; lang: Lang; native: string
+  /** German word knowledge for G-NONWORD (native de); without it the rule is skipped */
+  lexicon?: GermanLexicon
+}
+
+/**
+ * What G-NONWORD knows about German words: the frequency list (lemmas, any rank) and simplemma's answer for a string (is_known, lemma).
+ * The pipeline fills it (packages/pipeline/src/ai/germanWords.ts) for the strings germanLookupKeys() names, so this check stays pure.
+ */
+export interface GermanLexicon { inFreq(s: string): boolean; lookup(s: string): { known: boolean; lemma: string } | undefined }
+
+/** Derivational endings that are never a compound head ("Wurst" + "chen" is not a compound; the real word must be known as a whole). */
+const SUFFIX_HEADS = new Set(['chen', 'lein', 'ling', 'heit', 'keit', 'ung', 'ungen', 'schaft', 'isch', 'lich', 'erei', 'erin', 'nis', 'tum', 'sam', 'bar', 'haft'])
+const LINKERS = ['', 's', 'es', 'n', 'en', 'er', 'e']
+const capFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+const variants = (s: string) => [...new Set([s, capFirst(s), s.toLowerCase()])]
+const isUpper = (s: string) => s.charAt(0) !== s.charAt(0).toLowerCase()
+
+/** The German words of the glosses that G-NONWORD checks: outside parentheses, no function words, hyphen parts of ≥ 4 letters. */
+export function germanGlossWords(glosses: string[]): string[] {
+  const fw = FUNCTION_WORDS.de!
+  return glosses.flatMap((g) => (stripParens(g).match(/\p{L}[\p{L}-]*/gu) ?? [])
+    .filter((w) => !fw.has(w.toLowerCase()))
+    .flatMap((w) => w.split('-'))
+    .filter((p) => p.length >= 4))
+}
+
+/** Every string isGermanWord() may look up for `word` (all its substrings of ≥ 3 letters, in three casings). */
+export function germanLookupKeys(word: string): string[] {
+  const out = new Set<string>()
+  for (const part of word.split('-')) {
+    for (let a = 0; a < part.length; a++) for (let b = a + 3; b <= part.length; b++) for (const v of variants(part.slice(a, b))) out.add(v)
+  }
+  return [...out]
+}
+
+function knownWhole(w: string, lex: GermanLexicon): boolean {
+  return lex.inFreq(w) || variants(w).some((v) => lex.lookup(v)?.known)
+}
+/** A modifier must be a lemma (in the frequency list, or its own simplemma lemma): "Brat" (a form of braten) is not. */
+function isLemma(m: string, lex: GermanLexicon): boolean {
+  if (lex.inFreq(m)) return true
+  return [capFirst(m), m.toLowerCase()].some((v) => { const r = lex.lookup(v); return !!r?.known && r.lemma.toLowerCase() === m.toLowerCase() })
+}
+/** A head must be a common word (it or its lemma in the frequency list) of the compound's word class (noun ↔ capitalised). */
+function headOk(h: string, upper: boolean, lex: GermanLexicon): boolean {
+  if (SUFFIX_HEADS.has(h.toLowerCase())) return false
+  if (lex.inFreq(h)) return true
+  const r = lex.lookup(upper ? capFirst(h) : h.toLowerCase())
+  return !!r?.known && lex.inFreq(r.lemma) && isUpper(r.lemma) === upper
+}
+function isCompound(w: string, lex: GermanLexicon, depth = 0): boolean {
+  const upper = isUpper(w)
+  for (let i = 3; i <= w.length - 4; i++) {
+    const mod = w.slice(0, i), head = w.slice(i)
+    if (!headOk(head, upper, lex)) continue
+    for (const ln of LINKERS) {
+      if (ln && !mod.toLowerCase().endsWith(ln)) continue
+      const m = ln ? mod.slice(0, mod.length - ln.length) : mod
+      if (m.length < 3) continue
+      if (isLemma(m, lex) || (depth < 1 && isCompound(capFirst(m), lex, depth + 1))) return true
+    }
+  }
+  return false
+}
+
+/** G-NONWORD: a known word (frequency list or simplemma), or a compound of a lemma and a known head; hyphen parts one by one. */
+export function isGermanWord(word: string, lex: GermanLexicon): boolean {
+  return word.split('-').filter((p) => p.length >= 4).every((p) => knownWhole(p, lex) || isCompound(p, lex))
+}
+
+const sentenceKey = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[\p{P}\s]+$/u, '')
+
+const SOFT = ['X-USES', 'F-ART-de', 'F-PLURAL-de', 'F-COMP-de', 'F-VERB-de']
+/** X-USES and every F-*-de rule: they trigger the one retry, and an answer whose only issues are soft is accepted with a warning. */
+export function isSoftCardIssue(issue: string): boolean {
+  return SOFT.some((id) => issue.startsWith(`${id}:`))
+}
+
+const stripParens = (s: string) => s.replace(/\([^)]*\)/g, ' ')
+
+/** Lowercase words of s after removing a parenthesised clarifier and the function words of `native` (articles, sich, zu, to, …). */
+export function contentWords(s: string, native: string): string[] {
+  const fw = FUNCTION_WORDS[native] ?? FUNCTION_WORDS.en!
+  return wordsOf(stripParens(s)).filter((w) => !fw.has(w))
+}
+
+/** How many words of s are in STOPWORDS[lang] (0 for a language without a list). */
+export function stopwordScore(s: string, lang: string): number {
+  const sw = STOPWORDS[lang as 'en' | 'de']
+  return sw ? wordsOf(s).filter((w) => sw.has(w)).length : 0
+}
+
+/** big → bigg, stop → stopp (consonant-vowel-consonant ending); undefined otherwise. */
+const doubled = (l: string) => (/[^aeiou][aeiou][bdgklmnprt]$/.test(l) ? l + l.at(-1)! : undefined)
+
+/** Accepted English plurals of a noun lemma: +s, +es, consonant+y → ies, f/fe → ves, the irregular table, the lemma for invariant nouns. */
+export function englishPlurals(lemma: string): string[] {
+  const l = lemma.toLowerCase()
+  const out = new Set([l + 's', l + 'es'])
+  if (/[^aeiou]y$/.test(l)) out.add(l.slice(0, -1) + 'ies')
+  if (l.endsWith('fe')) out.add(l.slice(0, -2) + 'ves')
+  else if (l.endsWith('f')) out.add(l.slice(0, -1) + 'ves')
+  for (const p of IRREGULAR_PLURALS[l] ?? []) out.add(p)
+  if (INVARIANT_NOUNS.has(l)) out.add(l)
+  return [...out]
+}
+
+/** Accepted English comparatives: +er, +r, y → ier, doubled consonant + er, "more " + lemma, the irregular table. */
+export function englishComparatives(lemma: string): string[] {
+  const l = lemma.toLowerCase()
+  const out = new Set([l + 'er', l + 'r', `more ${l}`])
+  if (l.endsWith('y')) out.add(l.slice(0, -1) + 'ier')
+  const d = doubled(l)
+  if (d) out.add(d + 'er')
+  for (const c of IRREGULAR_COMPARATIVES[l] ?? []) out.add(c)
+  return [...out]
+}
+
+/** Accepted English past and participle forms: regular (+ed, +d, y → ied, doubled consonant + ed) ∪ the irregular table. */
+export function englishVerbForms(lemma: string): { past: string[]; participle: string[] } {
+  const l = lemma.toLowerCase()
+  const regular = new Set([l + 'ed', l + 'd'])
+  if (/[^aeiou]y$/.test(l)) regular.add(l.slice(0, -1) + 'ied')
+  const d = doubled(l)
+  if (d) regular.add(d + 'ed')
+  if (l.endsWith('c')) regular.add(l + 'ked')
+  const irr = irregularVerb(l)
+  return { past: [...regular, ...(irr?.past ?? [])], participle: [...regular, ...(irr?.participle ?? [])] }
+}
+
+const PARTICLES = new Set(['up', 'out', 'off', 'on', 'in', 'down', 'away', 'back', 'over', 'around', 'along', 'through'])
+/** "tidied up" → "tidied": a phrasal verb's form is checked on its verb. */
+const verbToken = (form: string) => { const t = form.trim().toLowerCase().split(/\s+/); return t.length > 1 && t.slice(1).every((x) => PARTICLES.has(x)) ? t[0]! : t.join(' ') }
+
+const fold = (s: string) => s.toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss')
+const isNone = (s: string | undefined) => s?.trim().toLowerCase() === 'none'
+const singleToken = (s: string) => /^[\p{L}'’-]+$/u.test(s.trim())
+
+function englishFormIssues(c: GlossCard, ctx: CardContext): string[] {
+  const issues: string[] = []
+  const missing = c.pos === 'noun' ? (c.plural === undefined ? ['plural'] : [])
+    : c.pos === 'verb' ? (['past', 'participle'] as const).filter((f) => c[f] === undefined)
+    : c.pos === 'adjective' ? (c.comparative === undefined ? ['comparative'] : []) : []
+  if (missing.length) issues.push(`F-MISSING-en: a${c.pos === 'adjective' ? 'n' : ''} ${c.pos} needs ${missing.join(' and ')} (use "none" if there is none)`)
+  const word = ctx.word.toLowerCase(), lemma = ctx.lemma.toLowerCase()
+  if (c.pos === 'noun' && c.plural !== undefined && !isNone(c.plural)) {
+    const p = c.plural.trim().toLowerCase()
+    if (!singleToken(p) || !englishPlurals(lemma).includes(p)) issues.push(`F-PLURAL-en: plural "${c.plural}" is not an English plural of "${ctx.lemma}"; give the plural of the marked word only (e.g. "${lemma}s"), or "none"`)
+    else if (word !== lemma && p !== word && englishPlurals(lemma).includes(word)) issues.push(`F-PLURAL-en: the line uses the plural "${ctx.word}", so the plural is "${ctx.word}", not "${c.plural}"`)
+  }
+  if (c.pos === 'adjective' && c.comparative !== undefined && !isNone(c.comparative)) {
+    const k = c.comparative.trim().toLowerCase().replace(/\s+/g, ' ')
+    if (!englishComparatives(lemma).includes(k)) issues.push(`F-COMP-en: comparative "${c.comparative}" is not an English comparative of "${ctx.lemma}" (e.g. "${lemma.length > 6 ? `more ${lemma}` : englishComparatives(lemma)[0]}"), or use "none"`)
+  }
+  if (c.pos === 'verb') {
+    const forms = englishVerbForms(lemma)
+    for (const f of ['past', 'participle'] as const) {
+      const v = c[f]
+      if (v !== undefined && !forms[f].includes(verbToken(v))) issues.push(`F-VERB-en: ${f} "${v}" is not an English ${f} form of "${ctx.lemma}"`)
+    }
+  }
+  return issues
+}
+
+function germanFormIssues(c: GlossCard, ctx: CardContext): string[] {
+  const issues: string[] = []
+  const lemma = fold(ctx.lemma)
+  if (c.pos === 'noun') {
+    if (!c.article) issues.push('F-ART-de: a German noun needs its article (der, die or das)')
+    if (c.plural !== undefined && !isNone(c.plural) && (!singleToken(c.plural) || !fold(c.plural).startsWith(lemma.slice(0, 3)))) issues.push(`F-PLURAL-de: plural "${c.plural}" is not a German plural of "${ctx.lemma}" (one word, or "none")`)
+  }
+  if (c.pos === 'adjective' && c.comparative !== undefined && !isNone(c.comparative)) {
+    const k = fold(c.comparative.trim())
+    const irr = GERMAN_IRREGULAR_COMPARATIVES[ctx.lemma.toLowerCase()]
+    const stem = lemma.replace(/e$/, '')
+    const regular = k.endsWith('er') && (k.startsWith(stem) || (stem.length >= 4 && k.startsWith(stem.slice(0, -2))))
+    if (!regular && (!irr || fold(irr) !== k)) issues.push(`F-COMP-de: comparative "${c.comparative}" is not a German comparative of "${ctx.lemma}" (e.g. "${ctx.lemma}er"), or use "none"`)
+  }
+  if (c.pos === 'verb' && c.participle !== undefined) {
+    const p = c.participle.trim().toLowerCase()
+    const last = p.split(/\s+/).at(-1) ?? ''
+    if (!/^(hat|ist) /.test(p) || !(last.includes('ge') || last.endsWith('iert') || /^(be|emp|ent|er|miss|ver|zer)/.test(last))) issues.push(`F-VERB-de: participle "${c.participle}" should be the auxiliary and the participle, e.g. "hat gewartet" or "ist gegangen"`)
+  }
+  return issues
+}
+
+/** [] = acceptable. Each string names the rule id first ("G-LEN: …") and is fed back to the model on the retry. */
+export function glossCardIssues(card: GlossCard, ctx: CardContext): string[] {
+  const c = pruneCard(card, ctx.lang)
+  const issues: string[] = []
+  const word = ctx.word.toLowerCase(), lemma = ctx.lemma.toLowerCase()
+  const glossText = c.gloss.join(' ')
+  // G-COPY
+  for (const g of c.gloss) {
+    const bare = g.trim().replace(/\.+$/, '').toLowerCase()
+    if (bare === word || bare === lemma) issues.push(`G-COPY: gloss "${g}" copies the word; give a translation, or add a short clarifier in parentheses if it is spelled the same`)
+  }
+  // G-LEN: a one-token target gets headwords, not phrases.
+  if (!/\s/.test(ctx.word.trim())) {
+    for (const g of c.gloss) {
+      const n = contentWords(g, ctx.native).length
+      if (n > 2 || countWords(stripParens(g)) > 3) issues.push(`G-LEN: gloss "${g}" is a phrase; give a dictionary headword of one word (two only if there is no single word)`)
+    }
+  }
+  if (countWords(glossText) > GLOSS_MAX_WORDS || c.gloss.join(', ').length > GLOSS_MAX_CHARS) issues.push(`G-LEN: the glosses together are longer than ${GLOSS_MAX_WORDS} words or ${GLOSS_MAX_CHARS} characters`)
+  // G-SOURCE: a word copied from the subtitle line (other than the target itself).
+  const cueWords = new Set(wordsOf(ctx.cue).filter((w) => w.length >= 3 && w !== word && w !== lemma))
+  for (const g of c.gloss) {
+    const copied = contentWords(g, ctx.native).filter((w) => cueWords.has(w))
+    if (copied.length) issues.push(`G-SOURCE: gloss "${g}" repeats "${copied[0]}", another word of the line; translate only the marked word`)
+  }
+  // G-COMPOUND: a compound whose head is not the marked word translates more than it. German compounds put the head last: a gloss
+  // that starts with the target itself ("Tennisschläger" for tennis, "Baseballspiel" for baseball) or ends with another word of the line
+  // is rejected; one that starts with a neighbour ("Tennisschläger" for racket: head "Schläger" = the target) is allowed.
+  const lineWords = [...new Set(wordsOf(ctx.cue).filter((w) => w.length >= 4))]
+  const isTarget = (x: string) => x === word || x === lemma
+  for (const g of c.gloss) {
+    for (const w of contentWords(g, ctx.native)) {
+      const base = lineWords.find((x) => w !== x && w.length - x.length >= 4 && ((isTarget(x) && w.startsWith(x)) || (!isTarget(x) && w.endsWith(x))))
+      if (base) issues.push(`G-COMPOUND: gloss "${g}" is a compound with "${base}" from the line; translate only the marked word`)
+    }
+  }
+  // G-NEIGHBOUR: a multi-word gloss that shares a stem with the translated line copies a neighbour's translation.
+  if (ctx.nativeCue) {
+    const nativeWords = wordsOf(ctx.nativeCue)
+    for (const g of c.gloss) {
+      const cw = contentWords(g, ctx.native)
+      if (cw.length < 2) continue
+      const hit = cw.find((w) => nativeWords.some((n) => sameStem(w, n)))
+      if (hit) issues.push(`G-NEIGHBOUR: gloss "${g}" contains "${hit}", which translates another word of the line; give only the translation of the marked word`)
+    }
+  }
+  // G-NONWORD: an invented or misspelled German word ("Bratfest", "Wurstchen")
+  if (ctx.native === 'de' && ctx.lexicon) {
+    for (const w of germanGlossWords(c.gloss)) {
+      if (!isGermanWord(w, ctx.lexicon)) issues.push(`G-NONWORD: "${w}" is not a German word I can find; use a real, correctly spelled dictionary word`)
+    }
+  }
+  // X-LANG, X-CUE, X-USES
+  if (ctx.native === 'en' || ctx.native === 'de') {
+    const own = stopwordScore(c.example, ctx.lang), other = stopwordScore(c.example, ctx.native)
+    if (other > own || (countWords(c.example) >= 3 && own === 0)) issues.push(`X-LANG: the example must be a ${ctx.lang === 'en' ? 'English' : 'German'} sentence`)
+  }
+  if (sentenceKey(c.example) === sentenceKey(ctx.cue)) issues.push('X-CUE: example must be a new sentence, not the subtitle line')
+  const ex = c.example.toLowerCase()
+  if (!ex.includes(word) && !ex.includes(lemma)) issues.push(`X-USES: example must use the word "${ctx.word}" or its base form "${ctx.lemma}"`)
+  // Forms
+  if (ctx.lang === 'en') issues.push(...englishFormIssues(c, ctx))
+  else issues.push(...germanFormIssues(c, ctx))
+  return issues
+}
+
+/**
+ * Two gloss lists overlap when a gloss of one equals a gloss of the other after normGloss (lowercase, parentheses and articles removed), or
+ * a word of one is a compound that contains a whole word (≥ 5 letters) of the other: Tennisschläger ⊃ Schläger.
+ */
+export function glossesOverlap(a: string[], b: string[]): boolean {
+  const na = a.map(normGloss).filter(Boolean), nb = b.map(normGloss).filter(Boolean)
+  if (na.some((x) => nb.includes(x))) return true
+  const wa = na.flatMap((g) => g.split(' ')), wb = nb.flatMap((g) => g.split(' '))
+  const contains = (outer: string[], inner: string[]) => inner.some((w) => w.length >= 5 && outer.some((o) => o !== w && o.includes(w)))
+  return contains(wa, wb) || contains(wb, wa)
+}
+
+export interface SiblingGloss { cueIndex: number; lemma: string; /** undefined = not an accepted card (never in conflict) */ gloss?: string[] }
+
+/** LING-002-gate-c §5: pairs [i, j] (i < j) of accepted items in the same cue, with different lemmas, whose glosses overlap. */
+export function siblingConflicts(items: SiblingGloss[]): Array<[number, number]> {
+  const out: Array<[number, number]> = []
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i]!, b = items[j]!
+      if (!a.gloss || !b.gloss || a.cueIndex !== b.cueIndex || a.lemma.toLowerCase() === b.lemma.toLowerCase()) continue
+      if (glossesOverlap(a.gloss, b.gloss)) out.push([i, j])
+    }
+  }
+  return out
+}

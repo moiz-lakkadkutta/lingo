@@ -75,7 +75,7 @@ describe('quiz plan', () => {
   it('quizPlanIssues flags out-of-range ids, self-distractors, duplicate distractors, wrong per-kind counts, a highlightId repeated within a kind, and duplicate glosses/words among options', () => {
     const words = ['warte', 'suche', 'rufe', 'vergesse', 'Stunde']
     const glosses = ['wait', 'look for', 'call', 'forget', 'hour']
-    const H: QuizHighlight[] = words.map((w, id) => ({ id, cueIndex: id, word: w, gloss: glosses[id]!, cue: `Ich ${w} jetzt.` }))
+    const H: QuizHighlight[] = words.map((w, id) => ({ id, cueIndex: id, word: w, lemma: w, pos: 'verb', gloss: glosses[id]!, cue: `Ich ${w} jetzt.` }))
     const counts = { meaning: 1, cloze: 1 }
     const m = (highlightId: number, distractorIds: number[]): QuizPlanItem => ({ kind: 'meaning', highlightId, distractorIds })
     const c = (highlightId: number, distractorIds: number[]): QuizPlanItem => ({ kind: 'cloze', highlightId, distractorIds })

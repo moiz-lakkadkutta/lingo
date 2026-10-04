@@ -5,7 +5,8 @@ import { Lang, Level } from './base'
  * Output of `packages/pipeline` prepare(): one `clip.json` per clip, consumed by the API worker (DB rows) and by LING-002 (glosses/quiz).
  * Cue timestamps are milliseconds; `text` is already wrapped (≤ 2 lines × 42 chars); native lines share the cue's timestamps by construction.
  */
-export const PreparedToken = z.object({ word: z.string(), lemma: z.string(), rank: z.number().int().positive().nullable(), name: z.boolean(), sentenceInitial: z.boolean() })
+/** `asr`: Amazon Transcribe confidence of the token (0–1); absent when unknown (corrected VTT text, no transcript). LING-002-gate-c §2. */
+export const PreparedToken = z.object({ word: z.string(), lemma: z.string(), rank: z.number().int().positive().nullable(), name: z.boolean(), sentenceInitial: z.boolean(), asr: z.number().min(0).max(1).optional() })
 export const PreparedCue = z
   .object({
     index: z.number().int().nonnegative(),

@@ -27,10 +27,10 @@ export function userTexts(send: ReturnType<typeof fakeSend>, call = 0): string[]
 
 /** Five cues, ten distinct highlights (ids 0–9 in this order), plus a repeated "Warte" in cue 5 that flattenHighlights drops. */
 export const QUIZ_CUES: QuizCueInput[] = [
-  { index: 0, text: 'Ich warte seit zwei\nStunden auf dich.', native: 'I have been waiting for two hours.', highlights: [{ word: 'warte', gloss: 'wait' }, { word: 'Stunden', gloss: 'hours' }] },
-  { index: 1, text: 'Ich suche meinen Schlüssel.', native: 'I am looking for my key.', highlights: [{ word: 'suche', gloss: 'look for' }, { word: 'Schlüssel', gloss: 'key' }] },
-  { index: 2, text: 'Ich rufe dich morgen an.', native: 'I will call you tomorrow.', highlights: [{ word: 'rufe', gloss: 'call' }, { word: 'morgen', gloss: 'tomorrow' }] },
-  { index: 3, text: 'Ich vergesse immer alles.', native: 'I always forget everything.', highlights: [{ word: 'vergesse', gloss: 'forget' }, { word: 'immer', gloss: 'always' }] },
-  { index: 4, text: 'Der Zug steht am Bahnhof.', native: 'The train is at the station.', highlights: [{ word: 'Zug', gloss: 'train' }, { word: 'Bahnhof', gloss: 'station' }] },
-  { index: 5, text: 'Warte hier!', native: 'Wait here!', highlights: [{ word: 'Warte', gloss: 'wait' }] },
+  { index: 0, text: 'Ich warte seit zwei\nStunden auf dich.', native: 'I have been waiting for two hours.', highlights: [{ word: 'warte', lemma: 'warten', pos: 'verb', gloss: 'wait' }, { word: 'Stunden', lemma: 'Stunde', pos: 'noun', gloss: 'hours' }] },
+  { index: 1, text: 'Ich suche meinen Schlüssel.', native: 'I am looking for my key.', highlights: [{ word: 'suche', lemma: 'suchen', pos: 'verb', gloss: 'look for' }, { word: 'Schlüssel', lemma: 'Schlüssel', pos: 'noun', gloss: 'key' }] },
+  { index: 2, text: 'Ich rufe dich morgen an.', native: 'I will call you tomorrow.', highlights: [{ word: 'rufe', lemma: 'rufen', pos: 'verb', gloss: 'call' }, { word: 'morgen', lemma: 'morgen', pos: 'adverb', gloss: 'tomorrow' }] },
+  { index: 3, text: 'Ich vergesse immer alles.', native: 'I always forget everything.', highlights: [{ word: 'vergesse', lemma: 'vergessen', pos: 'verb', gloss: 'forget' }, { word: 'immer', lemma: 'immer', pos: 'adverb', gloss: 'always' }] },
+  { index: 4, text: 'Der Zug steht am Bahnhof.', native: 'The train is at the station.', highlights: [{ word: 'Zug', lemma: 'Zug', pos: 'noun', gloss: 'train' }, { word: 'Bahnhof', lemma: 'Bahnhof', pos: 'noun', gloss: 'station' }] },
+  { index: 5, text: 'Warte hier!', native: 'Wait here!', highlights: [{ word: 'Warte', lemma: 'warten', pos: 'verb', gloss: 'wait' }] },
 ]
