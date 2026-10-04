@@ -1,0 +1,17 @@
+{
+  "lingo.plus": {
+    "itemType": "SUBSCRIPTION",
+    "price": 2.99,
+    "title": "Lingo Plus",
+    "description": "Challenge mode, unlimited saved words, 0.75× playback",
+    "smallIconUrl": "https://example.invalid/plus.png"
+  },
+  "lingo.plus.monthly": {
+    "itemType": "SUBSCRIPTION",
+    "price": 2.99,
+    "title": "Lingo Plus, monthly",
+    "description": "Monthly",
+    "smallIconUrl": "https://example.invalid/plus.png",
+    "subscriptionParent": "lingo.plus"
+  }
+}

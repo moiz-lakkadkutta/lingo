@@ -1,0 +1,2 @@
+# Appstore public key (Developer Console → App → Public Key). A key: never commit it.
+amazon/AppstoreAuthenticationKey.pem

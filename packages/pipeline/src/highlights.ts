@@ -1,4 +1,5 @@
 import type { Level } from '@lingo/contracts'
+import { BANDS, NEXT, highlightFloor } from '@lingo/contracts'
 import { rankOf } from './names'
 import { MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
 /**
@@ -8,34 +9,44 @@ import { MIN_HIGHLIGHT_CONFIDENCE, tokenKey } from './asr'
  * Level ≈ band: A1 < 1000, A2 < 2000, B1 < 4000, B2 < 8000 (approximate CEFR; say so in the UI). `Level` is the contracts enum (one source of truth).
  */
 export type { Level }
-export const BANDS: Record<Level, [number, number]> = { A1: [0, 1000], A2: [1000, 2000], B1: [2000, 4000], B2: [4000, 8000] }
-export const NEXT: Record<Level, Level> = { A1: 'A2', A2: 'B1', B1: 'B2', B2: 'B2' }
+export { BANDS, NEXT, highlightFloor }
 /** `name` is computed by names.ts (undefined = not a name); the caller passes a case-insensitive rank fn. */
 export interface Token { word: string; lemma: string; name?: boolean; /** Transcribe confidence, when known (LING-002-gate-c §2) */ asr?: number }
 /** coverageRank when no token is ranked. */
 export const UNKNOWN_RANK = 99999
 
-/** Number words (both languages, matched case-insensitively on the surface form): cardinals to twelve, tens, hundred/thousand, ordinals to tenth, multiplicatives. */
-const NUMERAL_WORDS = new Set([
-  ...'null eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert tausend'.split(' '),
-  ...'erste zweite dritte vierte fünfte sechste siebte achte neunte zehnte'.split(' '),
-  ...'zero one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty seventy eighty ninety hundred thousand'.split(' '),
-  ...'first second third fourth fifth sixth seventh eighth ninth tenth once twice thrice'.split(' '),
-])
-/** German cardinal stems + optional suffix (dreimal, vierfach, neunzehn, zwanzigste) and inflected ordinals (ersten, dritter, siebtes); English -fold/-th/-ties (twofold, thirtieth, twenties). */
-const NUMERAL_DE = /^(?:(?:ein|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|zwanzig|dreißig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig|hundert|tausend)(?:zehn|mal|fach|ste[rsn]?|sten)?|(?:erst|zweit|dritt|viert|fünft|sechst|siebt|acht|neunt|zehnt)e[rsn]?)$/i
-const NUMERAL_EN = /^(?:two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)(?:fold|th|ieth|ties|s)?$/i
-/** True for a number word (never highlighted, like digits); ordinary words that merely start with a numeral stem (einsam, eintreten, achtung) are not, nor is the article ein. */
+/**
+ * Number words, both languages, matched case-insensitively on the surface form: a rule over number morphemes plus a short list.
+ * German: a run of number morphemes (zweihundert, einundzwanzig, dreihundertvierzig) with an optional ending that is only valid
+ * where German puts it (-te after units and -zehn, -ste after -zig/hundert/tausend/Million, -mal/-fach, Hunderte/Tausende), the
+ * irregular ordinals (erste, dritte, siebte, achte) and Million/Milliarde/Billion/Dutzend. English: cardinals incl. teens, tens,
+ * hundred…trillion, dozen (+plural, -fold), ordinals incl. eleventh…billionth, and hyphenated compounds (twenty-one, ninety-ninth).
+ */
+const NUMERAL_WORDS = new Set(['null', 'zero', 'once', 'twice', 'thrice'])
+const DE_UNIT = 'zwei|zwo|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|sechzehn|siebzehn'
+const DE_TEN = 'zwanzig|drei(?:ß|ss)ig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig'
+// "ein" only inside a compound or before -mal (einundzwanzig, einhundert, einmal), so the article and einfach/einte are not numbers.
+const DE_MORPH = `(?:eins|ein(?=und|hundert|tausend|mal)|${DE_UNIT}|${DE_TEN}|hundert|tausend)`
+const DE_SEQ = `${DE_MORPH}(?:${DE_MORPH}|und(?=${DE_MORPH}))*`
+const DE_END = '(?:mal|fach|(?<=zwei|zwo|vier|fünf|sechs|neun|zehn|elf|zwölf)te[rsnm]?|(?<=zig|ßig|ssig|hundert|tausend)ste[rsnm]?|(?<=hundert|tausend)en?)'
+const DE_BIG = '(?:million|milliarde|billion|billiarde)(?:en|n|ste[rsnm]?)?|dutzend(?:en?)?'
+const NUMERAL_DE = new RegExp(`^(?:${DE_SEQ}${DE_END}?|(?:${DE_SEQ})?(?:(?:erst|dritt|siebt|acht)e[rsnm]?|${DE_BIG}))$`, 'iu')
+const EN_TEEN = '(?:thir|four|fif|six|seven|eigh|nine)teen'
+const EN_TY = '(?:twen|thir|for|fif|six|seven|eigh|nine)t'
+const EN_CARD = `two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|${EN_TEEN}|${EN_TY}y|hundred|thousand|million|billion|trillion|dozen`
+const EN_ORD = `first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|${EN_TEEN}th|${EN_TY}ieth|hundredth|thousandth|millionth|billionth|trillionth`
+/** One English number part: "one" (no plural: "ones" is a pronoun), a cardinal with optional plural/-fold, or an ordinal (no plural: "seconds"). */
+const NUMERAL_EN = new RegExp(`^(?:one|(?:${EN_CARD})(?:s|fold)?|${EN_TY}ies|${EN_ORD})$`, 'i')
+const isEnNumeral = (w: string) => w.split('-').every((p) => NUMERAL_EN.test(p))
+/** True for a number word (never highlighted, like digits); ordinary words that merely start with a numeral stem (einsam, einfach, eintreten, achtung, Sieb) are not, nor is the article ein. */
 export function isNumeral(word: string): boolean {
   const w = word.toLowerCase()
-  return w !== 'ein' && (NUMERAL_WORDS.has(w) || NUMERAL_DE.test(w) || NUMERAL_EN.test(w))
+  return NUMERAL_WORDS.has(w) || NUMERAL_DE.test(w) || isEnNumeral(w)
 }
 
 /** Tokens that count towards clip level / coverage and may be highlighted: not a name, no digits, not a number word. */
 export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.word) && !isNumeral(t.word) }
 
-/** The lowest rank a highlight may have for a clip at `level`: the floor of the band above it. */
-export function highlightFloor(level: Level): number { return BANDS[NEXT[level]][0] }
 
 /**
  * ASR filter (LING-002-gate-c §2): a token with `asr` < MIN_HIGHLIGHT_CONFIDENCE, or whose `${cueIndex}|${word}` key is in `exclude`

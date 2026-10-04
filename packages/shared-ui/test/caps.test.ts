@@ -9,4 +9,9 @@ describe('platform caps', () => {
   it('wordFocusIn defaults to cue on every OS', () => {
     for (const os of ['kepler', 'vega', 'android', 'ios', 'web']) expect(capsFor(os).wordFocusIn).toBe('cue')
   })
+  it('kepler and vega have playback false until KIT-010; android, ios and web have it', () => {
+    expect(capsFor('kepler').playback).toBe(false)
+    expect(capsFor('vega').playback).toBe(false)
+    for (const os of ['android', 'ios', 'web']) expect(capsFor(os).playback).toBe(true)
+  })
 })

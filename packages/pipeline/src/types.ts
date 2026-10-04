@@ -52,6 +52,8 @@ export interface PrepareInput {
   reuse?: boolean
   /** register of the native tracks where Translate supports it (Settings.Formality, docs/decisions/0008 decision 11); default 'INFORMAL' — 'FORMAL' for lectures/news that address the viewer */
   formality?: Formality
+  /** BY-SA clips (docs/content.md §5): one-line licence + attribution written as a `NOTE` at the top of every published VTT (target and natives; not dropped.vtt) */
+  vttNote?: string
 }
 
 /** Every side effect of prepare() goes through this seam; tests use fixtureDeps(), the CLI uses defaultDeps(). */

@@ -1,4 +1,4 @@
-import type { JoinPayload, ServerToClientEvents } from '@lingo/contracts'
+import type { ClientToServerEvents, JoinPayload, ServerToClientEvents } from '@lingo/contracts'
 
 /** What Root needs from a realtime link. The default is socket.io-client; a platform entry may inject a relay later (docs/decisions/0005-realtime-session.md). */
 export interface SessionTransport {
@@ -6,6 +6,8 @@ export interface SessionTransport {
   /** Fires on every (re)connect; the hook re-emits join from here (rooms are lost on a new connection). */
   onConnect(cb: () => void): () => void
   join(p: JoinPayload): void
+  /** Ask the phone to run its quiz now (quiz:start into the room). */
+  quizStart(p: Parameters<ClientToServerEvents['quiz:start']>[0]): void
   on<E extends keyof ServerToClientEvents>(event: E, cb: ServerToClientEvents[E]): () => void
   disconnect(): void
 }
@@ -32,3 +34,18 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
     default: return s
   }
 }
+
+/** "Quiz on your phone" from Summary: sent → the phone's quiz:result arrives → done. Kept apart from SessionState (its shape is asserted). */
+export type PhoneQuizState = { status: 'idle' } | { status: 'sent'; clipSlug: string } | { status: 'done'; clipSlug: string; correct: number; total: number }
+export type PhoneQuizEvent = { type: 'sent'; clipSlug: string } | { type: 'result'; correct: number; total: number } | { type: 'reset' }
+export const initialPhoneQuiz: PhoneQuizState = { status: 'idle' }
+/** result only applies in 'sent'; sent from any state restarts. */
+export function phoneQuizReducer(s: PhoneQuizState, e: PhoneQuizEvent): PhoneQuizState {
+  switch (e.type) {
+    case 'sent': return { status: 'sent', clipSlug: e.clipSlug }
+    case 'result': return s.status === 'sent' ? { status: 'done', clipSlug: s.clipSlug, correct: e.correct, total: e.total } : s
+    case 'reset': return initialPhoneQuiz
+    default: return s
+  }
+}
+export type SessionHandle = SessionState & { phoneQuiz: PhoneQuizState; startPhoneQuiz(clipSlug: string): void }

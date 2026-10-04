@@ -313,3 +313,21 @@ describe('prepare: overlapping speakers (docs/decisions/0007)', () => {
     expect(checkVtt(await readFile(r.files.vtt.de!, 'utf8'), 'de').findings).toEqual([])
   })
 })
+
+describe('prepare: vttNote (BY-SA, docs/content.md §5)', () => {
+  it('writes the NOTE into the target and native VTTs but not dropped.vtt, and the cues are unchanged', async () => {
+    const workRoot = await mkdtemp(join(tmpdir(), 'lingo-note-'))
+    try {
+      const note = 'CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 — Test Credit. Subtitles and translations by Lingo, same licence.'
+      const plain = await prepare({ slug: 'plain-de', source: 's3://unused', lang: 'de', natives: ['en'], workRoot, publish: false }, fixtureDeps('de', { transcript: 'overlap' }))
+      const noted = await prepare({ slug: 'noted-de', source: 's3://unused', lang: 'de', natives: ['en'], workRoot, publish: false, vttNote: note }, fixtureDeps('de', { transcript: 'overlap' }))
+      for (const f of ['de.vtt', 'native-en.vtt']) {
+        const v = await readFile(`${noted.workDir}/${f}`, 'utf8')
+        expect(v.startsWith(`WEBVTT\n\nNOTE ${note}\n\n`)).toBe(true)
+        expect(v.replace(`NOTE ${note}\n\n`, '')).toBe(await readFile(`${plain.workDir}/${f}`, 'utf8'))
+      }
+      expect(await readFile(`${noted.workDir}/dropped.vtt`, 'utf8')).not.toContain('NOTE')
+      expect(noted.clip.cues).toEqual(plain.clip.cues)
+    } finally { await rm(workRoot, { recursive: true, force: true }) }
+  })
+})

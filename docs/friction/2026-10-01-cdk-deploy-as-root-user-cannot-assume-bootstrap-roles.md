@@ -1,4 +1,4 @@
-# cdk deploy as root user cannot assume bootstrap roles
+# CDK deploy as the root user cannot assume the bootstrap roles and proceeds anyway
 
 Task attempted: Deploy the `lingo-media-dev` stack (S3 + CloudFront for HLS media, eu-central-1) from `infra/` with the
 CDK CLI, using the only credentials configured on the dev machine: the AWS account root user's access keys.
@@ -19,7 +19,7 @@ Workaround: Accepted for the hackathon dev account. Planned fix: create an IAM u
 Suggestion: Make the CDK CLI fail (or require `--force`) when the caller is the root user instead of "Proceeding anyway",
 and say in the message that root cannot assume roles and the bootstrap roles were skipped. The CDK bootstrapping guide
 could name this case explicitly.
-Environment: macOS 26.2, Node 22.19.0, aws-cdk CLI 2.1141.0, aws-cdk-lib 2.269.0, regions eu-central-1 and us-east-1.
+Environment: Platform: AWS (CDK, CloudFormation). macOS 26.2, Node 22.19.0, aws-cdk CLI 2.1141.0, aws-cdk-lib 2.269.0, regions eu-central-1 and us-east-1.
 Links:
   - CDK bootstrapping (bootstrap roles): https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html
   - Root user best practices (do not use root for everyday tasks): https://docs.aws.amazon.com/IAM/latest/UserGuide/root-user-best-practices.html

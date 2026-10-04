@@ -45,6 +45,7 @@ model Clip {
   quiz QuizItem[]
   progress Progress[]
   sessions Session[]
+  quizAttempts QuizAttempt[]
 }
 model Cue {
   id String @id @default(cuid() )
@@ -81,20 +82,51 @@ model QuizItem {
   answer Int
   cueId String?
 }
+/// When the learner's own-language line shows under the target cue (Settings, ▲ sheet).
+enum NativeLine {
+  always
+  onPause
+  never
+}
 model Learner {
   id String @id @default(cuid() )
   deviceId String @unique
   learning Lang @default(de)
   native String @default("en")
   level Level @default(A2)
-  knownRank Int @default(1000)
   plus Boolean @default(false)
   streak Int @default(0)
+  /// UTC day (YYYY-MM-DD) of the last study activity: a graded review or a saved word (LING-006).
+  lastStudyDay String?
   lastActive DateTime?
   firstRunDone Boolean @default(false)
+  nativeLine NativeLine @default(always)
+  autoPause Boolean @default(false)
+  cueScale Float @default(1)
+  levelChangedAt DateTime?
+  quizAttempts QuizAttempt[]
   words SavedWord[]
   progress Progress[]
   sessions Session[]
+  purchases Purchase[]
+}
+/// Amazon IAP receipt verified with RVS (LING-007, decision 0009). One receipt maps to one learner: the newest poster wins.
+model Purchase {
+  id              String    @id @default(cuid())
+  learnerId       String
+  learner         Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  store           String    // 'amazon-fireos' | 'amazon-vega'
+  receiptId       String    @unique
+  amazonUserId    String
+  productId       String
+  termSku         String?
+  purchaseDate    DateTime
+  cancelDate      DateTime?
+  renewalDate     DateTime?
+  testTransaction Boolean
+  verifiedAt      DateTime
+  raw             Json
+  @@index([learnerId])
 }
 model SavedWord {
   id String @id @default(cuid() )
@@ -116,7 +148,10 @@ model Review {
   savedWordId String
   savedWord SavedWord @relation(fields: [savedWordId], references: [id], onDelete: Cascade)
   grade Grade
+  /// Client review id (POST /me/reviews): a retry with the same id returns the current schedule instead of applying SM-2 again.
+  reviewId String?
   at DateTime @default(now())
+  @@unique([savedWordId, reviewId])
 }
 model Session {
   code String @id
@@ -136,4 +171,16 @@ model Progress {
   completed Boolean @default(false)
   updatedAt DateTime @updatedAt
   @@id([learnerId, clipId])
+}
+/// One finished TV quiz (PUT /me/level source quiz); the level rule reads the attempts since levelChangedAt.
+model QuizAttempt {
+  id String @id @default(cuid())
+  learnerId String
+  learner Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  clipId String
+  clip Clip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  correct Int
+  total Int
+  at DateTime @default(now())
+  @@index([learnerId, at])
 }

@@ -1,7 +1,7 @@
 // Fails CI if user-facing strings contain words this product must not use. See docs/decisions/0002-wording.md
 // Exempt a single line with a trailing comment containing `lint-words-allow` (e.g. a legally required notice).
 import { readFileSync, globSync } from 'node:fs'
-const BLOCK = ["streak broken", "failed", "wrong answer"]
+const BLOCK = ["streak broken", "failed", "wrong answer", "wrong"]
 const files = globSync('packages/shared-ui/src/**/*.{ts,tsx}').concat(globSync('apps/phone/src/**/*.{ts,tsx}'))
 let bad = 0
 for (const f of files) {

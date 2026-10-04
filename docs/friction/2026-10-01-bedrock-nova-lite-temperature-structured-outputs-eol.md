@@ -1,4 +1,4 @@
-# bedrock nova lite temperature structured outputs eol
+# Bedrock Nova Lite: temperature range, structured outputs and lifecycle date are unclear
 
 Task attempted: Plan LING-002 (word glosses and quiz items from Amazon Nova Lite through the Bedrock Converse API) with a
 schema-checked JSON response and deterministic decoding.
@@ -25,7 +25,7 @@ spot check gets a `ValidationException`); the model id is an environment variabl
 the price constant `NOVA_LITE_USD_PER_M` is the only other value to change.
 Suggestion: Align the tool-use page and the request-schema page on the temperature minimum; add a structured-outputs support
 column to the model list; update the Nova Lite v1 card with a current EOL date or a successor note.
-Environment: Amazon Bedrock Converse API, Nova Lite v1 (`us.amazon.nova-lite-v1:0`), us-east-1, docs read 2026-10-01.
+Environment: Platform: AWS (Amazon Bedrock). Amazon Bedrock Converse API, Nova Lite v1 (`us.amazon.nova-lite-v1:0`), us-east-1, docs read 2026-10-01.
 Links:
   - Nova tool definition (temperature 0 recommendation): https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html
   - Nova complete request schema (temperature range): https://docs.aws.amazon.com/nova/latest/userguide/complete-request-schema.html

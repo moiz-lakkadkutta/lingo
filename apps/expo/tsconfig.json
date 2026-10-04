@@ -4,9 +4,17 @@
     "types": [
       "react",
       "node"
-    ]
+    ],
+    "paths": {
+      "react-native": [
+        "./node_modules/react-native"
+      ]
+    }
   },
   "include": [
-    "App.tsx", "RemoteBridge.tsx"
+    "App.tsx",
+    "RemoteBridge.tsx",
+    "LaunchBridge.tsx",
+    "src"
   ]
 }
