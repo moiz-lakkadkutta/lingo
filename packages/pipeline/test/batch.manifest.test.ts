@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -17,11 +17,16 @@ describe('batch manifest', () => {
   })
 
   it('accepts the committed content/clips.json except the documented TBD rows', async () => {
+    const raw = JSON.parse(await readFile(join(CONTENT, 'clips.json'), 'utf8')) as { clips: Array<{ slug: string; lang: string; expectedDurationS: number }> }
     const { manifest, problems } = await loadManifest(join(CONTENT, 'clips.json'))
-    expect(manifest.clips.map((c) => c.slug)).toEqual([
-      'jung-naiv-drogen', 'openhpi-vandalismus', 'terra-x-friedlaender', 'terra-x-klimafaktoren', 'terra-x-becker-interview', 'terra-x-so-trinken-baeume',
-      'what-to-do-on-a-date-1950', 'sprite-fright', 'shy-guy-1947', 'cosmos-laundromat', 'tears-of-steel', 'duck-and-cover',
-    ])
+    // Slugs and durations come from the file itself, so swapping a clip (e.g. tears-of-steel → elephants-dream) needs no test edit.
+    const slugs = manifest.clips.map((c) => c.slug)
+    expect(slugs).toEqual(raw.clips.map((c) => c.slug))
+    expect(slugs).toHaveLength(12) // docs/plans/LING-008.md §2.3: twelve rows
+    expect(new Set(slugs).size).toBe(slugs.length)
+    // §2.3 defaults: six German rows, six English rows
+    expect(manifest.clips.filter((c) => c.lang === 'de')).toHaveLength(6)
+    expect(manifest.clips.filter((c) => c.lang === 'en')).toHaveLength(6)
     expect(manifest.gateC).toBe('pending')
     // Documented TBDs (docs/plans/LING-008.md §2.9 Phase 0) — flip each line when the human fixes it:
     // row 6: the ZDF credit is cut off at "Jochen …" (docs/content.md [^g5]);
@@ -30,7 +35,11 @@ describe('batch manifest', () => {
     if (!existsSync(join(CONTENT, 'cues/what-to-do-on-a-date-1950.en.vtt'))) expected.push('what-to-do-on-a-date-1950 cues')
     expect(problems.map((p) => `${p.slug} ${p.field}`).sort()).toEqual(expected.sort())
     const total = manifest.clips.reduce((s, c) => s + c.expectedDurationS, 0)
-    expect(total).toBe(4217)
+    expect(total).toBeCloseTo(raw.clips.reduce((s, c) => s + c.expectedDurationS, 0), 6)
+    // Each clip is 3–8 min (manifest schema, docs/content.md "What qualifies"), so the batch is 36–96 min.
+    for (const c of manifest.clips) { expect(c.expectedDurationS).toBeGreaterThanOrEqual(180); expect(c.expectedDurationS).toBeLessThanOrEqual(480) }
+    expect(total).toBeGreaterThanOrEqual(12 * 180)
+    expect(total).toBeLessThanOrEqual(12 * 480)
   })
 
   it('rejects duplicate slugs, out <= in, and a segment that disagrees with expectedDurationS by more than 2 s', () => {
