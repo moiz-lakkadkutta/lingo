@@ -156,11 +156,11 @@ describe('batch command', () => {
       expect(text).toContain('Transcribe will run for:')
       expect(text).toMatch(/Cost estimate \(draft \+ final/)
       expect(text).toContain('pnpm pipeline prepare --clip duck-and-cover')
-      expect(text).toContain('BLOCKED: manifest: attribution') // row 6 until the human fixes the credit line
-      // the final phase is refused while gateC is pending, with the fallback left to the human
+      expect(text).not.toContain('BLOCKED') // every row's credit line is complete since c476e2f
+      // gateC is passed (2026-10-10), so the final dry run is accepted; the pending refusal is covered in batch.plan.test.ts
       out.length = 0
-      expect(await batchCommand(manifest, { phase: 'final', dryRun: true, work }, deps, {})).toBe(1)
-      expect(out.join('\n')).toMatch(/open question 5/)
+      expect(await batchCommand(manifest, { phase: 'final', dryRun: true, work }, deps, {})).toBe(0)
+      expect(out.join('\n')).toContain('phase final, gateC passed')
       expect(execs + fetches + prepares + writes).toBe(0)
     } finally { await rm(work, { recursive: true, force: true }) }
   })
