@@ -4,7 +4,7 @@ Where each of the 12 shortlist clips (docs/content.md §2) stands. Updated by th
 docs/content.md and content/clips.json. Work dirs live in `packages/pipeline/work/<slug>/` (gitignored), sources in
 `packages/pipeline/work/sources/`. Bucket: `s3://lingo-media-dev-128425594526/clips/`.
 
-Last updated: 2026-10-10 (batch 3).
+Last updated: 2026-10-10 (elephants-dream swap; content staged in content/).
 
 ## Inventory
 
@@ -23,7 +23,8 @@ Last updated: 2026-10-10 (batch 3).
 | 8 | sprite-fright | en | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm) | 00:00–06:00 (unconfirmed) | 00:00–06:03 | 6:03 (363.0 s) | 2048×858 (IA .mkv) → 1920×804 | yes (`.mp4`) | **processed** (batch 2) |
 | 9 | shy-guy-1947 | en | Public domain (US) | [IA](https://archive.org/details/ShyGuy1947) | 00:00–07:00 (unconfirmed) | 00:16–07:09 | 6:53 (413.0 s) | 640×480 | yes (`.mp4`) | **processed** (batch 1) |
 | 10 | cosmos-laundromat | en | CC BY-SA 3.0 (treat as) | [IA](https://archive.org/details/CosmosLaundromatFirstCycle) | 00:00–05:30 (unconfirmed) | 00:00–05:52 | 5:52 (352.0 s) | 1920×804 | yes (`.mp4`) | **processed** (batch 3); BY-SA `NOTE` in every VTT; rated 13+ |
-| 11 | tears-of-steel | en | CC BY 3.0 | [IA](https://archive.org/details/Tears-of-Steel) | 00:00–04:30 (unconfirmed) | 00:00–04:30 | 4:30 (270.0 s) | 1920×800 (IA 1080p .webm) | yes (`.mp4`) | **swap for reserve**: 00:00–04:30 gave 3 highlights and no quiz; the densest segment, 03:09–07:13 (`tears-of-steel-b`), gave 6 highlights and no quiz. Proposed replacement: `elephants-dream` (R10) |
+| 11 | elephants-dream (reserve R10) | en | CC BY 2.5 (Commons file) | [Commons](https://commons.wikimedia.org/wiki/File:Elephants_Dream_(2006).webm) | 00:00–05:30 (R10 row) | 00:45–08:22.5 | 7:38 (457.5 s) | 1920×1080 | yes (`.mp4`) | **processed** (2026-10-10), replaces tears-of-steel |
+| — | tears-of-steel | en | CC BY 3.0 | [IA](https://archive.org/details/Tears-of-Steel) | 00:00–04:30 | 00:00–04:30, then 03:09–07:13 | — | 1920×800 | yes (`.mp4`, `-b.mp4`) | **dropped (too sparse)**: 3 and 6 highlights, no quiz in either segment |
 | 12 | duck-and-cover | en | Public domain (US) | [IA](https://archive.org/details/DuckandC1951) | 01:00–07:30 | 01:03–07:31 | 6:28 (388.0 s) | 368×480 anamorphic → 640×480 | yes (`.mp4`) | **processed** (batch 1); sensitive topic (nuclear attack drill) |
 
 Not in S3 any more / reserve: `voa-lets-learn-english-01` (reserve R8) is still in the bucket.
@@ -140,6 +141,30 @@ no quiz, under the bar of 8 highlights and a quiz. Proposed replacement: **`elep
 | **Total batch 3** | | **≈ 0.99** |
 | **Total batches 1–3** | | **≈ 3.12** |
 
+## Elephants Dream (replacement for row 11, 2026-10-10)
+
+| Slug | Gate (first run) | `--cues` retime | Cues | Level (coverage rank) | Highlights | Gloss ok / soft / rejected (dropped) | Quiz (meaning + cloze) | Review warnings |
+|---|---|---|---|---|---|---|---|---|
+| elephants-dream | fail: 1 × cps (1 cue dropped by the segmenter) | yes: 8 of 73 moved, max start shift 0.10 s | 73 | A1 (803) | 10 | 10 / 0 / 0 (0) | 8 (5 + 3) | 2 rare highlight, 1 asr |
+
+Timings: media 233.5 s, Transcribe 41.3 s, Translate 6.9 s, glosses + quiz 22.7 s. The cut is 00:45–08:22.5 of the Commons 1920×1080 webm
+(840 MB; the IA `ed_hd.mp4` is 640×360). Both ends are in subtitle gaps (Commons en subtitles: 30.1–46.6 s and 501.7–531.0 s); the
+window holds 75 of the film's 85 subtitle cues. Spend: Transcribe 7.6 min ≈ $0.18, Translate ≈ $0.02, Bedrock $0.02 → **≈ $0.22**.
+**Total batches 1–3 + swap ≈ $3.34.**
+
+## Staged for the app (2026-10-10, not published)
+
+- `content/cues/<slug>.<lang>.vtt` for all 12 clips: the final target VTT of each clip's last `prepare` run (the timing-only retime
+  where there was one). Timings checked equal to `work/<slug>/clip.json` and to the retimed file; BY-SA clips carry the `NOTE` line.
+- `content/clips.json`: row 11 is now `elephants-dream`. Every row has `sourceS3: s3://$S3_BUCKET_MEDIA/clips/<slug>.<ext>`
+  (`downloadUrl: null`, as the schema requires exactly one; the download URLs stay in docs/content.md), the trim actually used as
+  `segment` with `expectedDurationS` = the cut's duration, `cues` set, trim notes in `editorialNote`, and an informational `prepared`
+  block (level, coverage rank, cues, highlights, quiz, retimed, `published: false`) that the manifest schema ignores. Rows whose trim
+  was picked by an agent keep `segment.confirmed: false` until a human has watched the ends.
+- Publishing stays blocked by: `gateC: "pending"`; `terra-x-so-trinken-baeume`'s attribution (cut at "Jochen …", a manifest problem
+  that blocks only that clip); and the four Terra X rows' manual licence checks (`verifiedOn: null` fails `verify` in a real run).
+- `pnpm pipeline batch content/clips.json --dry-run` now says "Transcribe will run for: no clip"; every clip re-runs from its `--cues` file.
+
 ## Trim notes
 
 - `shy-guy-1947`: speech starts at 00:19 (IA ASR .srt); 00:00–00:16 is title music. The planned out-point 07:00 falls inside an utterance
@@ -163,6 +188,4 @@ no quiz, under the bar of 8 highlights and a quiz. Proposed replacement: **`elep
 
 ## Next
 
-All 12 shortlist rows are processed except `tears-of-steel` (swap for reserve, see above). Nothing is published; `gateC` in
-content/clips.json is still "pending", the retimed VTTs are not in `content/cues/`, and `terra-x-so-trinken-baeume` still needs its full
-attribution line.
+All 12 rows are processed and staged (see "Staged for the app"). Nothing is published.
