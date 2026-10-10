@@ -4,7 +4,7 @@ Where each of the 12 shortlist clips (docs/content.md §2) stands. Updated by th
 docs/content.md and content/clips.json. Work dirs live in `packages/pipeline/work/<slug>/` (gitignored), sources in
 `packages/pipeline/work/sources/`. Bucket: `s3://lingo-media-dev-128425594526/clips/`.
 
-Last updated: 2026-10-10 (batch 2).
+Last updated: 2026-10-10 (batch 3).
 
 ## Inventory
 
@@ -13,8 +13,8 @@ Last updated: 2026-10-10 (batch 2).
 
 | # | Slug | Lang | Licence | Source | Segment (content.md) | Trim used | Duration | Source res. | In S3 | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | jung-naiv-drogen | de | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Drogen_-_Jung_&_Naiv_Folge_81_-_YouTube.webm) | 02:00–08:00 (unconfirmed) | — | 6:00 (of 48:33) | 1920×1080 | no | not started; 800 MB source; sensitive topic (drugs) |
-| 2 | openhpi-vandalismus | de | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2019-11-13_Gespräch_zu_Vandalismus_–_Trolle,_Hass_und_Fake-News_–_Wie_können_wir_das_Internet_retten%3F_(openHPI).webm) | 00:00–07:00 (unconfirmed) | — | 7:00 (of 18:50) | 960×540 | no | not started; FORMAL; BY-SA → `--vtt-note` |
+| 1 | jung-naiv-drogen | de | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Drogen_-_Jung_&_Naiv_Folge_81_-_YouTube.webm) | 02:00–08:00 (unconfirmed) | 01:56.3–08:00.8 | 6:05 (364.6 s) | 1920×1080 | yes (`.mp4`) | **processed** (batch 3); sensitive topic (drugs), handled numbers-only |
+| 2 | openhpi-vandalismus | de | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2019-11-13_Gespräch_zu_Vandalismus_–_Trolle,_Hass_und_Fake-News_–_Wie_können_wir_das_Internet_retten%3F_(openHPI).webm) | 00:00–07:00 (unconfirmed) | 00:00–07:03.2 | 7:03 (423.2 s) | 960×540 | yes (`.mp4`) | **processed** (batch 3); FORMAL; BY-SA `NOTE` in every VTT |
 | 3 | terra-x-friedlaender | de | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Interview_mit_Holocaust-Überlebender_Margot_Friedländer.webm) | 00:00–03:46 | whole file | 3:46 (226.3 s) | 1920×1080 | yes (`.webm`) | **processed** (batch 2, `--reuse` of the orchestrator's re-prepared mezzanine + transcript; no new Transcribe) |
 | 4 | terra-x-klimafaktoren | de | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Die_wichtigsten_Klimafaktoren_(ZDF,_Terra_X)_720p_50FPS.webm) | 00:00–07:14 | whole file | 7:15 (434.8 s) | 1280×720 | yes (`.webm`) | **processed** (batch 1) |
 | 5 | terra-x-becker-interview | de | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm) | 00:00–04:49 | whole file | 4:49 (289.2 s) | 1280×768 (SAR 273:256) | yes (`.webm`) | **processed** (batch 2); BY-SA `NOTE` in every VTT |
@@ -22,8 +22,8 @@ Last updated: 2026-10-10 (batch 2).
 | 7 | what-to-do-on-a-date-1950 | en | Public domain (US) | [IA](https://archive.org/details/WhattoDo1950) | 00:16–07:55 | 00:16–07:55 | 7:39 (459.0 s) | 640×480 | yes (`.mp4`) | **processed** (batch 2: new Transcribe + timing-only retime) |
 | 8 | sprite-fright | en | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm) | 00:00–06:00 (unconfirmed) | 00:00–06:03 | 6:03 (363.0 s) | 2048×858 (IA .mkv) → 1920×804 | yes (`.mp4`) | **processed** (batch 2) |
 | 9 | shy-guy-1947 | en | Public domain (US) | [IA](https://archive.org/details/ShyGuy1947) | 00:00–07:00 (unconfirmed) | 00:16–07:09 | 6:53 (413.0 s) | 640×480 | yes (`.mp4`) | **processed** (batch 1) |
-| 10 | cosmos-laundromat | en | CC BY-SA 3.0 (treat as) | [IA](https://archive.org/details/CosmosLaundromatFirstCycle) | 00:00–05:30 (unconfirmed) | — | 5:30 (of 12:10) | 1920×1080 | no | not started; BY-SA → `--vtt-note`; rated 13+ |
-| 11 | tears-of-steel | en | CC BY 3.0 | [IA](https://archive.org/details/Tears-of-Steel) | 00:00–04:30 (unconfirmed) | 00:00–04:30 | 4:30 (270.0 s) | 1920×800 (IA 1080p .webm) | yes (`.mp4`) | **processed** (batch 2) but weak: 30 cues, 3 highlights, no quiz — consider a later, denser segment |
+| 10 | cosmos-laundromat | en | CC BY-SA 3.0 (treat as) | [IA](https://archive.org/details/CosmosLaundromatFirstCycle) | 00:00–05:30 (unconfirmed) | 00:00–05:52 | 5:52 (352.0 s) | 1920×804 | yes (`.mp4`) | **processed** (batch 3); BY-SA `NOTE` in every VTT; rated 13+ |
+| 11 | tears-of-steel | en | CC BY 3.0 | [IA](https://archive.org/details/Tears-of-Steel) | 00:00–04:30 (unconfirmed) | 00:00–04:30 | 4:30 (270.0 s) | 1920×800 (IA 1080p .webm) | yes (`.mp4`) | **swap for reserve**: 00:00–04:30 gave 3 highlights and no quiz; the densest segment, 03:09–07:13 (`tears-of-steel-b`), gave 6 highlights and no quiz. Proposed replacement: `elephants-dream` (R10) |
 | 12 | duck-and-cover | en | Public domain (US) | [IA](https://archive.org/details/DuckandC1951) | 01:00–07:30 | 01:03–07:31 | 6:28 (388.0 s) | 368×480 anamorphic → 640×480 | yes (`.mp4`) | **processed** (batch 1); sensitive topic (nuclear attack drill) |
 
 Not in S3 any more / reserve: `voa-lets-learn-english-01` (reserve R8) is still in the bucket.
@@ -102,6 +102,44 @@ Step timings (seconds; first run = media + Transcribe, `--cues` run = the rest; 
 | **Total batch 2** | | **≈ 0.87** |
 | **Total batches 1 + 2** | | **≈ 2.13** |
 
+## Batch 3 (2026-10-10)
+
+Same run settings. Bedrock steps one clip at a time. `jung-naiv-drogen` and `openhpi-vandalismus` handled numbers-only.
+
+| Slug | Gate (first run) | `--cues` retime | Cues | Level (coverage rank) | Highlights | Gloss ok / soft / rejected (dropped) | Quiz (meaning + cloze) | Review warnings |
+|---|---|---|---|---|---|---|---|---|
+| jung-naiv-drogen | fail: 17 × cps | yes: 31 of 106 moved, 4 starts > 0.5 s, max shift 0.93 s | 106 | B2 (6067) | 34 | 34 / 0 / 7 (7) | 10 (6 + 4) | 23 rare highlight, 3 possible name |
+| openhpi-vandalismus (FORMAL) | fail: 34 × cps, 1 × tooShort | yes: 55 of 128 moved, 11 starts > 0.5 s, max start shift 1.4 s, max end shift 1.7 s | 128 | B2 (5830) | 37 | 37 / 0 / 6 (6) | 10 (6 + 4) | 18 rare highlight, 5 possible name, 3 asr |
+| cosmos-laundromat | pass | no | 60 | A2 (1908) | 12 | 12 / 0 / 0 (0) | 7 (4 + 3) | 3 rare highlight |
+| tears-of-steel-b (03:09–07:13) | pass | no | 37 | A2 (1709) | 6 | 6 / 0 / 0 (0) | 0 (fewer than 4 testable highlights) | 1 rare highlight |
+
+Step timings (seconds):
+
+| Slug | Media normalise | Transcribe | Translate | Lemmatise | Glosses + quiz | Package | USD Bedrock |
+|---|---|---|---|---|---|---|---|
+| jung-naiv-drogen | 91.5 | 123.0 | 13.0 | 0.8 | 73.2 | 0.2 | 0.0946 |
+| openhpi-vandalismus | 68.2 | 87.2 | 14.1 | 1.3 | 74.9 | 0.2 | 0.0958 |
+| cosmos-laundromat | 117.9 | 31.1 | 6.8 | 0.4 | 32.9 | 0.4 | 0.0195 |
+| tears-of-steel-b | 132.1 | 26.2 | 3.6 | 0.2 | 11.6 | 0.2 | 0.0114 |
+
+### Tears of Steel: swap for reserve
+
+The film has 76 subtitle cues in 12:14. The densest 4–8 min window by characters per minute (Commons en subtitles) is 03:10–07:10
+(257 chars/min, 51 cues), cut as 03:09–07:13 in subtitle gaps and uploaded as `clips/tears-of-steel-b.mp4`. It gave 6 highlights and
+no quiz, under the bar of 8 highlights and a quiz. Proposed replacement: **`elephants-dream`** (R10, CC BY, en, nearly all dialogue in
+00:00–05:30, en + de subtitles to check against). Runner-up: `dating-dos-and-donts-1949` (R9, same Coronet family as
+`what-to-do-on-a-date-1950`, which gave 17 highlights at A2, but US-PD). Not processed.
+
+### Spend, batch 3
+
+| Service | Quantity | USD |
+|---|---|---|
+| Transcribe | 23.1 min (244.0 + 364.6 + 423.2 + 352.0 s) × $0.024 | 0.55 |
+| Translate | ≈ 14 700 characters × $15 / M | 0.22 |
+| Bedrock Nova Pro v1 | sum of `usd=` in the logs | 0.22 |
+| **Total batch 3** | | **≈ 0.99** |
+| **Total batches 1–3** | | **≈ 3.12** |
+
 ## Trim notes
 
 - `shy-guy-1947`: speech starts at 00:19 (IA ASR .srt); 00:00–00:16 is title music. The planned out-point 07:00 falls inside an utterance
@@ -115,11 +153,16 @@ Step timings (seconds; first run = media + Transcribe, `--cues` run = the rest; 
   0.37 s after a line ends (embedded en subtitles: 05:57.6–05:59.6, next line 06:07.1); moved to 06:03, mid-gap. Music under the whole
   clip, so subtitle timings were used instead of silence detection.
 - `terra-x-becker-interview`: whole file, uploaded as the original `.webm`.
+- `jung-naiv-drogen`: 02:00 falls inside speech; nearest pause 01:56.1–01:56.4 → in 01:56.3. 08:00 falls in a pause
+  (08:00.3–08:01.4) → out 08:00.8. Chosen by silence detection (-30 dB), not by listening.
+- `openhpi-vandalismus`: in 00:00 (3.3 s of silence at the start). 07:00 falls inside speech; nearest pause 07:03.0–07:03.4 → out 07:03.2.
+- `cosmos-laundromat`: the dialogue runs 02:20–05:50 (IA en .srt); 05:30 cuts mid-dialogue, so the out-point moved to 05:52, after the
+  scene's last line, rather than back to the 05:27–05:29 gap, which would drop the end of the conversation. 00:00–02:20 has no dialogue;
+  starting at 01:55 would make it a 4-min clip with the same text.
 - The two Terra X clips were uploaded as the original `.webm`, untrimmed (whole file), as `terra-x-friedlaender` was.
 
-## Proposed batch 3
+## Next
 
-- `openhpi-vandalismus` (de, FORMAL, BY-SA → `--vtt-note`; confirm 00:00–07:00).
-- `cosmos-laundromat` (en, BY-SA 3.0 → `--vtt-note`, 13+; confirm 00:00–05:30).
-- `jung-naiv-drogen` (de, 800 MB source, sensitive topic; confirm 02:00–08:00, numbers-only).
-- Optional: a denser `tears-of-steel` segment, since the current one yields 3 highlights and no quiz.
+All 12 shortlist rows are processed except `tears-of-steel` (swap for reserve, see above). Nothing is published; `gateC` in
+content/clips.json is still "pending", the retimed VTTs are not in `content/cues/`, and `terra-x-so-trinken-baeume` still needs its full
+attribution line.
