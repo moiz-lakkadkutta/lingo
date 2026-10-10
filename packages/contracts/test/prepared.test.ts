@@ -26,6 +26,13 @@ describe('PreparedClip', () => {
     expect(PreparedClip.parse({ ...clip, cost: { calls: 3, cachedCalls: 1, inputTokens: 1200, outputTokens: 300, usd: 0.002 } }).cost?.calls).toBe(3)
     expect(PreparedClip.safeParse({ ...clip, cost: { calls: 'x' } }).success).toBe(false)
   })
+  it('keeps optional generated.timings (ms per prepare step) and rejects negative or non-numeric values', () => {
+    const timings = { media: 1200, transcribe: 45000, translate: 800 }
+    expect(PreparedClip.parse({ ...clip, generated: { ...clip.generated, timings } }).generated.timings).toEqual(timings)
+    expect(PreparedClip.parse(clip).generated.timings).toBeUndefined()
+    expect(PreparedClip.safeParse({ ...clip, generated: { ...clip.generated, timings: { media: -1 } } }).success).toBe(false)
+    expect(PreparedClip.safeParse({ ...clip, generated: { ...clip.generated, timings: { media: 'fast' } } }).success).toBe(false)
+  })
   it('accepts a clip prepared without AI: highlights without gloss/grammar/example, no quiz, generated.ai false', () => {
     const { quiz: _quiz, ...noQuiz } = clip
     const noAi = { ...noQuiz, highlights: [{ cueIndex: 0, word: 'warte', lemma: 'warten', rank: 1500 }], generated: { ...clip.generated, ai: false } }
