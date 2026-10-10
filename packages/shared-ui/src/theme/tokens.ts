@@ -1,19 +1,31 @@
 /** Lingo design tokens — docs/PLAN.md §7. Two languages coded by luminance + temperature; one straw-yellow marker for the word to learn. */
 export type TypeRole = 'display' | 'title' | 'body' | 'label' | 'cueTarget' | 'cueNative'
+const color = {
+  ground: '#0F151B', surface1: '#182028', surface2: '#222C36',
+  text: '#EFF1EE', textSecondary: '#A7B1BC',
+  nativeCue: '#9FC9D8',            // native-language line: dimmer, cooler, 70 % size
+  marker: '#E3C77A',               // the word worth learning; dark text on it
+  interactive: '#7FB3D5',          // selected / primary button
+  badge: '#E3C77A',                // level chips use surface2; badge alias kept for shared Card
+  focus: '#EFF1EE',
+  incorrect: '#D98B7A', error: '#D98B7A',
+  cueBox: 'rgba(0,0,0,0.65)',
+  scrim: 'rgba(15,21,27,0.4)',     // ground at 40 %: dims the picture behind the Explain card
+  stage: '#000000',                // letterbox behind the video
+} as const
+/**
+ * Fill and text of the one action button per state (Button, the Explain card, Plus). Every text/fill pair keeps ≥ 4.5:1 (test/tokens.test.ts).
+ * Focused primary inverts to the focus colour with ground text (S1, 2026-10-04: the pale focused Save word / Watch was hard to read on the TV);
+ * its outline is then drawn at an offset so it stays separate from the fill. Focus also scales 1.04, so it is never colour alone.
+ */
+const button = {
+  primary:   { rest: { fill: color.interactive, text: color.ground }, focused: { fill: color.focus, text: color.ground } },
+  secondary: { rest: { fill: color.surface2, text: color.text }, focused: { fill: color.surface2, text: color.text } },
+} as const
+export type ButtonVariant = keyof typeof button
 export const tokens = {
-  color: {
-    ground: '#0F151B', surface1: '#182028', surface2: '#222C36',
-    text: '#EFF1EE', textSecondary: '#A7B1BC',
-    nativeCue: '#9FC9D8',            // native-language line: dimmer, cooler, 70 % size
-    marker: '#E3C77A',               // the word worth learning; dark text on it
-    interactive: '#7FB3D5',          // selected / primary button
-    badge: '#E3C77A',                // level chips use surface2; badge alias kept for shared Card
-    focus: '#EFF1EE',
-    incorrect: '#D98B7A', error: '#D98B7A',
-    cueBox: 'rgba(0,0,0,0.65)',
-    scrim: 'rgba(15,21,27,0.4)',     // ground at 40 %: dims the picture behind the Explain card
-    stage: '#000000',                // letterbox behind the video
-  },
+  color,
+  button,
   type: {
     floor: 28,
     display:   { family: 'Manrope-ExtraBold', weight: '700', size: 64, line: 72, tracking: -0.01 },

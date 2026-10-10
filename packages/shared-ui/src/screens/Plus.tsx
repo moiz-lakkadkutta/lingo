@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { BackHandler, View } from 'react-native'
 import { PLUS_SKU, type PlusStatus } from '@lingo/contracts'
-import { Focusable } from '../components/Focusable'
+import { Button } from '../components/Button'
 import { T } from '../components/Text'
 import type { Caps } from '../platformCaps'
 import { purchaseFlow, restoreFlow, type Api } from '../plus/flow'
@@ -62,10 +62,7 @@ export function Plus({ store, api, caps, onBack, onChanged }: PlusProps) {
   const restore = () => { if (s.phase === 'offer' || s.phase === 'active') { dispatch({ type: 'restore' }); runFlow(restoreFlow) } }
 
   const btn = (label: string, aria: string, onPress: () => void, primary = false, preferred = false) => (
-    <Focusable key={aria} label={aria} onPress={onPress} hasTVPreferredFocus={preferred}
-      style={{ backgroundColor: primary ? tokens.color.interactive : tokens.color.surface2, paddingHorizontal: px(28), paddingVertical: px(16) }}>
-      <T variant="body" color={primary ? tokens.color.ground : tokens.color.text}>{label}</T>
-    </Focusable>
+    <Button key={aria} label={aria} text={label} onPress={onPress} primary={primary} preferred={preferred} />
   )
   const back = (preferred: boolean) => btn(strings.plus.back, strings.plus.backLabel, onBack, false, preferred)
   const title = <T variant="display">{strings.plus.title}</T>

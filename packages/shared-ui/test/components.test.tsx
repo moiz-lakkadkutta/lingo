@@ -88,6 +88,29 @@ describe('components', () => {
     expect(pressables(d)[0]!.props['aria-disabled']).toBe(true)
     expect(pressables(d)[0]!.props.onPress).toBeUndefined()
   })
+  it('focused primary Button: focus fill with ground text and an offset outline, no colour-only change; blur restores', () => {
+    const r = render(<Button label="Watch Der Zug" text="Watch" primary onPress={() => {}} />)
+    const p = pressables(r)[0]!
+    const fg = () => flat(p.findByType('Text' as never).props.style).color
+    const ring = () => p.findAll((n) => is(n, 'View') && n.props.testID === 'focus-ring')
+    focus(p)
+    expect(box(p).backgroundColor).toBe(tokens.button.primary.focused.fill)
+    expect(fg()).toBe(tokens.button.primary.focused.text)
+    expect(ring()).toHaveLength(1)
+    expect(flat(ring()[0]!.props.style)).toMatchObject({ borderColor: tokens.color.focus, borderWidth: tokens.focus.width, top: -(tokens.focus.offset + tokens.focus.width) })
+    expect(box(p).transform).toBeDefined() // the 1.04 scale (Animated value) is still applied
+    blur(p)
+    expect(box(p).backgroundColor).toBe(tokens.button.primary.rest.fill)
+    expect(fg()).toBe(tokens.button.primary.rest.text)
+    expect(ring()).toHaveLength(0)
+  })
+  it('focused secondary Button keeps its fill and text and draws the focus border', () => {
+    const r = render(<Button label="Back" text="Back" onPress={() => {}} />)
+    const p = pressables(r)[0]!
+    focus(p)
+    expect(box(p)).toMatchObject({ backgroundColor: tokens.button.secondary.focused.fill, borderColor: tokens.color.focus, borderWidth: tokens.focus.width })
+    expect(flat(p.findByType('Text' as never).props.style).color).toBe(tokens.button.secondary.focused.text)
+  })
   it('shouldStop is true from 50 ms before the cue end', () => {
     expect(shouldStop(9.9, 10)).toBe(false)
     expect(shouldStop(9.95, 10)).toBe(true)
