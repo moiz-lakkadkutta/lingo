@@ -27,13 +27,16 @@ describe('batch manifest', () => {
     // §2.3 defaults: six German rows, six English rows
     expect(manifest.clips.filter((c) => c.lang === 'de')).toHaveLength(6)
     expect(manifest.clips.filter((c) => c.lang === 'en')).toHaveLength(6)
-    expect(manifest.gateC).toBe('pending')
-    // Documented TBDs (docs/plans/LING-008.md §2.9 Phase 0) — flip each line when the human fixes it:
+    // The human flips gateC to 'passed' once the spot check is scored.
+    expect(['pending', 'passed']).toContain(manifest.gateC)
+    // Documented TBDs (docs/plans/LING-008.md §2.9 Phase 0). Each may still be open or already fixed by the human;
+    // only a problem outside this list fails the test.
     // row 6: the ZDF credit is cut off at "Jochen …" (docs/content.md [^g5]);
     // row 7: the corrected Gate A VTT is copied into content/cues/ by the human.
-    const expected = ['terra-x-so-trinken-baeume attribution']
-    if (!existsSync(join(CONTENT, 'cues/what-to-do-on-a-date-1950.en.vtt'))) expected.push('what-to-do-on-a-date-1950 cues')
-    expect(problems.map((p) => `${p.slug} ${p.field}`).sort()).toEqual(expected.sort())
+    const tolerated = new Set(['terra-x-so-trinken-baeume attribution'])
+    if (!existsSync(join(CONTENT, 'cues/what-to-do-on-a-date-1950.en.vtt'))) tolerated.add('what-to-do-on-a-date-1950 cues')
+    const unexpected = problems.filter((p) => !tolerated.has(`${p.slug} ${p.field}`)).map((p) => `${p.slug} ${p.field}: ${p.message}`)
+    expect(unexpected).toEqual([])
     const total = manifest.clips.reduce((s, c) => s + c.expectedDurationS, 0)
     expect(total).toBeCloseTo(raw.clips.reduce((s, c) => s + c.expectedDurationS, 0), 6)
     // Each clip is 3–8 min (manifest schema, docs/content.md "What qualifies"), so the batch is 36–96 min.
