@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "android:release": "expo run:android --variant release",
     "typecheck": "tsc --noEmit",
     "build:tv": "eas build -p android --profile preview"
   },

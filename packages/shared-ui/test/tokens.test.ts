@@ -13,6 +13,15 @@ describe('palette contrast', () => {
     expect(contrast(tokens.color.badge, tokens.color.ground)).toBeGreaterThanOrEqual(3)
   })
   it('focus outline ≥ 3:1 against cards', () => { expect(contrast(tokens.color.focus, tokens.color.surface2)).toBeGreaterThanOrEqual(3) })
+  // S1 (2026-10-04): the focused primary button was hard to read on the TV. Every button state's text/fill pair is checked here, and
+  // the focus outline must stand out from what sits around a button (the card and the screen). Primary focused was interactive/ground
+  // (the rest pair, 8.1:1) and is now focus/ground (16.2:1); light text on the interactive fill, as seen on the TV, would be 2.0:1.
+  const states = Object.entries(tokens.button).flatMap(([variant, s]) => Object.entries(s).map(([state, p]) => ({ name: `${variant} ${state}`, ...p })))
+  it.each(states)('button $name: text on fill ≥ 4.5:1', ({ text, fill }) => { expect(contrast(text, fill)).toBeGreaterThanOrEqual(4.5) })
+  it('covers primary and secondary, rest and focused', () => { expect(states.map((s) => s.name).sort()).toEqual(['primary focused', 'primary rest', 'secondary focused', 'secondary rest']) })
+  it('focus outline ≥ 3:1 against the ground and the card surfaces a button sits on', () => {
+    for (const bg of [tokens.color.ground, tokens.color.surface1, tokens.color.surface2]) expect(contrast(tokens.color.focus, bg)).toBeGreaterThanOrEqual(3)
+  })
   it('no pure white anywhere', () => { for (const v of Object.values(tokens.color)) expect(v.toLowerCase()).not.toBe('#ffffff') })
   it('type floor respected', () => { for (const [k, t] of Object.entries(tokens.type)) if (k !== 'count' && typeof t === 'object') expect(t.size).toBeGreaterThanOrEqual(tokens.type.floor) })
 })
