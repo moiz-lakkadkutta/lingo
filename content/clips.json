@@ -295,25 +295,25 @@
       "downloadUrl": null,
       "sourceS3": "s3://$S3_BUCKET_MEDIA/clips/sprite-fright.mp4",
       "segment": {
-        "in": "00:00",
+        "in": "00:13",
         "out": "06:03",
-        "confirmed": false
+        "confirmed": true
       },
-      "expectedDurationS": 363.0,
+      "expectedDurationS": 350.0,
       "cues": "cues/sprite-fright.en.vtt",
       "posterAtS": null,
       "licenceCheck": {
         "kind": "commons",
         "file": "Sprite_Fright_-_Blender_Open_Movie-full_movie.webm"
       },
-      "editorialNote": "Downloads the archive.org mp4 (60.6 MB) instead of the 2048×858 Commons webm. Acted dialogue: expect a --cues pass. Trim (LING-008 batch, 2026-10-10): out moved from 06:00 to 06:03 (subtitle gap 05:59.6–06:07.1); IA .mkv 2048×858 scaled to 1920 wide; not viewed.",
+      "editorialNote": "Downloads the archive.org mp4 (60.6 MB) instead of the 2048×858 Commons webm. Acted dialogue: expect a --cues pass. Recut 2026-10-10 at the human's request: 00:13–06:03, starting just before the first line (00:17.4) instead of on the studio logos; in/out confirmed by the human. Out 06:03 sits in the subtitle gap 05:59.6–06:07.1; IA .mkv 2048×858 scaled to 1920 wide.",
       "prepared": {
         "on": "2026-10-10",
         "level": "B2",
         "coverageRank": 4222,
-        "durationS": 363.0,
+        "durationS": 350.0,
         "cues": 72,
-        "highlights": 18,
+        "highlights": 16,
         "quiz": 9,
         "cuesRetimed": true,
         "published": false
@@ -373,24 +373,24 @@
       "downloadUrl": null,
       "sourceS3": "s3://$S3_BUCKET_MEDIA/clips/cosmos-laundromat.mp4",
       "segment": {
-        "in": "00:00",
+        "in": "02:15",
         "out": "05:52",
-        "confirmed": false
+        "confirmed": true
       },
-      "expectedDurationS": 352.0,
+      "expectedDurationS": 217.0,
       "cues": "cues/cosmos-laundromat.en.vtt",
       "posterAtS": null,
       "licenceCheck": {
         "kind": "commons",
         "file": "Cosmos_Laundromat_-_First_Cycle_-_Official_Blender_Foundation_release.webm"
       },
-      "editorialNote": "Licence drift: archive.org says CC BY 4.0, the Commons file is tagged CC BY-SA 3.0; docs/content.md §5 says treat it as at least BY-SA, so the label is the stricter CC BY-SA 3.0 (derived VTTs carry the NOTE) and the re-check reads the Commons tag. The attribution string is the register's, verbatim. Rated 13+. Trim (LING-008 batch, 2026-10-10): out moved from 05:30 (mid-dialogue) to 05:52, after the last line (IA en .srt); not viewed.",
+      "editorialNote": "Licence drift: archive.org says CC BY 4.0, the Commons file is tagged CC BY-SA 3.0; docs/content.md §5 says treat it as at least BY-SA, so the label is the stricter CC BY-SA 3.0 (derived VTTs carry the NOTE) and the re-check reads the Commons tag. The attribution string is the register's, verbatim. Rated 13+. Recut 2026-10-10 at the human's request: 02:15–05:52, starting just before the first line (02:20) instead of on the studio logos; in/out confirmed by the human. Earlier trim: 00:00–05:52 (out moved from 05:30, mid-dialogue, to after the last line).",
       "prepared": {
         "on": "2026-10-10",
         "level": "A2",
         "coverageRank": 1908,
-        "durationS": 352,
-        "cues": 60,
+        "durationS": 217,
+        "cues": 50,
         "highlights": 12,
         "quiz": 7,
         "cuesRetimed": false,

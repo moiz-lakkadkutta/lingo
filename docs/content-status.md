@@ -20,9 +20,9 @@ Last updated: 2026-10-10 (elephants-dream swap; content staged in content/).
 | 5 | terra-x-becker-interview | de | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm) | 00:00–04:49 | whole file | 4:49 (289.2 s) | 1280×768 (SAR 273:256) | yes (`.webm`) | **processed** (batch 2); BY-SA `NOTE` in every VTT |
 | 6 | terra-x-so-trinken-baeume | de | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:So_trinken_Bäume.webm) | 00:00–04:19 | whole file | 4:20 (259.9 s) | 1920×1080 | yes (`.webm`) | **processed** (batch 1); attribution still cut at "Jochen …" (content.md [^g5]) — blocks publish, not prepare |
 | 7 | what-to-do-on-a-date-1950 | en | Public domain (US) | [IA](https://archive.org/details/WhattoDo1950) | 00:16–07:55 | 00:16–07:55 | 7:39 (459.0 s) | 640×480 | yes (`.mp4`) | **processed** (batch 2: new Transcribe + timing-only retime) |
-| 8 | sprite-fright | en | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm) | 00:00–06:00 (unconfirmed) | 00:00–06:03 | 6:03 (363.0 s) | 2048×858 (IA .mkv) → 1920×804 | yes (`.mp4`) | **processed** (batch 2) |
+| 8 | sprite-fright | en | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm) | 00:00–06:00 (unconfirmed) | 00:13–06:03 (recut, human-confirmed) | 5:50 (350.0 s) | 2048×858 (IA .mkv) → 1920×804 | yes (`.mp4`) | **processed** (recut 2026-10-10) |
 | 9 | shy-guy-1947 | en | Public domain (US) | [IA](https://archive.org/details/ShyGuy1947) | 00:00–07:00 (unconfirmed) | 00:16–07:09 | 6:53 (413.0 s) | 640×480 | yes (`.mp4`) | **processed** (batch 1) |
-| 10 | cosmos-laundromat | en | CC BY-SA 3.0 (treat as) | [IA](https://archive.org/details/CosmosLaundromatFirstCycle) | 00:00–05:30 (unconfirmed) | 00:00–05:52 | 5:52 (352.0 s) | 1920×804 | yes (`.mp4`) | **processed** (batch 3); BY-SA `NOTE` in every VTT; rated 13+ |
+| 10 | cosmos-laundromat | en | CC BY-SA 3.0 (treat as) | [IA](https://archive.org/details/CosmosLaundromatFirstCycle) | 00:00–05:30 (unconfirmed) | 02:15–05:52 (recut, human-confirmed) | 3:37 (217.0 s) | 1920×804 | yes (`.mp4`) | **processed** (recut 2026-10-10); BY-SA `NOTE` in every VTT; rated 13+ |
 | 11 | elephants-dream (reserve R10) | en | CC BY 2.5 (Commons file) | [Commons](https://commons.wikimedia.org/wiki/File:Elephants_Dream_(2006).webm) | 00:00–05:30 (R10 row) | 00:45–08:22.5 | 7:38 (457.5 s) | 1920×1080 | yes (`.mp4`) | **processed** (2026-10-10), replaces tears-of-steel |
 | — | tears-of-steel | en | CC BY 3.0 | [IA](https://archive.org/details/Tears-of-Steel) | 00:00–04:30 | 00:00–04:30, then 03:09–07:13 | — | 1920×800 | yes (`.mp4`, `-b.mp4`) | **dropped (too sparse)**: 3 and 6 highlights, no quiz in either segment |
 | 12 | duck-and-cover | en | Public domain (US) | [IA](https://archive.org/details/DuckandC1951) | 01:00–07:30 | 01:03–07:31 | 6:28 (388.0 s) | 368×480 anamorphic → 640×480 | yes (`.mp4`) | **processed** (batch 1); sensitive topic (nuclear attack drill) |
@@ -151,6 +151,19 @@ Timings: media 233.5 s, Transcribe 41.3 s, Translate 6.9 s, glosses + quiz 22.7 
 (840 MB; the IA `ed_hd.mp4` is 640×360). Both ends are in subtitle gaps (Commons en subtitles: 30.1–46.6 s and 501.7–531.0 s); the
 window holds 75 of the film's 85 subtitle cues. Spend: Transcribe 7.6 min ≈ $0.18, Translate ≈ $0.02, Bedrock $0.02 → **≈ $0.22**.
 **Total batches 1–3 + swap ≈ $3.34.**
+
+## Recut: cosmos-laundromat and sprite-fright (2026-10-10)
+
+The human chose new in-points just before the first line, skipping the Blender studio logos. Both were re-cut from the same sources with
+the same encode, uploaded over `clips/<slug>.mp4`, and prepared again with AI into fresh work dirs (old ones kept as `<slug>.old-cut`).
+New 10 s previews are in `packages/pipeline/work/trim-preview/`.
+
+| Slug | Segment | Gate (first run) | `--cues` retime | Cues | Level (coverage rank) | Highlights | Gloss ok / soft / rejected (dropped) | Quiz (meaning + cloze) | Review warnings | USD Bedrock |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cosmos-laundromat | 02:15–05:52 (217 s) | pass | no | 50 | A2 (1908) | 12 | 12 / 0 / 0 (0) | 7 (4 + 3) | 3 rare highlight | 0.0049 (9 of 12 calls cached) |
+| sprite-fright | 00:13–06:03 (350 s) | fail: 4 × cps, 2 × tooShort (1 cue dropped by the segmenter) | yes: 16 of 72 moved, max shift 0.25 s | 72 | B2 (4222) | 16 | 16 / 0 / 0 (0) | 9 (5 + 4) | 8 rare highlight, 5 asr | 0.0231 |
+
+Spend: Transcribe 9.45 min ≈ $0.23, Translate ≈ 3 800 characters ≈ $0.06, Bedrock $0.03 → **≈ $0.31**. **Total so far ≈ $3.65.**
 
 ## Staged for the app (2026-10-10, not published)
 
