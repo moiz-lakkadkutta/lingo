@@ -1,0 +1,328 @@
+{
+ "version": 1,
+ "slug": "demo-de",
+ "sourceLang": "de",
+ "natives": [
+  "en"
+ ],
+ "level": "A1",
+ "coverageRank": 960,
+ "durationS": 65.69,
+ "cues": [
+  {
+   "index": 0,
+   "startMs": 400,
+   "endMs": 2770,
+   "text": "Ich warte seit zwei Stunden auf dich.",
+   "native": {
+    "en": "ICH WARTE SEIT ZWEI STUNDEN AUF DICH."
+   },
+   "tokens": []
+  },
+  {
+   "index": 1,
+   "startMs": 3270,
+   "endMs": 5410,
+   "text": "Wo warst du denn die ganze Zeit?",
+   "native": {
+    "en": "WO WARST DU DENN DIE GANZE ZEIT?"
+   },
+   "tokens": []
+  },
+  {
+   "index": 2,
+   "startMs": 5910,
+   "endMs": 9160,
+   "text": "Ich habe dreimal angerufen\nund niemand hat abgenommen.",
+   "native": {
+    "en": "ICH HABE DREIMAL ANGERUFEN UND NIEMAND HAT ABGENOMMEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 3,
+   "startMs": 9660,
+   "endMs": 11970,
+   "text": "Also bin ich einfach hierher gekommen.",
+   "native": {
+    "en": "ALSO BIN ICH EINFACH HIERHER GEKOMMEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 4,
+   "startMs": 12470,
+   "endMs": 15100,
+   "text": "Es tut mir leid, mein Handy war leer.",
+   "native": {
+    "en": "ES TUT MIR LEID, MEIN HANDY WAR LEER."
+   },
+   "tokens": []
+  },
+  {
+   "index": 5,
+   "startMs": 15600,
+   "endMs": 17880,
+   "text": "Der Akku ist immer so schnell leer.",
+   "native": {
+    "en": "DER AKKU IST IMMER SO SCHNELL LEER."
+   },
+   "tokens": []
+  },
+  {
+   "index": 6,
+   "startMs": 18380,
+   "endMs": 23690,
+   "text": "Und dann ist der Zug ausgefallen, also\nbin ich zu Fuß gelaufen. Im Regen?",
+   "native": {
+    "en": "UND DANN IST DER ZUG AUSGEFALLEN, ALSO\nBIN ICH ZU FUSS GELAUFEN. IM REGEN?"
+   },
+   "tokens": []
+  },
+  {
+   "index": 7,
+   "startMs": 24190,
+   "endMs": 25220,
+   "text": "Du bist verrückt.",
+   "native": {
+    "en": "DU BIST VERRÜCKT."
+   },
+   "tokens": []
+  },
+  {
+   "index": 8,
+   "startMs": 25720,
+   "endMs": 26730,
+   "text": "Ja, ich weiß.",
+   "native": {
+    "en": "JA, ICH WEISS."
+   },
+   "tokens": []
+  },
+  {
+   "index": 9,
+   "startMs": 27230,
+   "endMs": 30356,
+   "text": "Aber jetzt bin ich ja hier.\nNein! Nein! Warte! Stopp!",
+   "native": {
+    "en": "ABER JETZT BIN ICH JA HIER. NEIN! NEIN! WARTE! STOPP!"
+   },
+   "tokens": []
+  },
+  {
+   "index": 10,
+   "startMs": 30440,
+   "endMs": 31590,
+   "text": "Das ist mein Bus.",
+   "native": {
+    "en": "DAS IST MEIN BUS."
+   },
+   "tokens": []
+  },
+  {
+   "index": 11,
+   "startMs": 32090,
+   "endMs": 34150,
+   "text": "Egal, der nächste kommt um 8.",
+   "native": {
+    "en": "EGAL, DER NÄCHSTE KOMMT UM 8."
+   },
+   "tokens": []
+  },
+  {
+   "index": 12,
+   "startMs": 34650,
+   "endMs": 36020,
+   "text": "Hast du die Schlüssel?",
+   "native": {
+    "en": "HAST DU DIE SCHLÜSSEL?"
+   },
+   "tokens": []
+  },
+  {
+   "index": 13,
+   "startMs": 36520,
+   "endMs": 38500,
+   "text": "Natürlich habe ich die Schlüssel.",
+   "native": {
+    "en": "NATÜRLICH HABE ICH DIE SCHLÜSSEL."
+   },
+   "tokens": []
+  },
+  {
+   "index": 14,
+   "startMs": 39000,
+   "endMs": 41040,
+   "text": "Ich habe sie nur kurz vergessen.",
+   "native": {
+    "en": "ICH HABE SIE NUR KURZ VERGESSEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 15,
+   "startMs": 41540,
+   "endMs": 44790,
+   "text": "Meine Freundin Anna wohnt\nseit einem Jahr in Berlin.",
+   "native": {
+    "en": "MEINE FREUNDIN ANNA WOHNT SEIT EINEM JAHR IN BERLIN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 16,
+   "startMs": 45290,
+   "endMs": 47180,
+   "text": "Wir wollten sie heute besuchen.",
+   "native": {
+    "en": "WIR WOLLTEN SIE HEUTE BESUCHEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 17,
+   "startMs": 47680,
+   "endMs": 49430,
+   "text": "Dann müssen wir uns beeilen.",
+   "native": {
+    "en": "DANN MÜSSEN WIR UNS BEEILEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 18,
+   "startMs": 49930,
+   "endMs": 53460,
+   "text": "Ich kaufe schnell einen\nKaffee, und du rufst sie an.",
+   "native": {
+    "en": "ICH KAUFE SCHNELL EINEN KAFFEE, UND DU RUFST SIE AN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 19,
+   "startMs": 53960,
+   "endMs": 56540,
+   "text": "Sag ihr, dass wir uns verspätet haben.",
+   "native": {
+    "en": "SAG IHR, DASS WIR UNS VERSPÄTET HABEN."
+   },
+   "tokens": []
+  },
+  {
+   "index": 20,
+   "startMs": 57040,
+   "endMs": 60040,
+   "text": "Sie kennt mich, sie\nwartet sowieso nie lange.",
+   "native": {
+    "en": "SIE KENNT MICH, SIE WARTET SOWIESO NIE LANGE."
+   },
+   "tokens": []
+  },
+  {
+   "index": 21,
+   "startMs": 60540,
+   "endMs": 61600,
+   "text": "Gut, dann los.",
+   "native": {
+    "en": "GUT, DANN LOS."
+   },
+   "tokens": []
+  },
+  {
+   "index": 22,
+   "startMs": 62100,
+   "endMs": 64690,
+   "text": "Dieses Mal habe ich es wirklich geschafft.",
+   "native": {
+    "en": "DIESES MAL HABE ICH ES WIRKLICH GESCHAFFT."
+   },
+   "tokens": []
+  }
+ ],
+ "highlights": [
+  {
+   "cueIndex": 2,
+   "word": "abgenommen",
+   "lemma": "abnehmen",
+   "rank": 1948,
+   "gloss": "gloss of abnehmen",
+   "grammar": "test grammar note",
+   "example": "Example with abgenommen."
+  },
+  {
+   "cueIndex": 5,
+   "word": "Akku",
+   "lemma": "Akku",
+   "rank": 10139,
+   "gloss": "gloss of Akku",
+   "grammar": "test grammar note",
+   "example": "Example with Akku."
+  },
+  {
+   "cueIndex": 6,
+   "word": "Regen",
+   "lemma": "Regen",
+   "rank": 1245,
+   "gloss": "gloss of Regen",
+   "grammar": "test grammar note",
+   "example": "Example with Regen."
+  },
+  {
+   "cueIndex": 6,
+   "word": "ausgefallen",
+   "lemma": "ausfallen",
+   "rank": 3682,
+   "gloss": "gloss of ausfallen",
+   "grammar": "test grammar note",
+   "example": "Example with ausgefallen."
+  },
+  {
+   "cueIndex": 10,
+   "word": "Bus",
+   "lemma": "Bus",
+   "rank": 1421,
+   "gloss": "gloss of Bus",
+   "grammar": "test grammar note",
+   "example": "Example with Bus."
+  },
+  {
+   "cueIndex": 19,
+   "word": "verspätet",
+   "lemma": "verspäten",
+   "rank": 5331,
+   "gloss": "gloss of verspäten",
+   "grammar": "test grammar note",
+   "example": "Example with verspätet."
+  },
+  {
+   "cueIndex": 20,
+   "word": "sowieso",
+   "lemma": "sowieso",
+   "rank": 1055,
+   "gloss": "gloss of sowieso",
+   "grammar": "test grammar note",
+   "example": "Example with sowieso."
+  }
+ ],
+ "quiz": [],
+ "tracks": {
+  "manifest": "master.m3u8",
+  "vtt": {
+   "de": "vtt/de.vtt",
+   "en": "vtt/en.vtt"
+  }
+ },
+ "publishedBase": null,
+ "source": {
+  "uri": "s3://unused",
+  "transcribeJob": "demo-de-20260915-120000"
+ },
+ "generated": {
+  "at": "2026-09-15T12:00:00.000Z",
+  "pipeline": "lingo-pipeline@0.1.0",
+  "lemmatizer": "table",
+  "ai": true
+ },
+ "warnings": []
+}
