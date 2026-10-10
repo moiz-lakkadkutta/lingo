@@ -20,7 +20,7 @@
       "segment": {
         "in": "01:56.3",
         "out": "08:00.8",
-        "confirmed": false
+        "confirmed": true
       },
       "expectedDurationS": 364.6,
       "cues": "cues/jung-naiv-drogen.de.vtt",
@@ -59,7 +59,7 @@
       "segment": {
         "in": "00:00",
         "out": "07:03.2",
-        "confirmed": false
+        "confirmed": true
       },
       "expectedDurationS": 423.2,
       "cues": "cues/openhpi-vandalismus.de.vtt",
@@ -336,7 +336,7 @@
       "segment": {
         "in": "00:16",
         "out": "07:09",
-        "confirmed": false
+        "confirmed": true
       },
       "expectedDurationS": 413.0,
       "cues": "cues/shy-guy-1947.en.vtt",
@@ -414,7 +414,7 @@
       "segment": {
         "in": "00:45",
         "out": "08:22.5",
-        "confirmed": false
+        "confirmed": true
       },
       "expectedDurationS": 457.5,
       "cues": "cues/elephants-dream.en.vtt",
