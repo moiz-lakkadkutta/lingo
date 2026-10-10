@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "gateC": "pending",
+  "gateC": "passed",
   "bucketEnv": "S3_BUCKET_MEDIA",
   "clips": [
     {
