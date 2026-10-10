@@ -71,7 +71,7 @@ export function fixtureDeps(lang: Lang, opts: { durationS?: number; transcript?:
     calls,
     async exec(cmd, args) {
       calls.push({ cmd, args })
-      if (cmd === 'ffprobe') return { stdout: JSON.stringify({ format: { duration: String(durationS ?? lastWordEnd + 1) } }) }
+      if (cmd === 'ffprobe') return { stdout: JSON.stringify({ format: { duration: String(durationS ?? lastWordEnd + 1) }, streams: [{ codec_type: 'video', width: 1920, height: 1080, sample_aspect_ratio: '1:1' }] }) }
       if (cmd === 'packager') {
         const master = args[args.indexOf('--hls_master_playlist_output') + 1]!
         await mkdir(dirname(master), { recursive: true })

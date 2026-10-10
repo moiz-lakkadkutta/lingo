@@ -35,7 +35,7 @@ export const PreparedClip = z.object({
   tracks: z.object({ manifest: z.string(), vtt: z.record(z.string(), z.string()) }), // relative to the published prefix: 'master.m3u8', { de: 'vtt/de.vtt', en: 'vtt/en.vtt' }
   publishedBase: z.string().url().nullable(), // https://{CLOUDFRONT_DOMAIN}/published/{slug} or null when not published
   source: z.object({ uri: z.string(), transcribeJob: z.string().nullable() }),
-  generated: z.object({ at: z.string().datetime(), pipeline: z.string(), lemmatizer: z.string(), ai: z.boolean().optional() }), // 'lingo-pipeline@0.1.0', 'simplemma@2.0.0' | 'table'; ai false = Bedrock gloss/quiz skipped (--no-ai)
+  generated: z.object({ at: z.string().datetime(), pipeline: z.string(), lemmatizer: z.string(), ai: z.boolean().optional(), timings: z.record(z.string(), z.number().nonnegative()).optional() }), // 'lingo-pipeline@0.1.0', 'simplemma@2.0.0' | 'table'; ai false = Bedrock gloss/quiz skipped (--no-ai); timings = ms per prepare step (media, transcribe|cues, segment, gate, translate, lemmatize, highlights, ai, vtt, package, clip, publish)
   warnings: z.array(z.string()),
   cost: PreparedCost.optional(),
 })
