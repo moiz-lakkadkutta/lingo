@@ -1,12 +1,13 @@
 /**
  * Derived from described/packages/pipeline/src/steps/01-probe.ts (docs/decisions/0003-pipeline-sharing.md).
- * Download the source (aws s3 cp), probe it, normalise to an H.264 + stereo AAC mezzanine of at most 1080 lines (never upscaled).
+ * Download the source (aws s3 cp), probe it, normalise to an H.264 + stereo AAC mezzanine that fits 1920×1080 (never upscaled).
  */
 import type { PrepareDeps } from '../types'
 
 export function ffprobeArgs(src: string): string[] { return ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', src] }
 /** The first video stream of an ffprobe answer: coded size and sample aspect ratio (https://ffmpeg.org/ffprobe.html). */
 export interface VideoInfo { width: number; height: number; /** `num:den`; absent, `0:1` or `1:1` = square pixels */ sar?: string }
+export const MAX_WIDTH = 1920
 export const MAX_HEIGHT = 1080
 
 interface ProbeJson { format?: { duration?: string }; streams?: Array<{ codec_type?: string; width?: number; height?: number; sample_aspect_ratio?: string }> }
@@ -21,17 +22,22 @@ function sarValue(sar: string | undefined): number {
   const n = m ? Number(m[1]) / Number(m[2]) : NaN
   return Number.isFinite(n) && n > 0 ? n : 1
 }
-const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2)
+const even = (n: number) => Math.max(2, Math.floor(n / 2 + 1e-9) * 2) // epsilon: 2048 × (1920/2048) may land a hair under 1920
 
 /**
- * Square pixels (width × SAR, then setsar=1) and at most MAX_HEIGHT lines: a taller source scales down, a smaller one keeps its size
- * (upscaling adds bytes, not detail). Both sides even for libx264 4:2:0. Unknown size: the same rules as an ffmpeg scale expression
+ * Square pixels (width × SAR, then setsar=1), then one factor so that width ≤ MAX_WIDTH and height ≤ MAX_HEIGHT (aspect kept): a larger
+ * source scales down, a smaller one keeps its size (upscaling adds bytes, not detail). Both sides even for libx264 4:2:0.
+ * Unknown size: the same rules as an ffmpeg scale expression (its min() takes two arguments)
  * (https://ffmpeg.org/ffmpeg-filters.html#scale-1, https://ffmpeg.org/ffmpeg-filters.html#setdar_002c-setsar).
  */
 export function scaleFilter(v: VideoInfo | undefined): string {
-  if (!v) return `scale=w='trunc(iw*sar*min(1,${MAX_HEIGHT}/ih)/2)*2':h='trunc(min(ih,${MAX_HEIGHT})/2)*2',setsar=1`
-  const k = Math.min(1, MAX_HEIGHT / v.height)
-  return `scale=${even(v.width * sarValue(v.sar) * k)}:${even(v.height * k)},setsar=1`
+  if (!v) {
+    const k = `min(1,min(${MAX_HEIGHT}/ih,${MAX_WIDTH}/(iw*sar)))`
+    return `scale=w='trunc(iw*sar*${k}/2)*2':h='trunc(ih*${k}/2)*2',setsar=1`
+  }
+  const w = v.width * sarValue(v.sar)
+  const k = Math.min(1, MAX_HEIGHT / v.height, MAX_WIDTH / w)
+  return `scale=${even(w * k)}:${even(v.height * k)},setsar=1`
 }
 
 export function ffmpegNormalizeArgs(src: string, dst: string, video?: VideoInfo): string[] {

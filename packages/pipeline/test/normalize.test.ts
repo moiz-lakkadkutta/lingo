@@ -7,7 +7,7 @@ describe('ffmpegNormalizeArgs', () => {
   })
 })
 const vf = (v: { width: number; height: number; sar?: string }) => { const a = ffmpegNormalizeArgs('s', 'd', v); return a[a.indexOf('-vf') + 1] }
-describe('no upscaling: scale down to 1080 lines only when the source is taller (LING-008 batch 1)', () => {
+describe('no upscaling: scale down to fit 1920×1080 only when the source is larger (LING-008 batch 1)', () => {
   it('480p, 720p and 1080p keep their size; 2160p goes down to 1080p', () => {
     expect(vf({ width: 854, height: 480 })).toBe('scale=854:480,setsar=1')
     expect(vf({ width: 1280, height: 720 })).toBe('scale=1280:720,setsar=1')
@@ -25,8 +25,15 @@ describe('no upscaling: scale down to 1080 lines only when the source is taller 
     expect(scaleFilter({ width: 1440, height: 1080, sar: '4:3' })).toBe('scale=1920:1080,setsar=1')
     expect(scaleFilter({ width: 2880, height: 2160, sar: '4:3' })).toBe('scale=1920:1080,setsar=1')
   })
+  it('width is capped at 1920 too: 2048×858 (Sprite Fright) → 1920×804, aspect kept; never upscaled', () => {
+    expect(scaleFilter({ width: 2048, height: 858 })).toBe('scale=1920:804,setsar=1')
+    expect(scaleFilter({ width: 4096, height: 1716 })).toBe('scale=1920:804,setsar=1')
+    expect(scaleFilter({ width: 1920, height: 800 })).toBe('scale=1920:800,setsar=1')
+    // SAR applies before the cap: 1920×1080 at SAR 4:3 is 2560 wide on screen → 1920×810
+    expect(scaleFilter({ width: 1920, height: 1080, sar: '4:3' })).toBe('scale=1920:810,setsar=1')
+  })
   it('unknown size (no video stream in the probe): an ffmpeg expression with the same rules', () => {
-    expect(scaleFilter(undefined)).toBe("scale=w='trunc(iw*sar*min(1,1080/ih)/2)*2':h='trunc(min(ih,1080)/2)*2',setsar=1")
+    expect(scaleFilter(undefined)).toBe("scale=w='trunc(iw*sar*min(1,min(1080/ih,1920/(iw*sar)))/2)*2':h='trunc(ih*min(1,min(1080/ih,1920/(iw*sar)))/2)*2',setsar=1")
   })
   it('videoOf reads the first video stream of an ffprobe answer', () => {
     expect(videoOf({ streams: [{ codec_type: 'audio' }, { codec_type: 'video', width: 368, height: 480, sample_aspect_ratio: '4:3' }] })).toEqual({ width: 368, height: 480, sar: '4:3' })
