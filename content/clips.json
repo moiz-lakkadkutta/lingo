@@ -106,7 +106,7 @@
       "licenceCheck": {
         "kind": "manual",
         "url": "https://commons.wikimedia.org/wiki/File:Interview_mit_Holocaust-Überlebender_Margot_Friedländer.webm",
-        "verifiedOn": null
+        "verifiedOn": "2026-10-10"
       },
       "editorialNote": "Gate A clip: work/terra-x-friedlaender exists on the human's machine, so prepare runs with --reuse (no Transcribe). A Holocaust survivor's testimony (Theresienstadt): handle glosses and quiz items with care (docs/content.md §6). Manual check: open the per-clip schule.zdf.de page linked from the Commons credit (docs/content.md §7) and set verifiedOn.",
       "prepared": {
@@ -146,7 +146,7 @@
       "licenceCheck": {
         "kind": "manual",
         "url": "https://commons.wikimedia.org/wiki/File:Die_wichtigsten_Klimafaktoren_(ZDF,_Terra_X)_720p_50FPS.webm",
-        "verifiedOn": null
+        "verifiedOn": "2026-10-10"
       },
       "editorialNote": "Narration with a music bed. Manual check: open the per-clip schule.zdf.de page (docs/content.md §7) and set verifiedOn.",
       "prepared": {
@@ -186,7 +186,7 @@
       "licenceCheck": {
         "kind": "manual",
         "url": "https://commons.wikimedia.org/wiki/File:Interview_mit_dem_Virologen_Prof._Stephan_Becker_zur_Corona-Pandemie.webm",
-        "verifiedOn": null
+        "verifiedOn": "2026-10-10"
       },
       "editorialNote": "BY-SA: derived VTTs carry the NOTE. Technical vocabulary. Manual check: open the per-clip schule.zdf.de page (docs/content.md §7) and set verifiedOn.",
       "prepared": {
@@ -211,7 +211,7 @@
       "formality": "INFORMAL",
       "license": "CC BY 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
-      "attribution": "ZDF/TerraX/Colourfield Tell A Vision/Petra Höfer, Freddie Röckenhaus/Tobias Kaufmann/422 south/Johannes Fritsche/Jochen … — CC BY 4.0",
+      "attribution": "ZDF/TerraX/Colourfield Tell A Vision/Petra Höfer, Freddie Röckenhaus/Tobias Kaufmann/422 south/Johannes Fritsche/Jochen Schmidt — CC BY 4.0",
       "sourceUrl": "https://commons.wikimedia.org/wiki/File:So_trinken_Bäume.webm",
       "downloadUrl": null,
       "sourceS3": "s3://$S3_BUCKET_MEDIA/clips/terra-x-so-trinken-baeume.webm",
@@ -225,10 +225,10 @@
       "posterAtS": null,
       "licenceCheck": {
         "kind": "manual",
-        "url": "https://www.zdf.de/dokumentation/terra-x/so-trinken-baeume-creative-commons-clip-100.html",
-        "verifiedOn": null
+        "url": "https://schule.zdf.de/video/so-trinken-baeume-creative-commons-clip-100",
+        "verifiedOn": "2026-10-10"
       },
-      "editorialNote": "TBD by human: the credit line is cut off at \"Jochen …\" (docs/content.md [^g5]); copy the full line from the ZDF page (licenceCheck.url) — the manifest stays invalid for this row until then.",
+      "editorialNote": "Full credit line copied from the ZDF clip page (licenceCheck.url) on 2026-10-10; CC BY 4.0 requires naming changes (trimmed, subtitles retimed) and linking the licence deed.",
       "prepared": {
         "on": "2026-10-10",
         "level": "B2",
