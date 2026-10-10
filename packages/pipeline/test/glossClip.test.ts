@@ -135,6 +135,12 @@ describe('quizInput (shared by prepare and the spot check)', () => {
   })
 
   it('uses the first gloss headword as the option text', () => {
-    expect(quizInput(cues, results)[0]!.highlights).toEqual([{ word: 'roast', lemma: 'roast', pos: 'noun', gloss: 'Grillfest' }])
+    expect(quizInput(cues, results)[0]!.highlights).toEqual([{ word: 'roast', lemma: 'roast', pos: 'noun', gloss: 'Grillfest', number: 'sg' }])
+  })
+
+  it('marks a noun singular or plural from its card, and carries a German article as gender', () => {
+    const r = (word: string, lemma: string, c: Partial<GlossCard>): ClipGlossResult => ({ ...base, cueIndex: 3, word, lemma, status: 'ok', card: { ...card(['X']), ...c }, gloss: { gloss: 'X', grammar: 'g', example: 'x' }, issues: [] })
+    const q = quizInput(cues, [r('tacks', 'tack', { plural: 'tacks' }), r('tennis', 'tennis', { plural: 'none' }), r('Zug', 'Zug', { article: 'der', plural: 'Züge' }), r('swell', 'swell', { pos: 'adjective' })])
+    expect(q[0]!.highlights.map((h) => [h.word, h.number, h.gender])).toEqual([['tacks', 'pl', undefined], ['tennis', 'sg', undefined], ['Zug', 'sg', 'der'], ['swell', undefined, undefined]])
   })
 })

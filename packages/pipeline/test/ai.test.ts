@@ -36,7 +36,7 @@ describe('createAi', () => {
 
   it('cost() reflects gloss and quiz calls of one instance and is independent between instances', async () => {
     const a = createAi({ send: fakeSend(nova('gloss-v3-ok')), model: 'us.amazon.nova-lite-v1:0', cacheDir: join(dir, 'a'), log: () => {} })
-    const b = createAi({ send: fakeSend(nova('quiz-ok')), model: 'us.amazon.nova-lite-v1:0', cacheDir: join(dir, 'b'), log: () => {} })
+    const b = createAi({ send: fakeSend(nova('quiz-ok')), model: 'us.amazon.nova-lite-v1:0', quiz: 'model', cacheDir: join(dir, 'b'), log: () => {} })
     await a.gloss({ word: 'warte', lemma: 'warten', cue: 'Ich warte seit zwei Stunden auf dich.', lang: 'de', native: 'en', level: 'A2' })
     await a.gloss({ word: 'warte', lemma: 'warten', cue: 'Ich warte seit zwei Stunden auf dich.', lang: 'de', native: 'en', level: 'A2' })
     await b.quiz(QUIZ_CUES, 'de', 'en')

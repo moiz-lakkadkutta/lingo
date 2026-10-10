@@ -1,16 +1,16 @@
 import type { ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
-import { distractorIssue, QUIZ_MAX_PER_WINDOW, quizEligible, QuizPlan, quizCounts, quizPlanIssues, quizThird, quizWindow, type Lang, type Pos, type QuizSpread, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
+import { type ClozeContext, distractorIssue, QUIZ_MAX_PER_WINDOW, quizEligible, QuizPlan, quizCounts, quizPlanIssues, quizThird, quizWindow, type Lang, type Pos, type QuizSpread, type PreparedQuizItem, type QuizCounts, type QuizHighlight, type QuizPlanItem, type QuizSet } from '@lingo/contracts'
 import { cacheKey, normalizeCue, type CacheEntry } from './cache'
 import { askWithRetry, type AiDeps } from './call'
 import { languageName } from './lang'
 import { fnv1a, seededShuffle } from './seed'
 
 /** Bump whenever quizSystemPrompt() or the tool spec changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const QUIZ_PROMPT_VERSION = 3 // v2: pos per highlight; v3: same-pos distractors, spread over the clip (LING-002 Gate C)
+export const QUIZ_PROMPT_VERSION = 4 // v2: pos per highlight; v3: same-pos distractors, spread over the clip; v4: cloze grammar and no second true answer (LING-002 Gate C)
 export const QUIZ_TOOL = 'plan_quiz'
 
 /** = prepare.ts's call shape (built by quizInput() in ./glossClip): only status-ok cards, gloss = the card's first headword. */
-export type QuizCueInput = { index: number; text: string; native: string; highlights: Array<{ word: string; lemma: string; pos: Pos; gloss: string }> }
+export type QuizCueInput = { index: number; text: string; native: string; highlights: Array<{ word: string; lemma: string; pos: Pos; gloss: string; number?: 'sg' | 'pl'; gender?: 'der' | 'die' | 'das' }> }
 
 /** Flatten in cue order, dedupe by lemma (case-insensitive) keeping the first, so two forms of one lemma never meet; id = position. */
 export function flattenHighlights(cues: QuizCueInput[]): QuizHighlight[] {
@@ -21,7 +21,7 @@ export function flattenHighlights(cues: QuizCueInput[]): QuizHighlight[] {
       const k = h.lemma.toLowerCase()
       if (seen.has(k)) continue
       seen.add(k)
-      out.push({ id: out.length, cueIndex: c.index, word: h.word, lemma: h.lemma, pos: h.pos, gloss: h.gloss, cue: c.text })
+      out.push({ id: out.length, cueIndex: c.index, word: h.word, lemma: h.lemma, pos: h.pos, gloss: h.gloss, cue: c.text, ...(h.number ? { number: h.number } : {}), ...(h.gender ? { gender: h.gender } : {}) })
     }
   }
   return out
@@ -35,7 +35,7 @@ export function quizSystemPrompt(lang: Lang, native: string, counts: QuizCounts)
     `You receive JSON {"highlights":[{"id","cueIndex","word","pos","gloss","cue"}],"cueRange":{"cueMin","cueMax"},"window"}: the words the learner saw highlighted, each with the index of its subtitle line, its part of speech, its ${N} gloss and the line itself, plus the clip's range of line indexes.`,
     `Call the tool ${QUIZ_TOOL} exactly once with "items":`,
     `- ${counts.meaning} items with "kind":"meaning": the learner sees the word and picks its gloss among 4. "distractorIds" = 3 OTHER highlight ids with the SAME "pos" whose glosses are plausible but clearly different in meaning (never a synonym of the correct gloss).`,
-    `- ${counts.cloze} items with "kind":"cloze": the learner sees the line with the word blanked and picks the word among 4. "distractorIds" = 3 OTHER highlight ids with the SAME "pos" whose words would fit the line grammatically but not in meaning (never a word that also makes the line true, never a word already in the line).`,
+    `- ${counts.cloze} items with "kind":"cloze": the learner sees the line with the word blanked and picks the word among 4. "distractorIds" = 3 OTHER highlight ids with the SAME "pos" whose words would fit the line grammatically but not in meaning (never a word that also makes the line true, never a word already in the line). The words around the blank must not give the answer away: a distractor fits the article before the blank ("a"/"an", der/die/das) and has the same number (singular/plural) as the answer; and a word that also works as a modifier of the word after the blank ("a ____ game": tennis, baseball) is not a distractor.`,
     'Only test a highlight that has at least 3 other highlights of its "pos". Spread the items over the whole clip: cover the first, middle and last third of the cueRange, and put at most 2 items (meaning and cloze together) within any "window" consecutive cueIndex values. Give fewer items only if these rules leave no choice.',
     'Rules: never repeat a highlightId within one kind; a highlight may appear once as "meaning" and once as "cloze"; prefer lines where the blank cannot be guessed without knowing the word. Output only the tool call.',
   ].join('\n')
@@ -103,7 +103,9 @@ export function buildQuizItems(plan: QuizPlan, H: QuizHighlight[], lang: Lang, n
  * With `spread`, an item is only placed where its 10-cue window (quizWindow) still has room (≤ 2 items). An item that cannot reach 3
  * distractors or a free window is skipped, so the plan may have fewer items than `counts`.
  */
-export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: QuizSpread): QuizPlan {
+export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: QuizSpread, opts: ClozeContext & { onSkip?: (kind: 'meaning' | 'cloze', h: QuizHighlight, reason: string) => void } = {}): QuizPlan {
+  const ctx: ClozeContext = { ...(opts.lang ? { lang: opts.lang } : {}), ...(opts.clipCues ? { clipCues: opts.clipCues } : {}) }
+  const skippedOnce = new Set<string>()
   const E = quizEligible(H)
   const order = spread ? interleaveThirds(E, spread) : E
   const w = spread ? quizWindow(spread) : 0
@@ -115,7 +117,7 @@ export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: Qu
     const out: number[] = []
     for (let step = 1; step < H.length && out.length < 3; step++) {
       const d = H[(h.id + step) % H.length]!
-      if (seen.has(key(d)) || d.lemma.toLowerCase() === h.lemma.toLowerCase() || distractorIssue(kind, h, d)) continue
+      if (seen.has(key(d)) || d.lemma.toLowerCase() === h.lemma.toLowerCase() || distractorIssue(kind, h, d, ctx)) continue
       seen.add(key(d))
       out.push(d.id)
     }
@@ -127,9 +129,13 @@ export function fallbackPlan(H: QuizHighlight[], counts: QuizCounts, spread?: Qu
     const other = kind === 'meaning' ? used.cloze : used.meaning
     const candidates = [...order.filter((h) => !other.has(h.id)), ...order.filter((h) => other.has(h.id))]
     for (const h of candidates) {
+      if (kind === 'cloze' && h.pos === 'phrase') continue // phrases get meaning items only
       if (used[kind].has(h.id) || !fits(h.cueIndex)) continue
       const ds = distractors(kind, h)
-      if (!ds) continue
+      if (!ds) {
+        if (!skippedOnce.has(`${kind}|${h.id}`)) { skippedOnce.add(`${kind}|${h.id}`); opts.onSkip?.(kind, h, 'fewer than 3 distractors pass the rules (part of speech, grammar around the blank, no second true answer)') }
+        continue
+      }
       used[kind].add(h.id); placed.push(h.cueIndex)
       items.push({ kind, highlightId: h.id, distractorIds: ds })
       return true
@@ -174,12 +180,18 @@ export function makeQuiz(d: QuizDeps): QuizFn {
     const counts = quizCounts(E.length)
     if (counts.meaning === 0) { d.log(`quiz: skipped, ${E.length} testable highlights < 4`); return { items: [] } }
     const spread = spreadOf(cues)
-    const reachable = fallbackPlan(H, counts, spread)
+    const cloze: ClozeContext = { lang, clipCues: cues.map((c) => c.text) }
+    const reachable = fallbackPlan(H, counts, spread, { ...cloze, onSkip: (kind, h, reason) => d.log(`quiz: skipped ${kind} item "${h.word}": ${reason}`) })
     const min = { meaning: reachable.items.filter((i) => i.kind === 'meaning').length, cloze: reachable.items.filter((i) => i.kind === 'cloze').length }
     if (min.meaning + min.cloze === 0) { d.log('quiz: skipped, no item satisfies the distractor and spread rules'); return { items: [] } }
+    if ((d.quizMode ?? (process.env.LINGO_AI_QUIZ === 'model' ? 'model' : 'code')) === 'code') {
+      // round 6: the plan is built by code (zero valid model plans in three real runs; docs/decisions/0009); no Bedrock call
+      d.log(`quiz: plan built by code (${min.meaning} meaning + ${min.cloze} cloze)`)
+      return { items: buildQuizItems(reachable, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`)), source: 'code' }
+    }
     const identity = { kind: 'quiz', v: QUIZ_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, spread, highlights: H.map((h) => [h.cueIndex, h.word, h.lemma, h.pos, h.gloss, normalizeCue(h.cue)]) }
     const key = cacheKey(identity)
-    const check = (p: QuizPlan) => quizPlanIssues(p, H, counts, { spread, min })
+    const check = (p: QuizPlan) => quizPlanIssues(p, H, counts, { spread, min, ...cloze })
     let plan: QuizPlan | undefined
     let usedFallback = false
     const hit = await d.cache.get('quiz', key, QuizPlan)
@@ -211,6 +223,6 @@ export function makeQuiz(d: QuizDeps): QuizFn {
       }
     }
     const items = buildQuizItems(plan, H, lang, native, (it, reason) => d.log(`quiz: dropped ${it.kind} item "${H[it.highlightId]?.word ?? it.highlightId}": ${reason}`))
-    return usedFallback ? { items, fallback: true } : { items }
+    return usedFallback ? { items, fallback: true, source: 'fallback' } : { items, source: 'model' }
   }
 }

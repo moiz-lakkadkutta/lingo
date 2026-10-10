@@ -7,7 +7,7 @@ import type { GermanLexiconFn } from './germanWords'
 
 /** Everything a gloss or quiz call needs; injected so tests never reach Bedrock. */
 export type Reasoning = 'off' | 'low' | 'medium'
-export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn }
+export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn; /** quiz planner: 'code' (default) or 'model' (LINGO_AI_QUIZ=model) */ quizMode?: 'code' | 'model' }
 
 export interface AskSpec<T> {
   kind: AiKind

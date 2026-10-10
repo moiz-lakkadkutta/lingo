@@ -62,70 +62,41 @@
       }
     },
     {
-      "id": "c12-sale",
+      "id": "c12-scavenger-sale",
       "cueIndex": 12,
       "cue": "on Friday to fix up\nthat scavenger sale?",
       "nativeCue": "Am Freitag, um den Schnitzelverkauf zu regeln?",
       "prevCue": "Hey, what about asking Kay to come\nto the community center with us",
-      "word": "sale",
-      "lemma": "sale",
+      "word": "scavenger sale",
+      "lemma": "scavenger sale",
       "expect": {
-        "sense": "event at which collected things are sold",
+        "sense": "a sale of collected, donated second-hand things, often to raise money",
         "pos": [
+          "phrase",
           "noun"
         ],
         "accept": [
-          "verkauf",
-          "basar",
-          "flohmarkt",
-          "trödelmarkt",
           "wohltätigkeitsbasar",
-          "trödelverkauf"
+          "basar",
+          "trödelmarkt",
+          "flohmarkt",
+          "trödelverkauf",
+          "basar mit gesammelten sachen",
+          "sammelbasar",
+          "wohltätigkeitsverkauf"
         ],
         "reject": [
-          "angebot",
-          "rabatt",
-          "schlussverkauf",
+          "aasfresser",
           "ausverkauf",
-          "sonderangebot"
+          "schlussverkauf",
+          "sonderangebot",
+          "schnäppchenjäger",
+          "verkauf"
         ],
-        "plural": [
-          "sales"
-        ],
-        "ambiguous": false
-      }
-    },
-    {
-      "id": "c12-scavenger",
-      "cueIndex": 12,
-      "cue": "on Friday to fix up\nthat scavenger sale?",
-      "nativeCue": "Am Freitag, um den Schnitzelverkauf zu regeln?",
-      "prevCue": "Hey, what about asking Kay to come\nto the community center with us",
-      "word": "scavenger",
-      "lemma": "scavenger",
-      "expect": {
-        "sense": "person who collects discarded things (here attributive: a sale of collected items)",
-        "pos": [
-          "noun"
-        ],
-        "accept": [
-          "altwarensammler",
-          "lumpensammler",
-          "trödelsammler",
-          "sammler",
-          "schrottsammler",
-          "trödler",
-          "plünderer"
-        ],
-        "reject": [
-          "aasfresser"
-        ],
-        "plural": [
-          "scavengers"
-        ],
-        "ambiguous": true,
-        "note": "needs human confirmation (plan H6)"
-      }
+        "ambiguous": false,
+        "note": "needs human confirmation (round 6: fixed expression replaces the single-word item); Flohmarkt accepted for the expression (a sale of second-hand things)"
+      },
+      "phrase": true
     },
     {
       "id": "c22-swell",
@@ -166,36 +137,38 @@
       }
     },
     {
-      "id": "c25-wagon",
+      "id": "c25-wagon-train",
       "cueIndex": 25,
       "cue": "Good picture, wagon train.",
       "nativeCue": "Gutes Bild, Wagenzug.",
       "prevCue": "maybe ask her to the show Friday.",
-      "word": "wagon",
-      "lemma": "wagon",
+      "word": "wagon train",
+      "lemma": "wagon train",
       "expect": {
-        "sense": "horse-drawn vehicle (as in a western's wagon train)",
+        "sense": "a line of horse-drawn wagons travelling together (westerns)",
         "pos": [
+          "phrase",
           "noun"
         ],
         "accept": [
-          "wagen",
-          "planwagen",
-          "pferdewagen",
-          "fuhrwerk",
-          "treckwagen"
+          "planwagenzug",
+          "siedlertreck",
+          "treck",
+          "wagenzug",
+          "wagenkolonne",
+          "planwagenkolonne",
+          "siedlerzug"
         ],
         "reject": [
-          "waggon",
-          "eisenbahnwagen",
-          "güterwagen",
-          "kombi"
+          "zug",
+          "eisenbahn",
+          "güterzug",
+          "waggon"
         ],
-        "plural": [
-          "wagons"
-        ],
-        "ambiguous": false
-      }
+        "ambiguous": false,
+        "note": "needs human confirmation (round 6: fixed expression replaces the single-word item)"
+      },
+      "phrase": true
     },
     {
       "id": "c42-sal",
@@ -220,32 +193,33 @@
       "word": "old-timer",
       "lemma": "old-timer",
       "expect": {
-        "sense": "something very old (here an old object)",
+        "sense": "here: a very old object (the previous line talks about \"this thing\"), cf. German Oldtimer",
         "pos": [
+          "phrase",
           "noun"
         ],
         "accept": [
-          "altes ding",
+          "oldtimer",
+          "altes auto",
+          "oldtimer (altes auto)",
           "uraltes ding",
           "altes stück",
-          "uraltes stück",
-          "oldtimer",
           "antiquität",
-          "altertümchen",
-          "alter schinken"
+          "uraltes stück"
         ],
         "reject": [
-          "erfahrener mensch",
           "veteran",
           "alter hase",
-          "alter mann"
-        ],
-        "plural": [
-          "old-timers"
+          "erfahrener mensch",
+          "alter mann",
+          "urgestein",
+          "senior",
+          "altes"
         ],
         "ambiguous": true,
-        "note": "needs human confirmation (plan H6)"
-      }
+        "note": "needs human confirmation (round 6: fixed expression replaces the single-word item)"
+      },
+      "phrase": true
     },
     {
       "id": "c78-refreshments",
@@ -342,98 +316,69 @@
       }
     },
     {
-      "id": "c90-acquainted",
+      "id": "c90-get-acquainted",
       "cueIndex": 90,
       "cue": "A chance to do things with\na group, to get acquainted.",
       "nativeCue": "Eine Chance, sich mit einer Gruppe kennen zu lernen.",
       "prevCue": "That could be a lot of fun.",
-      "word": "acquainted",
-      "lemma": "acquaint",
+      "word": "get acquainted",
+      "lemma": "get acquainted",
       "expect": {
-        "sense": "(get acquainted) to get to know each other",
+        "sense": "to get to know each other",
         "pos": [
-          "verb",
-          "adjective"
+          "phrase",
+          "noun"
         ],
         "accept": [
-          "kennenlernen",
           "sich kennenlernen",
-          "bekannt",
-          "miteinander bekannt",
-          "vertraut",
-          "bekannt werden"
+          "kennenlernen",
+          "einander kennenlernen",
+          "bekannt werden",
+          "sich näher kennenlernen"
         ],
         "reject": [
-          "mit etwas vertraut machen"
+          "mit etwas vertraut machen",
+          "bekannt",
+          "vertraut"
         ],
-        "past": [
-          "acquainted"
-        ],
-        "participle": [
-          "acquainted"
-        ],
-        "ambiguous": false
-      }
+        "ambiguous": false,
+        "note": "needs human confirmation (round 6: fixed expression replaces the single-word item)"
+      },
+      "phrase": true
     },
     {
-      "id": "c93-roast",
+      "id": "c93-weenie-roast",
       "cueIndex": 93,
       "cue": "Or a weenie roast.",
       "nativeCue": "Oder ein Braten.",
       "prevCue": "Would Kay enjoy a bike trip?",
-      "word": "roast",
-      "lemma": "roast",
+      "word": "weenie roast",
+      "lemma": "weenie roast",
       "expect": {
-        "sense": "outdoor party where food is cooked over a fire",
+        "sense": "an outdoor party where hot dogs are roasted over a fire",
         "pos": [
+          "phrase",
           "noun"
         ],
         "accept": [
           "grillfest",
+          "würstchengrillen",
           "grillparty",
           "grillabend",
-          "lagerfeuer",
-          "grillen",
-          "cookout"
+          "wurstgrillen",
+          "würstchenbraten",
+          "würstchenparty"
         ],
         "reject": [
           "braten",
           "rösten",
-          "wurstbraten"
+          "wurst",
+          "würstchen"
         ],
-        "plural": [
-          "roasts"
-        ],
-        "ambiguous": false
-      }
-    },
-    {
-      "id": "c93-weenie",
-      "cueIndex": 93,
-      "cue": "Or a weenie roast.",
-      "nativeCue": "Oder ein Braten.",
-      "prevCue": "Would Kay enjoy a bike trip?",
-      "word": "weenie",
-      "lemma": "weenie",
-      "expect": {
-        "sense": "(informal) a hot-dog sausage",
-        "pos": [
-          "noun"
-        ],
-        "accept": [
-          "würstchen",
-          "wiener",
-          "wiener würstchen",
-          "würstel",
-          "hotdog-würstchen",
-          "bockwurst"
-        ],
-        "reject": [],
-        "plural": [
-          "weenies"
-        ],
-        "ambiguous": false
-      }
+        "ambiguous": false,
+        "note": "needs human confirmation (round 6: fixed expression replaces the single-word item)"
+      },
+      "phrase": true
     },
     {
       "id": "c95-expense",

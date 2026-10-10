@@ -17,7 +17,7 @@ export const PreparedCue = z
     tokens: z.array(PreparedToken),
   })
   .refine((c) => c.endMs > c.startMs, { message: 'endMs must be greater than startMs', path: ['endMs'] })
-export const PreparedHighlight = z.object({ cueIndex: z.number().int().nonnegative(), word: z.string(), lemma: z.string(), rank: z.number().int().positive(), gloss: z.string().optional(), grammar: z.string().optional(), example: z.string().optional() }) // gloss/grammar/example absent when prepared with --no-ai
+export const PreparedHighlight = z.object({ cueIndex: z.number().int().nonnegative(), word: z.string(), lemma: z.string(), rank: z.number().int().positive(), gloss: z.string().optional(), grammar: z.string().optional(), example: z.string().optional(), /** a fixed expression (word = the span) */ phrase: z.literal(true).optional() }) // gloss/grammar/example absent when prepared with --no-ai
 export const PreparedQuizItem = z.object({ kind: z.enum(['meaning', 'cloze']), prompt: z.string(), options: z.array(z.string()).length(4), answer: z.number().int().min(0).max(3), cueIndex: z.number().int().nullable() })
 /** Bedrock spend for the clip; filled by LING-002, optional so LING-001 fixtures need no schema change. */
 export const PreparedCost = z.object({ calls: z.number().int(), cachedCalls: z.number().int(), inputTokens: z.number().int(), outputTokens: z.number().int(), usd: z.number() })

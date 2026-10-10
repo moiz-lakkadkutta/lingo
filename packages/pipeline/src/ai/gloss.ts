@@ -1,5 +1,5 @@
 import type { ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
-import { germanGlossWords, Gloss, GlossCard, glossCardIssues, isSoftCardIssue, pruneCard, type CardContext, type Lang, type Level } from '@lingo/contracts'
+import { germanGlossWords, Gloss, GlossCard, glossCardIssues, preciseFirst, isSoftCardIssue, pruneCard, type CardContext, type Lang, type Level } from '@lingo/contracts'
 import { cacheKey, normalizeCue, type CacheEntry } from './cache'
 import { askWithRetry, type AiDeps } from './call'
 import { cardToGloss } from './grammar'
@@ -12,7 +12,7 @@ import { languageName } from './lang'
  * Nova tool use (enums, ≤ 2 nesting levels, long strings last): https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html
  */
 /** Bump whenever glossSystemPrompt() or glossToolConfig() changes: it is part of the cache key (a sha256 snapshot test enforces it). */
-export const GLOSS_PROMPT_VERSION = 6 // v3: marked target, structured card, few-shot (LING-002 Gate C); v4: referent first, spelling, all forms; v5: second gloss only if exact, plural in this sense (eval 2026-10-03); v6: previous cue as context
+export const GLOSS_PROMPT_VERSION = 7 // v3: marked target, structured card, few-shot (LING-002 Gate C); v4: referent first, spelling, all forms; v5: second gloss only if exact, plural in this sense (eval 2026-10-03); v6: previous cue as context; v7: fixed expressions (phrase), most precise gloss first
 export const GLOSS_TOOL = 'explain_word'
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -66,15 +66,16 @@ export function glossSystemPrompt(lang: Lang, native: string, level: Level, lemm
   return [
     `You write one entry of a learner's dictionary for ONE word of a ${T} subtitle line. The learner speaks ${N}; their level is about ${level} (CEFR, approximate).`,
     '',
-    'Input JSON: {"previous": the subtitle line before it (absent for the first line), "line": the subtitle line with the target word marked like [[this]], "word": the marked word exactly as it appears, "lemma": its dictionary form}.',
+    'Input JSON: {"previous": the subtitle line before it (absent for the first line), "line": the subtitle line with the target word marked like [[this]], "word": the marked word exactly as it appears, "lemma": its dictionary form, "phrase": true when the marked words are one fixed expression, "note": a short hint on its senses (optional)}.',
     'The "previous" line is context only: use it to tell what the marked word refers to (a thing or a person named there, an event), but never gloss or translate its words.',
+    'When "phrase" is true, the marked words are one fixed expression (for example [[look forward to]] or [[pick up]]): gloss the whole expression as a unit, set pos to "phrase", give no grammar fields, and use the note to choose the sense. Its gloss may have up to 4 words.',
     '',
     'Work on the marked word only. The other words of the line are context: use them to decide which sense the marked word has here, but never translate them into the gloss. When the marked word is part of a compound or fixed phrase ("tennis racket", "weenie roast", "get acquainted"), gloss only the marked part, in the sense it has inside that phrase.',
     '',
     `Call ${GLOSS_TOOL} exactly once. Fill the fields in this order:`,
     `- sense: the dictionary sense of the marked word in this line, as a short ${T} definition (at most 12 words). First decide from the line what the word refers to here (a person, a thing, an event, an action). Pick the sense this line needs, including old-fashioned, informal or slang senses. Describe the word, not the line.`,
-    '- pos: the part of speech of the marked word in this line.',
-    `- gloss: 1 or 2 ${N} translations of the marked word in that sense, most common first; add a second one only if it means exactly the same here. Each is a dictionary headword: one word, or two only when ${N} has no single word for it. Each is a real, correctly spelled ${N} word, with all its accents and special letters. No articles, no sentences, no explanations, no words that translate other words of the line. If the translation is spelled like the ${T} word, add a 1–3-word ${N} clarifier in parentheses, e.g. "Tennis (Sport)".`,
+    '- pos: the part of speech of the marked word in this line ("phrase" for a fixed expression).',
+    `- gloss: 1 or 2 ${N} translations of the marked word in that sense, ordered from the most specific and precise word to the most general ("Kochtopf" before "Topf"); add a second one only if it means exactly the same here. Each is a dictionary headword: one word, or two only when ${N} has no single word for it. Each is a real, correctly spelled ${N} word, with all its accents and special letters. No articles, no sentences, no explanations, no words that translate other words of the line. If the translation is spelled like the ${T} word, add a 1–3-word ${N} clarifier in parentheses, e.g. "Tennis (Sport)".`,
     '- register: neutral, informal, formal, dated or slang, for the marked word in this sense.',
     `- grammar fields: all of those for its pos and no others, with word forms in ${T}: ${FORMS[lang].replace('{N}', N)}`,
     `- example: one new ${T} sentence at level ${level} that uses the marked word (or another form of "${lemma}") in the same sense. Not the given line, no names of people, at most 12 words. The sentence must be in ${T}, never in ${N}.`,
@@ -96,7 +97,7 @@ export function glossToolConfig(lang: Lang, native: string): ToolConfiguration {
         type: 'object',
         properties: {
           sense: { type: 'string', description: `Dictionary sense of the marked word in this line, a short definition in ${T}, at most 12 words` },
-          pos: { type: 'string', enum: ['noun', 'verb', 'adjective', 'adverb', 'other'] },
+          pos: { type: 'string', enum: ['noun', 'verb', 'adjective', 'adverb', 'other', 'phrase'] },
           gloss: { type: 'array', items: { type: 'string' }, description: `1 or 2 ${N} headword translations of the marked word only` },
           register: { type: 'string', enum: ['neutral', 'informal', 'formal', 'dated', 'slang'] },
           article: { type: 'string', enum: ['der', 'die', 'das'], description: 'German nouns only' },
@@ -120,6 +121,8 @@ export interface GlossRequest {
   prevCue?: string
   /** its Translate line: accepted for callers, never sent to the model and never used by the validators (0009 decision 4) */
   prevNativeCue?: string
+  /** the target is a fixed expression (data/phrases-<lang>.txt); `note` is its sense hint */
+  phrase?: { note?: string }
 }
 export type GlossOutcome =
   | { status: 'ok' | 'soft'; card: GlossCard; gloss: Gloss; issues: string[]; /** 1 or 2 when asked now; the stored value on a cache hit */ attempts: number; cached: boolean }
@@ -149,16 +152,16 @@ export function makeGloss(d: GlossDeps): GlossFn {
     const { word, lemma, lang, native, level, hint } = r
     const line = normalizeCue(r.cue)
     const previous = r.prevCue ? normalizeCue(r.prevCue) : undefined
-    const ctx: CardContext = { word, lemma, cue: line, lang, native, ...(r.nativeCue ? { nativeCue: normalizeCue(r.nativeCue) } : {}) }
+    const ctx: CardContext = { word, lemma, cue: line, lang, native, ...(r.nativeCue ? { nativeCue: normalizeCue(r.nativeCue) } : {}), ...(r.phrase ? { phrase: true } : {}) }
     const done = (card: GlossCard, issues: string[], attempts: number, cached: boolean): GlossOutcome => {
-      const c = pruneCard(card, lang)
+      const c = { ...pruneCard(card, lang), gloss: preciseFirst(card.gloss) }
       return { status: issues.length ? 'soft' : 'ok', card: c, gloss: cardToGloss(c, lang, native, lemma), issues, attempts, cached }
     }
     let marked: string
     try { marked = markTarget(line, word) } catch (e) {
       return { status: 'rejected', issues: [`MARK: ${(e as Error).message}`], lastOutput: null, attempts: 0, cached: false }
     }
-    const identity = { kind: 'gloss', v: GLOSS_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, level, lemma, word, cue: line, ...(previous ? { previous } : {}), ...(hint ? { hint } : {}) }
+    const identity = { kind: 'gloss', v: GLOSS_PROMPT_VERSION, model: d.model, ...(d.reasoning && d.reasoning !== 'off' ? { reasoning: d.reasoning } : {}), lang, native, level, lemma, word, cue: line, ...(previous ? { previous } : {}), ...(r.phrase ? { phrase: r.phrase.note ?? true } : {}), ...(hint ? { hint } : {}) }
     const key = cacheKey(identity)
     const hit = await d.cache.get('gloss', key, GlossCard)
     if (hit) {
@@ -167,7 +170,7 @@ export function makeGloss(d: GlossDeps): GlossFn {
       await d.cache.delete('gloss', key)
     }
     const res = await askWithRetry(d, {
-      kind: 'gloss', label: lemma, system: glossSystemPrompt(lang, native, level, lemma), payload: { ...(previous ? { previous } : {}), line: marked, word, lemma },
+      kind: 'gloss', label: lemma, system: glossSystemPrompt(lang, native, level, lemma), payload: { ...(previous ? { previous } : {}), line: marked, word, lemma, ...(r.phrase ? { phrase: true, ...(r.phrase.note ? { note: r.phrase.note } : {}) } : {}) },
       ...(hint ? { extraText: [hint] } : {}),
       toolName: GLOSS_TOOL, toolConfig: glossToolConfig(lang, native), maxTokens: d.reasoning && d.reasoning !== 'off' ? 2000 : GLOSS_MAX_TOKENS,
       schema: GlossCard, check: (c) => cardIssues(c, ctx, d.germanLexicon), soft: isSoftCardIssue,

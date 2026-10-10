@@ -13,6 +13,7 @@ import { tokenizeCues } from './tokenize'
 import { checkVtt, cuesToVtt, loadCuesVtt, NATIVE_LINT_LIMITS } from './vtt'
 import { createAi } from './ai/index'
 import { glossClip, quizInput } from './ai/glossClip'
+import { loadPhrases, mergeExpressions } from './phrases'
 import { normalize, probeMezz } from './steps/normalize'
 import { transcribeJobName, transcribeWithAws, wordsFromTranscribe } from './steps/transcribe'
 import { alignNative, translateWithAws } from './steps/translate'
@@ -140,13 +141,16 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
   if (unranked.share > 0.05) warnings.push(`unranked tokens: ${Math.round(unranked.share * 100)} % of countable tokens have no frequency rank (${unranked.lemmas.slice(0, 12).join(', ')}${unranked.lemmas.length > 12 ? ', …' : ''}) — ASR errors or rare words; the level ignores them`)
   const cueTokens = segs.map((s) => ({ index: s.index, tokens: tokensByCue[s.index]! }))
   const suspects = asrSuspectReasons(cueTokens, rank)
-  const picked = pickHighlights(cueTokens, rank, level, 0.4, new Set(suspects.keys()), (ci, t) => warnings.push(asrSkipWarning(ci, t.word, t.asr, suspects.get(`${ci}|${t.word.toLowerCase()}`))))
+  const phrases = await loadPhrases(lang)
+  const notes = new Map(phrases.map((p) => [p.lemma, p.note]))
+  // fixed expressions (data/phrases-<lang>.txt): a highlighted token inside one becomes the whole expression
+  const picked = mergeExpressions(pickHighlights(cueTokens, rank, level, 0.4, new Set(suspects.keys()), (ci, t) => warnings.push(asrSkipWarning(ci, t.word, t.asr, suspects.get(`${ci}|${t.word.toLowerCase()}`)))), cueTokens, phrases)
   if (!picked.length) warnings.push(`no highlights: no countable token has rank ≥ ${highlightFloor(level)} (band above ${level}); the clip teaches nothing above its level — swap it (docs/content.md §8)`)
   warnings.push(...reviewHighlights(picked, lang))
   const highlights: PreparedHighlight[] = []
   let quiz: PreparedQuizItem[] | undefined
   if (doAi) {
-    const results = await glossClip(deps, picked.map((h) => ({ cueIndex: h.cueIndex, word: h.word, lemma: h.lemma, rank: h.rank, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!], ...(h.cueIndex > 0 ? { prevCue: segs[h.cueIndex - 1]!.text } : {}) })), lang, natives[0]!, level, (m) => deps.log(m))
+    const results = await glossClip(deps, picked.map((h) => ({ cueIndex: h.cueIndex, word: h.word, lemma: h.lemma, rank: h.rank, cue: segs[h.cueIndex]!.text, nativeCue: native[h.cueIndex]![natives[0]!], ...(h.cueIndex > 0 ? { prevCue: segs[h.cueIndex - 1]!.text } : {}), ...('phrase' in h && h.phrase ? { phrase: notes.get(h.lemma) ? { note: notes.get(h.lemma)! } : {} } : {}) })), lang, natives[0]!, level, (m) => deps.log(m))
     const glossed: Array<PreparedHighlight & { gloss: string }> = []
     results.forEach((r, i) => {
       // a wrong explanation on screen is worse than one highlight fewer (docs/decisions/0009 decision 6)
