@@ -17,7 +17,7 @@ export interface DualCueProps {
   savedIds: ReadonlySet<string>; userScale: number
   /** 0→1 over holdMs while holding; null otherwise */
   hold: Animated.Value | null
-  /** Save button handle (chips → card) */
+  /** Save button handle (chips ▼ → card); ▲ on a chip stays on the chip (decision 0006, S1) */
   nextFocusDown?: number
   /** indexed by highlightIdx, for nextFocusUp from the card */
   chipRefs?: React.RefObject<Array<View | null>>
@@ -61,6 +61,7 @@ export function DualCue({ cue, alignment, nativeVisible, wordFocus, onFocusWord,
                       userScale={userScale}
                       onFocus={idx !== null ? () => onFocusWord(idx) : undefined}
                       nextFocusDown={h ? nextFocusDown : undefined}
+                      nextFocusUp={h ? 'self' : undefined}
                       chipRef={idx !== null && chipRefs ? (r) => { chipRefs.current[idx] = r } : undefined}
                     />
                   )

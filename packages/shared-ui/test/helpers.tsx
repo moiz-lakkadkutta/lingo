@@ -13,6 +13,28 @@ export const render = (el: React.ReactElement): ReactTestRenderer => {
   mounted.push(r!)
   return r!
 }
+/**
+ * Like render, but every Pressable gets its own node handle (findNodeHandle → `_nativeTag`), so nextFocus* links can be told apart.
+ * `tagOf(label)` is the handle of the Pressable with that aria-label (labels are unique per test render).
+ */
+export const renderTagged = (el: React.ReactElement): { r: ReactTestRenderer; tagOf(label: string): number | undefined } => {
+  const tags = new Map<string, number>()
+  let next = 100
+  let r: ReactTestRenderer | undefined
+  act(() => {
+    r = create(el, {
+      createNodeMock: (e) => {
+        // React asks again whenever a callback ref changes; a real host view keeps its handle, so one tag per label.
+        const label = (e.props as Record<string, unknown>)['aria-label']
+        if (typeof label !== 'string') return { _nativeTag: next++ }
+        if (!tags.has(label)) tags.set(label, next++)
+        return { _nativeTag: tags.get(label)! }
+      },
+    })
+  })
+  mounted.push(r!)
+  return { r: r!, tagOf: (label) => tags.get(label) }
+}
 export const rerender = (r: ReactTestRenderer, el: React.ReactElement) => { act(() => { r.update(el) }) }
 export const textOf = (n: ReactTestInstance): string => [n.props.children].flat(Infinity).filter((c) => typeof c === 'string' || typeof c === 'number').join('')
 export const texts = (r: ReactTestRenderer | ReactTestInstance) => ('root' in r ? r.root : r).findAll((n) => is(n, 'Text')).map(textOf)
