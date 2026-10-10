@@ -17,6 +17,42 @@ The Leanback launcher intent is set so the app shows on the Fire TV home. JS-onl
 `plugins/withKeyDownEvents.js` sets `ReactFeatureFlags.enableKeyDownEvents = true` in `MainApplication.kt` during prebuild, so
 remote presses arrive as key-down then key-up (react-native-tvos sends key-up only by default; decision 0006 §3).
 
+## Device spike on a Fire TV Stick (no proxy)
+
+The stick reaches the Mac only through `adb reverse`, which cannot bind port 80, and the API's manifest fallback is
+`http://localhost/<key>`. So run the API, the media and Metro on high ports and reverse each one. Postgres runs on the Mac;
+export `DATABASE_URL` in each shell (the API reads the environment, not `.env`; see `.env.example`).
+
+```
+adb connect <stick-ip>                                   # adb devices → <stick-ip>:5555 device
+# 1. A test stream: 66 s ffmpeg test pattern as HLS in ./media/demo-de/ (ignored by git)
+mkdir -p media/demo-de && ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=25 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 66 \
+  -c:v libx264 -g 150 -pix_fmt yuv420p -c:a aac -f hls -hls_time 6 -hls_playlist_type vod \
+  -hls_segment_filename 'media/demo-de/seg%03d.ts' media/demo-de/master.m3u8
+pnpm media:dev                                           # serves ./media on :8090 (--dir, --port, or MEDIA_DIR / MEDIA_PORT)
+# 2. The clip: the demo-de fixture (23 cues, 7 highlights with test glosses), published; safe to re-run
+pnpm --filter @lingo/api seed:dev                        # manifest key demo-de/master.m3u8
+# 3. The API with local media
+MEDIA_BASE_URL=http://localhost:8090 LINGO_PLUS_MODE=off pnpm api     # :4000
+# 4. Ports on the stick: the API, the media, Metro
+adb reverse tcp:4000 tcp:4000
+adb reverse tcp:8090 tcp:8090
+adb reverse tcp:8081 tcp:8081                            # if another project's Metro owns 8081: run Lingo's on 8082 and
+                                                         # adb reverse tcp:8081 tcp:8082 (the app is not a dev client)
+# 5. The app, pointed at the reversed API (the default http://10.0.2.2:4000 is the emulator's host)
+EXPO_PUBLIC_API_URL=http://localhost:4000 EXPO_PUBLIC_LINGO_SPIKE=1 pnpm --filter @lingo/expo android
+adb shell am start -a android.intent.action.VIEW -d "lingo://clip/demo-de"
+```
+
+`adb reverse` rules are dropped when the stick reconnects; run `adb reverse --list` and repeat step 4 if requests stop. The clip
+API returns only highlights at or above the learner's rank floor: set the level to A1 in Settings to see all 7 (an A2 learner sees 3).
+Cues with a highlight: 2, 5, 6, 10, 19, 20. Open the Explain card on one of them for the chip checks.
+
+**Release build** (the S1 Menu row: a debug build opens the Dev Menu on Menu): `EXPO_PUBLIC_API_URL=http://localhost:4000
+EXPO_PUBLIC_LINGO_SPIKE=1 pnpm --filter @lingo/expo android:release`. It bundles the JS at build time (no Metro, so skip the 8081
+reverse) and is signed with the template's debug keystore. Gradle path: `cd apps/expo/android && ./gradlew assembleRelease`, then
+`adb install -r app/build/outputs/apk/release/app-release.apk`.
+
 **EAS builds:** `@moizp/vega-media-kit` is a `link:` to a checkout outside this repo (`../vega-media-kit`). EAS uploads only this
 repo, so `build:tv` on EAS cannot resolve the kit until it is published to npm. Build the APK locally (`expo run:android
 --variant release`) until then.
