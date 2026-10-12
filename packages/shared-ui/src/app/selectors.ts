@@ -35,6 +35,16 @@ export function formatClock(s: number): string {
   const t = Math.max(0, Math.floor(s))
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
 }
+/**
+ * Where the Player starts. A launch position (Content Launcher / deep link `?t=`) wins over server progress (`resumeS`, the Continue
+ * position) because the learner asked for that moment explicitly. It is clamped to [0, durationS): below 0 → 0; at or past the end, or
+ * not a finite number, it is ignored and the normal resume logic decides (resumeS, else 0). review-005 L6, review-007 L8.
+ */
+export function startPosition(launchS: number | undefined, resumeS: number | null, durationS: number): number {
+  const resume = resumeS ?? 0
+  if (launchS === undefined || !Number.isFinite(launchS) || launchS >= durationS) return resume
+  return Math.max(0, launchS)
+}
 /** Back from the player: completed when positionS ≥ durationS − 10 or ≥ 0.97·durationS. */
 export function progressBody(slug: string, positionS: number, durationS: number): ProgressPut {
   return { clipSlug: slug, positionS, completed: positionS >= durationS - 10 || positionS >= 0.97 * durationS }

@@ -1,5 +1,5 @@
 import type { Catalog, ClipCard, LibraryWord } from '@lingo/contracts'
-import { dueLabel, filterWords, formatClock, formatMinutes, homeRows, isDueToday, nextClip, pickHero, progressBody, speakOptions } from '../src/app/selectors'
+import { dueLabel, filterWords, formatClock, formatMinutes, homeRows, isDueToday, nextClip, pickHero, progressBody, speakOptions, startPosition } from '../src/app/selectors'
 import { strings } from '../src/strings'
 
 const card = (slug: string, o: Partial<ClipCard> = {}): ClipCard => ({ slug, title: slug.toUpperCase(), level: 'A2', durationS: 120, posterUrl: null, resumeS: null, completed: false, attribution: '', ...o })
@@ -53,6 +53,18 @@ describe('selectors', () => {
     expect(progressBody('x', 109, 120).completed).toBe(false)
     expect(progressBody('x', 970, 1000).completed).toBe(true)
     expect(progressBody('x', 960, 1000).completed).toBe(false)
+  })
+  it('startPosition: a launch position in [0, duration) wins over server progress; past the end or not a number falls back to it (review-007 L8)', () => {
+    expect(startPosition(60, 30, 120)).toBe(60) // the learner asked for 1:00 explicitly
+    expect(startPosition(0, 30, 120)).toBe(0)
+    expect(startPosition(-5, 30, 120)).toBe(0) // clamped to 0
+    expect(startPosition(119.5, null, 120)).toBe(119.5)
+    expect(startPosition(120, 30, 120)).toBe(30) // the end is not a start: resume logic decides
+    expect(startPosition(999999999, null, 120)).toBe(0)
+    expect(startPosition(Number.NaN, 30, 120)).toBe(30)
+    expect(startPosition(Number.POSITIVE_INFINITY, 30, 120)).toBe(30)
+    expect(startPosition(undefined, 30, 120)).toBe(30) // no launch position: server progress (Continue)
+    expect(startPosition(undefined, null, 120)).toBe(0)
   })
   it('isDueToday counts overdue and later-today as due and tomorrow as not', () => {
     expect(isDueToday(new Date(2026, 8, 20).toISOString(), now)).toBe(true)
