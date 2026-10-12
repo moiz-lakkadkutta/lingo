@@ -65,7 +65,7 @@
     - [ ] A-L3: a request without `x-device-id` still falls back to the shared `'anon'` learner on every route but `/iap/verify` (`PUT /me`, `POST /me/words`, `PUT /me/level`, `PUT /me/progress`, `GET /iap/status`, `POST /sessions`).
     - [ ] A-L4: concurrent saves can overrun the free-tier limit (check and insert are not atomic; probe ended at 21).
     - [ ] B-L1: the shared-ui import rule is a deny-list, not the Vega-supported allowlist.
-    - [ ] B-L2: Alexa / Media Controls "stop" does nothing in the Player (same as the LING-003 follow-up above).
+    - [x] B-L2: Alexa / Media Controls "stop" does nothing in the Player (same as the LING-003 follow-up above) — fixed c6b6138.
     - [ ] B-L3: on Vega every Watch writes a progress row and puts the clip on Continue at 0:00.
     - [ ] B-L4: Back on the offline screen pops a hidden stack; Retry then resets it, dropping a launch intent's Player.
     - [ ] B-L5: a launch intent over a running Player drops the old clip's position and saved words.
