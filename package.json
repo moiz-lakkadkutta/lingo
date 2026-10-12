@@ -15,6 +15,7 @@
     "db:generate": "pnpm --filter @lingo/api prisma generate",
     "db:deploy": "pnpm --filter @lingo/api prisma migrate deploy",
     "pipeline": "pnpm --filter @lingo/pipeline cli",
+    "clips:import": "pnpm --filter @lingo/api clips:import",
     "friction": "node scripts/new-friction.mjs",
     "lint:words": "node scripts/lint-words.mjs",
     "check:vega": "node --test scripts/check-vega.test.mjs && node scripts/check-vega.mjs"

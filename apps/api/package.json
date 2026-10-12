@@ -8,7 +8,8 @@
     "start": "NODE_ENV=production node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "clips:import": "tsx scripts/import-clips.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
