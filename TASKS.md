@@ -13,7 +13,7 @@
   - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank — done in fdb6928 (decision 0010 §6).
   - [ ] follow-up: the Content Launcher / deep-link resume position is dropped. `useLaunchIntents` passes `positionS`, but Root's `onOpen` (packages/shared-ui/src/app/Root.tsx:116) ignores it (review L6). Put it on the player route (clamped to the clip, review-007 L8) or say in a comment that server progress wins.
   - [ ] follow-up: the TV Words "Due today" filter uses the device's local end of day (packages/shared-ui/src/app/selectors.ts:42), while the API and the phone use UTC days (decision 0011 §5). Align them.
-  - [ ] follow-up (docs/plans/LING-008.md §14, open question 6): import processed clips into Postgres: Clip row from `content/clips.json` + `work/<slug>/clip.json`, poster key `published/<slug>/poster.jpg`. No importer exists yet.
+  - [x] follow-up (docs/plans/LING-008.md §14, open question 6): import processed clips into Postgres: Clip row from `content/clips.json` + `work/<slug>/clip.json`, poster key `published/<slug>/poster.jpg` — done 65db7bb (`pnpm clips:import [--dry-run] [--status]`); re-run after the batch publishes so rows become `published`. Poster key still awaits human confirmation (open question 6).
   - [ ] review lows left open (docs/reviews/2026-10-02-ling-005.md):
     - [ ] L2: the level-rule window mixes the DB clock (`QuizAttempt.at`) and the API clock (`levelChangedAt`).
     - [ ] L3: the code's expiry and rotation remain (scope, uniform 404 and rate limit done in 9b98e2c); tracked under LING-006 M1.
