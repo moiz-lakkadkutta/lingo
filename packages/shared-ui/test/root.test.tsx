@@ -3,6 +3,7 @@ import { act } from 'react-test-renderer'
 import type { LearnerDto } from '@lingo/contracts'
 import { Root } from '../src/app/Root'
 import { createRemoteBus } from '../src/remote/types'
+import { createLaunchBus } from '../src/platform/launch'
 import type { SessionTransport } from '../src/session/types'
 import type { PlusStore } from '../src/plus/types'
 import { strings } from '../src/strings'
@@ -146,6 +147,54 @@ describe('Root', () => {
     expect(srv.calls.filter((c) => c.path === '/me/level').map((c) => c.body)).toEqual([{ source: 'settings', level: 'B1' }])
     expect(srv.calls.filter((c) => c.path === '/me' && c.method === 'PUT')).toHaveLength(1)
     expect(r.root.findAll((n) => is(n, 'Text') && n.props.children === strings.common.saveError)).toHaveLength(0)
+  })
+})
+
+describe('Root · launch position (LING-005 L6, review-007 L8)', () => {
+  async function bootLaunch(progress?: number) {
+    const srv = fakeServer()
+    if (progress !== undefined) srv.state.progress.set('zug', { positionS: progress, completed: false })
+    vi.stubGlobal('fetch', srv.fetchImpl)
+    const launches = createLaunchBus()
+    const r = render(<Root apiBaseUrl="http://api" scale={1} deviceId="tv-1" transport={transport()} remote={createRemoteBus()} launches={launches} />)
+    await settle()
+    return { r, srv, launches }
+  }
+  const player = (r: ReturnType<typeof render>) => r.root.find((n) => (n.type as unknown) === 'Player')
+
+  it('a deep link with a position starts the Player there, even over server progress', async () => {
+    const { r, launches } = await bootLaunch(30)
+    act(() => launches.emit({ itemId: 'zug', positionS: 60, source: 'unknown' }))
+    await settle()
+    expect(player(r).props.clip.slug).toBe('zug')
+    expect(player(r).props.startS).toBe(60)
+  })
+  it('a position past the end falls back to server progress; none at all starts at 0', async () => {
+    const a = await bootLaunch(30)
+    act(() => a.launches.emit({ itemId: 'zug', positionS: 999999999, source: 'unknown' }))
+    await settle()
+    expect(player(a.r).props.startS).toBe(30)
+    const b = await bootLaunch()
+    act(() => b.launches.emit({ itemId: 'zug', source: 'unknown' }))
+    await settle()
+    expect(player(b.r).props.startS).toBe(0)
+  })
+  it('the launch position applies once: after Plus and Back the Player resumes where the learner left it', async () => {
+    const { r, launches } = await bootLaunch()
+    act(() => launches.emit({ itemId: 'zug', positionS: 60, source: 'unknown' }))
+    await settle()
+    await act(async () => { player(r).props.onPlus(90) })
+    await settle()
+    expect(texts(r)).toContain(strings.plus.title)
+    expect(pressBack()).toBe(true)
+    await settle()
+    expect(player(r).props.startS).toBe(90)
+  })
+  it('Watch from Home starts at the server resume position (the clip\'s resumeS)', async () => {
+    const { r } = await bootLaunch(30)
+    await press(byLabel(r, strings.home.watchLabel('Title zug')))
+    await settle()
+    expect(player(r).props.startS).toBe(30)
   })
 })
 

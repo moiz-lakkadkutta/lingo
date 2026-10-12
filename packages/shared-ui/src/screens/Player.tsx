@@ -20,6 +20,8 @@ import { nativeVisible, statusParts } from './player/visibility'
 
 export interface PlayerProps {
   clip: ClipDetail; learner: LearnerDto; scale: number; challenge: boolean; sessionCode?: string
+  /** Where playback starts; default clip.resumeS ?? 0. Root passes selectors.startPosition (a deep-link position wins over resumeS). */
+  startS?: number
   savedIds: ReadonlySet<string>; savedCount: number; remote: RemoteSource; caps?: Caps
   onBack(positionS: number): void; onEnd(): void
   /** Leave for the Plus screen (Explain's save-limit CTA). positionS is the playhead, so the caller saves it like Back does (PR #2 review B-M1). */
@@ -31,11 +33,11 @@ const REPORTED = new Set(['loading', 'ready', 'playing', 'paused', 'buffering', 
 
 /**
  * caps.playback === false (Vega OS until the kit's Vega adapter plays, KIT-010): an honest message instead of mounting KitPlayer, which
- * would reach the Shaka stub and crash. Back (button or remote) leaves at the resume position.
+ * would reach the Shaka stub and crash. Back (button or remote) leaves at the start position.
  */
 export function Player(props: PlayerProps) {
   const caps = props.caps ?? platformCaps
-  if (caps.playback === false) return <PlaybackOff onBack={() => props.onBack(props.clip.resumeS ?? 0)} />
+  if (caps.playback === false) return <PlaybackOff onBack={() => props.onBack(props.startS ?? props.clip.resumeS ?? 0)} />
   return <PlayerView {...props} caps={caps} />
 }
 
@@ -63,7 +65,8 @@ function PlayerView(props: PlayerProps) {
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [state, setState] = useState<PlayerState>(() => initialState(clip.resumeS ?? 0))
+  const [startAt] = useState(() => props.startS ?? clip.resumeS ?? 0) // fixed for this mount, so KitPlayer never sees a new startAt
+  const [state, setState] = useState<PlayerState>(() => initialState(startAt))
   const stateRef = useRef(state)
   const ctx = useMemo<PlayerCtx>(() => ({
     cues: clip.cues, caps, plus: learner.plus, challenge, autoPause: learner.autoPause,
@@ -114,7 +117,9 @@ function PlayerView(props: PlayerProps) {
     }
     dispatch({ type: 'key', key: ev.key, longPress: ev.longPress, repeat: ev.repeat, now: Date.now() })
   }, [dispatch])
-  const onKeySeen = usePlatformMedia({ clip, state, onKey }); useRemoteKeys(remote, onKeySeen, true)
+  // Alexa / Media Controls stop leaves the Player (machine 'stop'); a remote Back key is never routed here, BackHandler owns Back.
+  const onStop = useCallback(() => dispatch({ type: 'stop', now: Date.now() }), [dispatch])
+  const onKeySeen = usePlatformMedia({ clip, state, onKey, onStop }); useRemoteKeys(remote, onKeySeen, true)
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { dispatch({ type: 'back', now: Date.now() }); return true })
@@ -159,7 +164,7 @@ function PlayerView(props: PlayerProps) {
         ref={kit}
         source={{ uri: clip.manifestUrl, type: 'hls' }}
         autoplay
-        startAt={clip.resumeS ?? 0}
+        startAt={startAt}
         onPosition={(s) => dispatch({ type: 'position', s, now: Date.now() })}
         onState={(s) => { if (REPORTED.has(s)) dispatch({ type: 'playerState', s: s as Extract<PlayerEvent, { type: 'playerState' }>['s'], now: Date.now() }) }}
       />

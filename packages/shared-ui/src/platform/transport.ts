@@ -9,7 +9,7 @@ export function transportToKey(c: TransportControl): RemoteKey | null {
     case 'togglePlayPause': return 'playPause'
     case 'seekForward': return 'fastForward'
     case 'seekBackward': return 'rewind'
-    case 'stop': return 'back'
+    case 'stop': return 'back' // dedupe key only: usePlatformMedia sends stop to the Player as its own event, not as this key
     case 'next':
     case 'previous':
       return null

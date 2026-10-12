@@ -30,7 +30,7 @@ import { Words } from '../screens/Words'
 import type { SessionHandle, SessionTransport } from '../session/types'
 import { useSession } from '../session/useSession'
 import { strings } from '../strings'
-import { nextClip, progressBody } from './selectors'
+import { nextClip, progressBody, startPosition } from './selectors'
 import { cacheContext, createClipCache, type ClipCache } from './clipCache'
 
 export interface RootProps { apiBaseUrl: string; scale: number; /** Per-install id from the platform entry (platform/deviceId.ts useDeviceId); the API's learner key. Required: no shared default (review-005 H1). */ deviceId: string; /** Realtime link; defaults to socket.io-client. A platform entry may inject a relay. */ transport?: SessionTransport; /** Remote keys from the platform entry (react-native-tvos / Vega TVEventHandler bridge); defaults to none. */ remote?: RemoteSource; /** Amazon IAP store from the platform entry (LING-007); defaults to noStore. */ plusStore?: PlusStore; /** Deep links / Content Launcher intents from the platform entry (LING-007); defaults to noLaunches. */ launches?: LaunchSource }
@@ -112,8 +112,9 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
       if (ev?.type === 'restored' && ev.results.length) refreshMe()
     }).catch(() => {})
   }, [boot, plusStore, api, refreshMe])
-  // Content Launcher / deep links: a known slug opens the Player on top of the current stack.
-  useLaunchIntents({ catalog, launches, onOpen: (slug) => dispatchNav({ type: 'push', route: { name: 'player', slug, challenge: false } }) })
+  // Content Launcher / deep links: a known slug opens the Player on top of the current stack, at the intent's position when it has one
+  // (PlayerRoute clamps it and lets it win over server progress: selectors.startPosition).
+  useLaunchIntents({ catalog, launches, onOpen: (slug, positionS) => dispatchNav({ type: 'push', route: { name: 'player', slug, challenge: false, ...(positionS === undefined ? {} : { startS: positionS }) } }) })
 
   const patchLearner = useCallback((p: LearnerSettingsPatch) => patchLearnerOptimistic({ put: ep.patchMe, setLearner }, p), [ep])
   const focus = useCallback((r: Route): FocusMemoryProps => {
@@ -148,7 +149,7 @@ function RouteView({ route, ctx }: { route: Route; ctx: Ctx }) {
       )
     case 'home': return <HomeRoute ctx={ctx} />
     case 'clip': return <ClipRoute ctx={ctx} slug={route.slug} />
-    case 'player': return <PlayerRoute ctx={ctx} slug={route.slug} challenge={route.challenge} />
+    case 'player': return <PlayerRoute ctx={ctx} slug={route.slug} challenge={route.challenge} launchS={route.startS} />
     case 'summary': return <SummaryRoute ctx={ctx} slug={route.slug} />
     case 'quiz': return <QuizRoute ctx={ctx} slug={route.slug} />
     case 'words': return <WordsRoute ctx={ctx} filter={route.filter} />
@@ -202,7 +203,7 @@ function ClipRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   )
 }
 
-function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challenge: boolean }) {
+function PlayerRoute({ ctx, slug, challenge, launchS }: { ctx: Ctx; slug: string; challenge: boolean; launchS?: number }) {
   const { ep, nav, clips, learner, session, setSaved } = ctx
   const cc = cacheContext(learner)
   const cached = clips.fresh(slug, cc) // stale native lines / highlights after a language or level change are refetched (review-005 M3)
@@ -242,9 +243,14 @@ function PlayerRoute({ ctx, slug, challenge }: { ctx: Ctx; slug: string; challen
   }
   return (
     <Player
-      clip={clip} learner={learner} scale={ctx.scale} challenge={challenge && learner.plus} sessionCode={session.code ?? undefined}
+      clip={clip} startS={startPosition(launchS, clip.resumeS, clip.durationS)} learner={learner} scale={ctx.scale} challenge={challenge && learner.plus} sessionCode={session.code ?? undefined}
       savedIds={savedIds} savedCount={ctx.saved.length} remote={ctx.remote} onSave={save}
-      onPlus={(pos) => { onLeave(pos); nav({ type: 'push', route: { name: 'plus' } }) }}
+      onPlus={(pos) => {
+        onLeave(pos)
+        // The launch position applies once: drop it from the route so Back from Plus resumes at pos (the clip cache), not the deep link.
+        if (launchS !== undefined) nav({ type: 'replace', route: { name: 'player', slug, challenge } })
+        nav({ type: 'push', route: { name: 'plus' } })
+      }}
       onLearnerChange={(p) => { void ctx.patchLearner(p) }}
       onBack={(pos) => { onLeave(pos); nav({ type: 'pop' }) }}
       onEnd={() => {
