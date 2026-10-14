@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react'
 import { findNodeHandle, View } from 'react-native'
 import type { CueDto, HighlightDto } from '@lingo/contracts'
 import { Check } from '../components/Check'
-import { Focusable } from '../components/Focusable'
+import { Button } from '../components/Button'
 import { T } from '../components/Text'
 import { WordChip } from '../components/WordChip'
 import type { Caps } from '../platformCaps'
@@ -19,8 +19,6 @@ export interface ExplainProps {
   /** px from the screen bottom to the card's bottom edge: above the cue block (the Player measures it). */
   bottom: number
 }
-
-const action = { paddingHorizontal: px(28), paddingVertical: px(16) }
 
 /**
  * Fixed anatomy, 880 px wide, centred above the cue block (the Player draws the scrim below the cue, so the line stays readable) (LING-003 §Explain): optional word row (card mode) /
@@ -75,6 +73,7 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
                 onFocus={() => onFocusWord(i)}
                 onPress={() => onFocusWord(i)}
                 nextFocusDown={downHandle}
+                nextFocusUp="self"
                 chipRef={(r) => { chipRefs.current[i] = r }}
               />
             ))}
@@ -102,24 +101,20 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
           <T variant="cueTarget" color={tokens.color.nativeCue}>{cue.native}</T>
         ) : null}
 
+        {/* ▲ from any action goes to the chips, ▼ stays here (decision 0006, S1): pinned so Android's spatial search never jumps to the cue line. */}
         <View style={{ flexDirection: 'row', gap: px(14), marginTop: 'auto' }}>
           {highlight ? (
-            <Focusable focusRef={saveRef} label={saveLabel} hasTVPreferredFocus nextFocusUp={upHandle} onPress={save} style={{ ...action, backgroundColor: tokens.color.interactive }}>
-              <T variant="body" color={tokens.color.ground}>{saveText}</T>
-            </Focusable>
+            <Button primary focusRef={saveRef} label={saveLabel} text={saveText} preferred nextFocusUp={upHandle} nextFocusDown="self" onPress={save} />
           ) : null}
-          <Focusable focusRef={replayRef} label={strings.explain.replay} hasTVPreferredFocus={!highlight} nextFocusUp={upHandle} onPress={onReplay} style={{ ...action, backgroundColor: tokens.color.surface2 }}>
-            <T variant="body">{strings.explain.replay}</T>
-          </Focusable>
+          <Button focusRef={replayRef} label={strings.explain.replay} text={strings.explain.replay} preferred={!highlight} nextFocusUp={upHandle} nextFocusDown="self" onPress={onReplay} />
           {caps.rate ? (
-            <Focusable
+            <Button
               label={rate === 0.75 ? strings.explain.normalSpeed : plus ? strings.explain.slower : strings.explain.slowerPlus}
+              text={rate === 0.75 ? strings.explain.normalSpeed : plus ? strings.explain.slower : strings.explain.slowerPlus}
               nextFocusUp={upHandle}
+              nextFocusDown="self"
               onPress={() => (plus ? onSlower() : setStatus(strings.explain.slowerUpsell))}
-              style={{ ...action, backgroundColor: tokens.color.surface2 }}
-            >
-              <T variant="body">{rate === 0.75 ? strings.explain.normalSpeed : plus ? strings.explain.slower : strings.explain.slowerPlus}</T>
-            </Focusable>
+            />
           ) : null}
         </View>
         <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{status ?? strings.explain.continueHint}</T>

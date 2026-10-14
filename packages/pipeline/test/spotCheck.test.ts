@@ -33,7 +33,7 @@ afterAll(async () => { await rm(root, { recursive: true, force: true }) })
 
 const spot = async (perClip: number | undefined, name: string, logs: string[] = []) => {
   const send = vi.fn(fixtureSend())
-  const ai = createAi({ send, cacheDir: join(root, `cache-${name}`), log: (m) => logs.push(m) })
+  const ai = createAi({ quiz: 'model', send, cacheDir: join(root, `cache-${name}`), log: (m) => logs.push(m) })
   const out = join(root, `${name}.md`)
   const result = await runSpotCheck({ clipJson, perClip, out, ai, freqList: shifted, log: (m) => logs.push(m) })
   return { send, out, result }
@@ -119,7 +119,7 @@ describe('spot check', () => {
 
     // a second run is served from the cache and --append adds a second section
     const logs: string[] = []
-    const ai2 = createAi({ send, cacheDir: join(root, 'cache-full'), log: (m) => logs.push(m) })
+    const ai2 = createAi({ quiz: 'model', send, cacheDir: join(root, 'cache-full'), log: (m) => logs.push(m) })
     const again = await runSpotCheck({ clipJson, out, append: true, ai: ai2, freqList: shifted })
     expect(send).toHaveBeenCalledTimes(16)
     expect(again.cost).toMatchObject({ calls: 0, cachedCalls: 16 })
@@ -157,9 +157,9 @@ describe('spot check', () => {
 
   it('returns only the new section in result.markdown; with --append the earlier sections stay in the file but are not returned', async () => {
     const out = join(root, 'append.md')
-    const ai1 = createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-append'), log: () => {} })
+    const ai1 = createAi({ quiz: 'model', send: fixtureSend(), cacheDir: join(root, 'cache-append'), log: () => {} })
     const first = await runSpotCheck({ clipJson, out, ai: ai1, freqList: shifted, log: () => {} })
-    const ai2 = createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-append'), log: () => {} })
+    const ai2 = createAi({ quiz: 'model', send: fixtureSend(), cacheDir: join(root, 'cache-append'), log: () => {} })
     const second = await runSpotCheck({ clipJson, out, append: true, ai: ai2, freqList: shifted, log: () => {} })
     const file = await readFile(out, 'utf8')
     expect(file).toBe(`${first.markdown}\n${second.markdown}`)
@@ -170,13 +170,13 @@ describe('spot check', () => {
     const out = join(root, 'cli.md')
     await writeFile(out, '## earlier section\n')
     const printed: string[] = []
-    const r = await spotCheckCli({ clipJson, perClip: 15, out, append: true, echo: true, ai: createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-cli'), log: () => {} }), freqList: shifted }, (m) => printed.push(m))
+    const r = await spotCheckCli({ clipJson, perClip: 15, out, append: true, echo: true, ai: createAi({ quiz: 'model', send: fixtureSend(), cacheDir: join(root, 'cache-cli'), log: () => {} }), freqList: shifted }, (m) => printed.push(m))
     expect(printed.at(-1)).toBe(`\n${r.markdown}`)
     expect(printed.join('\n')).not.toContain('earlier section')
     const quiet: string[] = []
-    const r2 = await spotCheckCli({ clipJson, perClip: 15, out, append: true, echo: false, ai: createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-cli2'), log: () => {} }), freqList: shifted }, (m) => quiet.push(m))
+    const r2 = await spotCheckCli({ clipJson, perClip: 15, out, append: true, echo: false, ai: createAi({ quiz: 'model', send: fixtureSend(), cacheDir: join(root, 'cache-cli2'), log: () => {} }), freqList: shifted }, (m) => quiet.push(m))
     expect(quiet).toEqual([r2.summary])
-    expect(r2.summary).toMatch(/^spot-check demo-de: 15 glosses \(15 ok\), \d+ quiz items \(\d+ meaning \+ \d+ cloze\), \$/)
+    expect(r2.summary).toMatch(/^spot-check demo-de: 15 glosses \(15 ok\), \d+ quiz items \(\d+ meaning \+ \d+ cloze, plan: model\), \$/)
     for (const g of r2.glosses) expect(quiet[0]).not.toContain(g.word)
   })
 
@@ -204,7 +204,7 @@ describe('spot check', () => {
       return out
     })
     const logs: string[] = []
-    const ai = createAi({ send, cacheDir: join(root, 'cache-rejected'), log: (m) => logs.push(m) })
+    const ai = createAi({ quiz: 'model', send, cacheDir: join(root, 'cache-rejected'), log: (m) => logs.push(m) })
     const result = await runSpotCheck({ clipJson, perClip: 15, out: join(root, 'rejected.md'), ai, freqList: shifted, log: (m) => logs.push(m) })
     expect(result.glosses.find((g) => g.lemma === rejectedH.lemma)!.status).toBe('rejected')
     expect(result.glosses.find((g) => g.lemma === softH.lemma)!.status).toBe('soft')
@@ -222,7 +222,7 @@ describe('spot check', () => {
   it('a fixture run writes spot-check.fixture.json and never touches spot-check.json', async () => {
     const real = join(root, 'demo-de', 'spot-check.json')
     await writeFile(real, '{"keep":true}\n')
-    const ai = createAi({ send: fixtureSend(), cacheDir: join(root, 'cache-fixture'), log: () => {} })
+    const ai = createAi({ quiz: 'model', send: fixtureSend(), cacheDir: join(root, 'cache-fixture'), log: () => {} })
     const r = await runSpotCheck({ clipJson, out: join(root, 'fixture.md'), ai, freqList: shifted, jsonFile: 'spot-check.fixture.json', log: () => {} })
     expect(r.files.json).toBe(join(root, 'demo-de', 'spot-check.fixture.json'))
     await expect(access(r.files.json)).resolves.toBeUndefined()

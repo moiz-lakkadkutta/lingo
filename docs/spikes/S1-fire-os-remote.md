@@ -17,6 +17,23 @@ EXPO_PUBLIC_LINGO_SPIKE=1 pnpm --filter @lingo/expo android     # stick on adb (
 adb logcat -s ReactNativeJS | grep LINGO-SPIKE                  # second terminal
 ```
 
+For the API, media and ports on the stick (seed clip, `MEDIA_BASE_URL`, `adb reverse`), follow "Device spike on a Fire TV Stick" in
+`apps/expo/README.md`; no proxy is needed.
+
+**Release build for the Menu row (and the rows still open after 2026-10-04).** In a debug build the Menu key opens the React Native
+Dev Menu over the Player, so the Player's Menu effect can only be checked on a release build. A release build bundles the JS, so
+pass the `EXPO_PUBLIC_*` values at build time:
+
+```
+cd apps/expo && EXPO_TV=1 npx expo prebuild --clean          # once, or after native changes
+EXPO_PUBLIC_LINGO_SPIKE=1 EXPO_PUBLIC_API_URL=http://localhost:4000 pnpm --filter @lingo/expo android:release
+# or with Gradle: cd apps/expo/android && EXPO_PUBLIC_LINGO_SPIKE=1 EXPO_PUBLIC_API_URL=http://localhost:4000 ./gradlew assembleRelease
+#                 adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+The release variant is signed with the debug keystore from the prebuild template, so it installs over adb. It does not load Metro,
+so JS changes need a rebuild. `console.log` still reaches `adb logcat -s ReactNativeJS`, so the `LINGO-SPIKE` lines work the same.
+
 `EXPO_PUBLIC_LINGO_SPIKE=1` makes `RemoteBridge.tsx` log `LINGO-SPIKE <eventType> <eventKeyAction> <ms>` per event.
 `focus -1` and `blur -1` lines also appear as native focus moves; they are expected and ignored.
 
@@ -37,7 +54,7 @@ Open a clip, wait until a line is on screen, leave the stage focused. For each k
 | ► short | `right 0`, `right 1` | `right 1` | jump to the next line's start; status line shows bottom-left |
 | ▲ | `up 0`, `up 1` | `up 1` | open the settings sheet; playback continues |
 | Play/Pause | `playPause 0`, `playPause 1` | `playPause 1` | pause and open the Explain card |
-| Menu | `menu 0`, `menu 1` | `menu 1` | toggle the native line for this line only (set Native line = Never in the sheet first so the change is visible) |
+| Menu (**release build only**: a debug build opens the Dev Menu) | `menu 0`, `menu 1` | `menu 1` | toggle the native line for this line only (set Native line = Never in the sheet first so the change is visible) |
 | Rewind / FF (if the remote has them) | `rewind`/`fastForward` 0 then 1 | 1 only | act as ◄ / ► short |
 
 - [ ] Every row: the log matches the column for your flag state.
@@ -49,7 +66,11 @@ Open a clip, wait until a line is on screen, leave the stage focused. For each k
 
 - [ ] Press Select to open the Explain card. Focus is on Save word (outline + scale).
 - [ ] Press ▲: a `WordChip` in the cue takes focus (`nextFocusUp` node handle) and draws the 3 px outline with no scale. Take a photo.
+- [ ] Press ▲ again: focus stays on the chip (pinned to itself since 2026-10-10, decision 0006), never Replay.
 - [ ] Press ▼: focus returns to Save word.
+- [ ] Press ▼ again on Save word: focus stays on Save word (pinned), never a chip in the cue line.
+- [ ] Save word focused: the fill turns light with dark text (tokens.button.primary.focused), an outline sits a few px outside it,
+      and the button scales up. The text is easy to read from the sofa. Take a photo. Same for Watch on Clip detail.
 
 ## 3. Stage focus after Back
 

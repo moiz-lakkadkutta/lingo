@@ -25,7 +25,7 @@ clips.get('/:slug', async (req, res, next) => {
     const seen = new Set<string>()
     const wordsYoullMeet = cues.flatMap((q) => q.highlights).filter((h) => !seen.has(h.lemma) && seen.add(h.lemma)).slice(0, MEET_MAX)
     ok(res, {
-      ...card, status: 'ready', sourceLang: c.sourceLang, manifestUrl: manifestUrl(c.manifestKey) ?? `http://localhost/${c.slug}`,
+      ...card, status: 'ready', sourceLang: c.sourceLang, manifestUrl: manifestUrl(c.manifestKey ?? c.slug)!,
       cues,
       quiz: c.quiz.map((q) => ({ id: q.id, kind: q.kind, prompt: q.prompt, options: q.options, answer: q.answer, cueIndex: c.cues.find((x) => x.id === q.cueId)?.index ?? null })),
       wordsYoullMeet,

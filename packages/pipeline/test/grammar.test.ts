@@ -50,9 +50,12 @@ describe('grammar renderer', () => {
     }
   })
 
-  it('cardToGloss joins two glosses with ", " and the result passes the Gloss schema', () => {
+  it('cardToGloss shows only the first gloss ("Verkauf, Ausverkauf" displays as "Verkauf"); the card keeps the alternatives', () => {
+    const sale = card({ gloss: ['Verkauf', 'Ausverkauf'], plural: 'sales' })
+    expect(cardToGloss(sale, 'en', 'de', 'sale').gloss).toBe('Verkauf')
+    expect(sale.gloss).toEqual(['Verkauf', 'Ausverkauf'])
     const g = cardToGloss(card({ pos: 'adjective', gloss: ['praktisch', 'raffiniert'], comparative: 'niftier', register: 'informal', example: 'This is a nifty way to save time.' }), 'en', 'de', 'nifty')
-    expect(g).toEqual({ gloss: 'praktisch, raffiniert', grammar: 'Adjektiv, Komparativ niftier, umgangssprachlich', example: 'This is a nifty way to save time.' })
+    expect(g).toEqual({ gloss: 'praktisch', grammar: 'Adjektiv, Komparativ niftier, umgangssprachlich', example: 'This is a nifty way to save time.' })
     expect(Gloss.safeParse(g).success).toBe(true)
     // two long glosses that do not fit together: the first alone
     const long = cardToGloss(card({ gloss: ['a'.repeat(35), 'b'.repeat(35)] }), 'en', 'de', 'x')

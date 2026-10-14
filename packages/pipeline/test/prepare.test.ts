@@ -29,7 +29,9 @@ describe.each([['de', 'en'], ['en', 'de']] as Array<[Lang, string]>)('prepare %s
     expect(clip).toEqual(result.clip)
     expect(clip.tracks).toEqual({ manifest: 'master.m3u8', vtt: { [lang]: `vtt/${lang}.vtt`, [native]: `vtt/${native}.vtt` } })
     expect(clip.source.transcribeJob).toBe(`demo-${lang}-20260915-120000`)
-    expect(clip.generated).toEqual({ at: '2026-09-15T12:00:00.000Z', pipeline: 'lingo-pipeline@0.1.0', lemmatizer: 'table', ai: true })
+    const { timings, ...generated } = clip.generated
+    expect(generated).toEqual({ at: '2026-09-15T12:00:00.000Z', pipeline: 'lingo-pipeline@0.1.0', lemmatizer: 'table', ai: true })
+    expect(Object.keys(timings!)).toEqual(['media', 'transcribe', 'segment', 'gate', 'translate', 'lemmatize', 'highlights', 'ai', 'vtt', 'package', 'clip', 'publish']) // published: clip.json is written again after the upload
     expect(clip.durationS).toBeGreaterThan(55)
     expect(clip.publishedBase).toBe(`https://d111.cloudfront.net/published/demo-${lang}`)
   })

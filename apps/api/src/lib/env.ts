@@ -1,11 +1,13 @@
 import { z } from 'zod'
-const Env = z.object({
+export const Env = z.object({
   DATABASE_URL: z.string().url(),
   PORT: z.coerce.number().default(4000),
   AWS_REGION: z.string().default('eu-central-1'),
   BEDROCK_REGION: z.string().default('us-east-1'),
   S3_BUCKET_MEDIA: z.string().optional(),
   CLOUDFRONT_DOMAIN: z.string().optional(),
+  /** Local media origin for manifests when CLOUDFRONT_DOMAIN is unset, e.g. http://localhost:8090 (`pnpm media:dev`); any http(s) port. */
+  MEDIA_BASE_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().refine((u) => /^https?:\/\//.test(u), { message: 'MEDIA_BASE_URL must be an http(s) URL' }).optional()),
   /** Lingo Plus feature flag (decision 0012): iap = verify with RVS; demo = everyone has Plus; off = nobody has Plus. */
   LINGO_PLUS_MODE: z.enum(['iap', 'demo', 'off']).default('iap'),
   /** Must be set explicitly whenever LINGO_PLUS_MODE is not off (assertPlusSafe); the default only types the off case. */

@@ -1,4 +1,4 @@
-/** Places highlighted words on the pre-wrapped cue text so DualCue can render them as focusable chips (decision 0006 §1). */
+/** Places highlighted words (and fixed expressions, one slot per word) on the pre-wrapped cue text so DualCue can render them as focusable chips (decision 0006 §1). */
 export interface WordSlot { text: string; highlightIdx: number | null }
 export interface Alignment { lines: WordSlot[][]; unmatched: number[] }
 
@@ -21,6 +21,15 @@ export function alignHighlights(text: string, highlights: ReadonlyArray<{ word: 
   const stripped = lines.flatMap((l, li) => l.map((s, si) => stripToken(si === 0 && rows[li]!.startsWith('-') ? s.text.slice(1) : s.text)))
   const unmatched: number[] = []
   highlights.forEach((h, i) => {
+    // a fixed expression (LING-002 Gate C round 6): its words on consecutive free slots, possibly across a line break
+    const parts = h.word.split(/\s+/).filter(Boolean)
+    if (parts.length > 1) {
+      const lp = parts.map((p) => p.toLowerCase())
+      const start = flat.findIndex((_, j) => lp.every((p, k) => flat[j + k] !== undefined && flat[j + k]!.highlightIdx === null && stripped[j + k]!.toLowerCase() === p))
+      if (start < 0) unmatched.push(i)
+      else for (let k = 0; k < parts.length; k++) flat[start + k]!.highlightIdx = i
+      return
+    }
     let at = flat.findIndex((s, j) => s.highlightIdx === null && stripped[j] === h.word)
     if (at < 0) {
       const lw = h.word.toLowerCase()

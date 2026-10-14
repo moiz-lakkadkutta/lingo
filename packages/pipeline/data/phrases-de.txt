@@ -1,0 +1,1 @@
+# Fixed expressions for German clips (same format as phrases-en.txt). Empty seed: to be filled by hand when German clips are reviewed.

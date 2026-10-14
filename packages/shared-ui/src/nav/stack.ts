@@ -2,7 +2,7 @@
 export type WordsFilter = 'all' | 'due' | 'learned'
 export type Route =
   | { name: 'firstRun' } | { name: 'home' } | { name: 'clip'; slug: string }
-  | { name: 'player'; slug: string; challenge: boolean } | { name: 'summary'; slug: string } | { name: 'quiz'; slug: string }
+  | { name: 'player'; slug: string; challenge: boolean; /** launch position (deep link / Content Launcher); see selectors.startPosition */ startS?: number } | { name: 'summary'; slug: string } | { name: 'quiz'; slug: string }
   | { name: 'words'; filter: WordsFilter } | { name: 'settings' } | { name: 'pair' } | { name: 'about' } | { name: 'plus' }
 /** Never empty. */
 export interface NavState { stack: readonly Route[] }

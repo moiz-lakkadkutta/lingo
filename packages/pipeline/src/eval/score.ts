@@ -27,10 +27,11 @@ export function scoreItem(g: GoldItem, r: ClipGlossResult | undefined, set: { la
   const base = { id: g.id, ambiguous: e.ambiguous, ...(e.note ? { note: e.note } : {}) }
   const card = r?.card
   if (!r || !card) return { ...base, pass: false, checks: { ...NONE }, gloss: '', sense: '', status: r?.status ?? 'missing', rejectHit: false }
-  const glosses = card.gloss.map(normGloss)
+  // only the first gloss is shown and quizzed (cardToGloss), so only it is scored
+  const glosses = card.gloss.slice(0, 1).map(normGloss)
   const accept = new Set(e.accept.map(normGloss)), reject = new Set(e.reject.map(normGloss))
   const rejectHit = glosses.some((x) => reject.has(x))
-  const issues = glossCardIssues(card, { word: g.word, lemma: g.lemma, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), lang: set.lang, native: set.native })
+  const issues = glossCardIssues(card, { word: g.word, lemma: g.lemma, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), lang: set.lang, native: set.native, ...(g.phrase ? { phrase: true } : {}) })
   const forms = (['plural', 'comparative', 'past', 'participle'] as const).every((f) => {
     const want = e[f]
     if (!want || FORM_POS[f] !== card.pos) return true
@@ -46,7 +47,7 @@ export function scoreItem(g: GoldItem, r: ClipGlossResult | undefined, set: { la
     'S-LANG': !issues.some((i) => i.startsWith('X-LANG:')),
   }
   const pass = checks['S-SENSE'] && checks['S-POS'] && checks['S-FORMS'] && checks['S-VALID'] && checks['S-LANG']
-  return { ...base, pass, checks, gloss: card.gloss.join(', '), sense: card.sense, status: r.status, rejectHit }
+  return { ...base, pass, checks, gloss: card.gloss[0]!, sense: card.sense, status: r.status, rejectHit }
 }
 
 export type QuizCheckId = 'Q-ANSWER' | 'Q-DISTINCT' | 'Q-CLOZE-NEAR' | 'Q-MEANING-OVERLAP' | 'Q-PASSING-GLOSSES'

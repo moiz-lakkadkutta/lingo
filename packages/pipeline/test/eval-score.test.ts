@@ -17,13 +17,14 @@ const result = (g: GoldItem, card: Partial<GlossCard>, over: Partial<ClipGlossRe
 }
 
 describe('eval scorer (LING-002-gate-c §9)', () => {
-  it('GoldSet parses the committed English gold file and it has 19 scored items and one excluded item', () => {
-    expect(gold.items).toHaveLength(20)
+  it('GoldSet parses the committed English gold file and it has 17 scored items (5 fixed expressions) and one excluded item', () => {
+    expect(gold.items).toHaveLength(18)
     expect(gold.items.filter((i) => 'excluded' in i.expect)).toHaveLength(1)
     expect(item('c42-sal').asr).toBe(0.158)
     const scored = gold.items.filter((i) => !('excluded' in i.expect))
-    expect(scored).toHaveLength(19)
-    expect(scored.filter((i) => 'ambiguous' in i.expect && i.expect.ambiguous).map((i) => i.id)).toEqual(['c12-scavenger', 'c66-old-timer'])
+    expect(scored).toHaveLength(17)
+    expect(scored.filter((i) => i.phrase).map((i) => i.id)).toEqual(['c12-scavenger-sale', 'c25-wagon-train', 'c66-old-timer', 'c90-get-acquainted', 'c93-weenie-roast'])
+    expect(scored.filter((i) => 'ambiguous' in i.expect && i.expect.ambiguous).map((i) => i.id)).toEqual(['c66-old-timer'])
     for (const i of gold.items) expect(i.cue).toContain(i.word)
   })
 
@@ -36,18 +37,28 @@ describe('eval scorer (LING-002-gate-c §9)', () => {
     expect(scoreItem(baseball, result(baseball, { gloss: ['Baseball (Sport)'], plural: 'none', example: 'We play baseball on Sundays.' }), set).pass).toBe(true)
   })
 
-  it('scoreItem fails S-SENSE when any gloss hits reject, even if another gloss is accepted ("Verkauf, Angebot")', () => {
-    const sale = item('c12-sale')
-    const s = scoreItem(sale, result(sale, { gloss: ['Verkauf', 'Angebot'], plural: 'sales', example: 'The sale starts on Friday.' }), set)
-    expect(s.checks['S-SENSE']).toBe(false)
-    expect(s.pass).toBe(false)
+  it('scoreItem scores the displayed (first) gloss only: "Reißzwecken, Nägel" passes S-SENSE, "Nägel, Reißzwecken" fails it', () => {
+    const tacks = item('c81-tacks')
+    const ok = scoreItem(tacks, result(tacks, { gloss: ['Reißzwecken', 'Nägel'], plural: 'tacks', example: 'I need some tacks for the board.' }), set)
+    expect(ok.checks['S-SENSE']).toBe(true)
+    expect(ok.gloss).toBe('Reißzwecken')
+    const bad = scoreItem(tacks, result(tacks, { gloss: ['Nägel', 'Reißzwecken'], plural: 'tacks', example: 'I need some tacks for the board.' }), set)
+    expect(bad.checks['S-SENSE']).toBe(false)
+    expect(bad.pass).toBe(false)
+  })
+
+  it('a fixed-expression item is scored as a phrase card (no forms, the span is the target)', () => {
+    const wr = item('c93-weenie-roast')
+    expect(wr.phrase).toBe(true)
+    const s = scoreItem(wr, result(wr, { pos: 'phrase', gloss: ['Würstchengrillen'], example: 'We had a weenie roast at the lake.' }), set)
+    expect(s.checks).toMatchObject({ 'S-SENSE': true, 'S-POS': true, 'S-FORMS': true, 'S-VALID': true })
   })
 
   it('scoreItem fails S-FORMS for plural "refreshment" and S-POS for a verb card on a noun item', () => {
     const refr = item('c78-refreshments')
     expect(scoreItem(refr, result(refr, { gloss: ['Erfrischungen'], plural: 'refreshment', example: 'We had refreshments after the game.' }), set).checks['S-FORMS']).toBe(false)
-    const roast = item('c93-roast')
-    const s = scoreItem(roast, result(roast, { pos: 'verb', gloss: ['Grillfest'], past: 'roasted', participle: 'roasted', example: 'We roast sausages in the park.' }), set)
+    const expense = item('c95-expense')
+    const s = scoreItem(expense, result(expense, { pos: 'verb', gloss: ['Kosten'], past: 'expensed', participle: 'expensed', example: 'We expense the trip.' }), set)
     expect(s.checks['S-POS']).toBe(false)
   })
 
@@ -68,10 +79,10 @@ describe('eval scorer (LING-002-gate-c §9)', () => {
     expect(scoreItem(sal, result(sal, { gloss: ['Sal'] }), set).pass).toBe(false)
   })
 
-  it('scoreSet replays the 2026-10-02 Nova Lite v1 outputs (fixture) and scores at most 8 of 19', () => {
+  it('scoreSet replays the 2026-10-02 Nova Lite v1 outputs (fixture) and scores at most 8 of 17', () => {
     const fx = JSON.parse(readFileSync(resolve(here, 'fixtures', 'eval', 'lite-v1-2026-10-02.en.json'), 'utf8')) as { results: ClipGlossResult[] }
     const r = scoreSet(gold, fx.results)
-    expect(r.total).toBe(19)
+    expect(r.total).toBe(17)
     expect(r.passed).toBeLessThanOrEqual(8)
     expect(r.rejectHits).toBeGreaterThan(0)
     expect(r.excludedOk).toBe(false) // sal was a highlight in that run

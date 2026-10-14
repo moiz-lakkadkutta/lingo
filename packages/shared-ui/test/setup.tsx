@@ -41,7 +41,8 @@ vi.mock('react-native', () => {
       }
     })(),
     AccessibilityInfo: { announceForAccessibility: vi.fn(), isScreenReaderEnabled: async () => false },
-    findNodeHandle: (r: unknown) => (r ? 1 : null),
+    // 1 for any mounted ref; a node mock with `_nativeTag` (helpers.renderTagged) gives each host view its own handle.
+    findNodeHandle: (r: unknown) => (r ? (r as { _nativeTag?: number })._nativeTag ?? 1 : null),
   }
 })
 

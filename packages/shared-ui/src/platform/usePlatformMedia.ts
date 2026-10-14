@@ -10,18 +10,23 @@ import { createTransportDeduper, transportToKey } from './transport'
  * Media Controls + Personalization for the Player, through the kit's public API only. On Vega both are kit-logged no-ops until
  * KIT-007 (TODO(KIT-E4): VMC is bound to the kit's Vega VideoPlayer; TODO(KIT-E3): reportPlayback carries no playback state).
  * https://developer.amazon.com/docs/vega/0.22/media-controls-get-started · https://developer.amazon.com/docs/vega/0.22/watch-activity.html
- * Returns the wrapped key handler; Player passes it to useRemoteKeys.
+ * Returns the wrapped key handler; Player passes it to useRemoteKeys. Transport stop calls onStop, not onKey: the Player machine drops a
+ * remote key named back (BackHandler owns Back; Vega also forwards Back as a TV event), so stop would otherwise do nothing.
  */
-export function usePlatformMedia(a: { clip: ClipDetail; state: PlayerState; onKey(ev: RemoteEvent): void }): (ev: RemoteEvent) => void {
+export function usePlatformMedia(a: { clip: ClipDetail; state: PlayerState; onKey(ev: RemoteEvent): void; onStop(): void }): (ev: RemoteEvent) => void {
   const { clip, state, onKey } = a
   const onKeyRef = useRef(onKey)
   onKeyRef.current = onKey
+  const onStopRef = useRef(a.onStop)
+  onStopRef.current = a.onStop
   const deduper = useRef(createTransportDeduper()).current
 
   // Transport (Alexa / VMC) → the same key events the remote produces, minus duplicates of a key just seen.
   useEffect(() => mediaControls.onControl((c) => {
     const k = transportToKey(c)
-    if (k && deduper.accept(k, Date.now())) onKeyRef.current({ key: k, longPress: false, repeat: false })
+    if (!k || !deduper.accept(k, Date.now())) return
+    if (c === 'stop') onStopRef.current()
+    else onKeyRef.current({ key: k, longPress: false, repeat: false })
   }), [deduper])
 
   const clipRef = useRef(clip)

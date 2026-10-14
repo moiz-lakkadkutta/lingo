@@ -235,6 +235,18 @@ describe('player machine', () => {
     expect(fx3).toEqual([{ kind: 'cancelHold' }, { kind: 'exit', positionS: 3.1 }])
   })
 
+  it('stop (Alexa / Media Controls) leaves the Player from every phase at the position, where Back would only close the card or sheet', () => {
+    const stop: PlayerEvent = { type: 'stop', now: NOW }
+    expect(reduce(at(4.5), stop, ctx)[1]).toEqual([{ kind: 'exit', positionS: 4.5 }])
+    expect(reduce(at(3.1, { phase: 'holding', heldCue: 0, cueIndex: 0 }), stop, ctx)[1]).toEqual([{ kind: 'cancelHold' }, { kind: 'exit', positionS: 3.1 }])
+    expect(reduce(at(4.5, { phase: 'explain' }), stop, ctx)[1]).toEqual([{ kind: 'exit', positionS: 4.5 }])
+    expect(reduce(at(4.5, { phase: 'sheet' }), stop, ctx)[1]).toEqual([{ kind: 'exit', positionS: 4.5 }])
+  })
+
+  it('a remote key named back is not the Back event (BackHandler owns Back, decision 0006 §2): no exit from the key alone', () => {
+    expect(reduce(at(4.5), key('back'), ctx)[1]).toEqual([])
+  })
+
   it('focusWord sets wordIdx; replay seeks to the cue start and resumes', () => {
     const ex = reduce(at(5, { phase: 'explain' }), { type: 'focusWord', idx: 1 }, ctx)[0]
     expect(ex.wordIdx).toBe(1)

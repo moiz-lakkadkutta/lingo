@@ -19,6 +19,8 @@ export type PlayerEvent =
   | { type: 'key'; key: RemoteKey; longPress: boolean; repeat: boolean; now: number }
   | { type: 'stageSelect'; now: number }
   | { type: 'back'; now: number }
+  /** Alexa / Media Controls stop: leave the Player from any phase. Unlike Back it never just closes the card or the sheet. */
+  | { type: 'stop'; now: number }
   | { type: 'focusWord'; idx: number }
   | { type: 'action'; action: 'replay' | 'slower' | 'resume'; now: number }
   | { type: 'holdElapsed'; now: number }
@@ -209,6 +211,7 @@ export function reduce(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   // Held-key repeats never act. Key events named select fall through to [s, []] in every phase:
   // Select arrives through the stage Pressable's onPress instead.
   if (e.type === 'key' && e.repeat) return [s, []]
+  if (e.type === 'stop') return [s, [...(s.phase === 'holding' ? [{ kind: 'cancelHold' } as const] : []), { kind: 'exit', positionS: s.positionS }]]
   switch (s.phase) {
     case 'playing': return playing(s, e, ctx)
     case 'holding': return holding(s, e, ctx)

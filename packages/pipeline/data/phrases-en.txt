@@ -1,0 +1,20 @@
+# Fixed expressions highlighted as one unit (LING-002 Gate C round 6). Hand-written; not copied from a list.
+# One expression per line, lemma-level (each word is matched against a token's word or lemma), contiguous.
+# Optional variants after " | ", optional sense note for the model after " :: ".
+# Seeded from the date clip (what-to-do-on-a-date-1950) plus a few common A2–B1 phrasal verbs.
+scavenger sale :: a sale of collected, donated second-hand things, often to raise money
+get acquainted :: to get to know each other
+old-timer :: can mean an old car or other old object (German "Oldtimer") or a person who has been around a long time; the previous line decides
+weenie roast :: an outdoor party where hot dogs are roasted over a fire
+wagon train :: a line of horse-drawn wagons travelling together, as in old western films
+fix up :: to prepare or arrange something
+go off :: to leave, to go away
+carry through :: to complete something as planned
+figure out :: to understand or solve something
+be around :: to be present, nearby
+go on a date
+find out
+pick up
+get along
+show up
+look forward to

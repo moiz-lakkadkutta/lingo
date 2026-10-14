@@ -16,6 +16,7 @@ import { GLOSS_PROMPT_VERSION } from '../src/ai/gloss'
 import { glossClip, quizInput } from '../src/ai/glossClip'
 import { GoldSet, isExcluded } from '../src/eval/gold'
 import { scoreSet } from '../src/eval/score'
+import { loadPhrases } from '../src/phrases'
 
 const o = new Command()
   .requiredOption('--gold <file>', 'gold set JSON (eval/gold/…)')
@@ -34,7 +35,8 @@ const log = o.verbose ? (m: string) => console.log(m) : () => {}
 const ai = createAi({ ...(o.model ? { model: o.model } : {}), reasoning: o.reasoning as Reasoning, cacheDir, log })
 const model = ai.config.model
 
-const items = gold.items.filter((g) => !isExcluded(g)).map((g) => ({ cueIndex: g.cueIndex, word: g.word, lemma: g.lemma, rank: 0, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), ...(g.prevCue ? { prevCue: g.prevCue } : {}) }))
+const notes = new Map((await loadPhrases(gold.lang)).map((p) => [p.lemma, p.note]))
+const items = gold.items.filter((g) => !isExcluded(g)).map((g) => ({ cueIndex: g.cueIndex, word: g.word, lemma: g.lemma, rank: 0, cue: g.cue, ...(g.nativeCue ? { nativeCue: g.nativeCue } : {}), ...(g.prevCue ? { prevCue: g.prevCue } : {}), ...(g.phrase ? { phrase: notes.get(g.lemma) ? { note: notes.get(g.lemma)! } : {} } : {}) }))
 const results = await glossClip(ai, items, gold.lang, gold.native, gold.level, log)
 let quiz
 if (o.quiz) {

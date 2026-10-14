@@ -101,6 +101,7 @@ auto-checks true. USD = one run (19 gloss items with retries and sibling re-asks
 | Nova Pro v1 | – | v6 | 15/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
 | Nova Lite v1 | – | v6 | 11/19 | 3 | 13/19 | yes | 4/5 | 0.0032 |
 | Nova Pro v1 | – | v6 + G-NONWORD | 14/19 | 2 | 14/19 | yes | 4/5 | 0.0424 |
+| Nova Pro v1 | – | v7 (expressions, precise first; gold set of 17) | 16/17 | 0 | 13/17 | yes | 4/5 (quiz by code) | 0.0380 |
 
 v3 = the plan's prompt with the plan's validators. Between v3 and v4 the validators gained G-COMPOUND (a gloss compounded from a word of
 the line: "Tennisschläger" for tennis, "Baseballspiel") and F-MISSING-en (a noun/verb/adjective card must carry its forms), and the card's
@@ -165,4 +166,29 @@ knows it as a form of faulenzen (a real word, wrong as a noun gloss). Gold accep
 Pro v1 v6 + G-NONWORD: 14/19. `roast` "Bratfest" was retried into "Bratwurstparty" (a real compound, still not in accept); `tennis` was
 rejected twice this run ("Tennis" without clarifier and no plural; it passed in the previous Pro v6 run, so this is run-to-run variance
 at temperature 0); `sale`, `scavenger`, `old-timer` as before.
+
+### Round 6 (2026-10-05): fixed expressions, most precise gloss first, quiz planned by code
+
+- **Fixed expressions.** `packages/pipeline/data/phrases-en.txt` (hand-written: scavenger sale, get acquainted, old-timer, weenie roast,
+  fix up, wagon train, and phrasal verbs from the date clip; `phrases-de.txt` is an empty seed) lists expressions, each with an optional
+  sense note. A highlighted token inside a listed expression becomes one highlight for the whole span (`phrase: true`), in prepare and in
+  the spot check (which also applies it to older clip.json files). The prompt (gloss v7) marks the span `[[scavenger sale]]` and asks for
+  pos "phrase"; a phrase card has no grammar forms, up to 4 words per gloss, and the span is the target for G-SOURCE and G-COMPOUND.
+  G-NEIGHBOUR is skipped for phrases: the expression's own translation is a multi-word part of the native line, which the rule cannot
+  tell from a neighbour's. The app aligns a multi-word highlight on its consecutive words (one chip per word, same highlight).
+- **Quiz rule for phrases:** meaning items only (no cloze); distractors are other phrase cards, or noun cards when fewer than 3 phrases
+  exist (implemented as: a phrase accepts phrase or noun distractors; the code planner tries phrases first in clip order).
+- **Most precise gloss first.** The prompt asks for glosses from the most specific to the most general word. Code moves a later gloss
+  in front of an earlier one when it is a compound ending in it with a modifier of ≥ 4 letters that is not a prefix ("Pinnnadel" before
+  "Nadel"; "Ausverkauf" is not moved before "Verkauf"). No hypernym dictionary is available, so "Nadel, Reißzwecke" relies on the
+  prompt alone.
+- **Quiz from code only.** Nova Pro v1 produced zero valid quiz plans in three real runs (each time both attempts broke the
+  part-of-speech, count or spread rules), so the deterministic planner is now the quiz builder and no Bedrock call is made for the quiz.
+  The model path stays behind `LINGO_AI_QUIZ=model`; the quiz result reports its `source` (code / model / fallback).
+- **Gold set** (all five marked "needs human confirmation"): `scavenger` + `sale` → `scavenger sale` (accept Wohltätigkeitsbasar, Basar,
+  Trödelmarkt, Flohmarkt, …), `wagon` → `wagon train`, `old-timer` → expression item (accept Oldtimer, altes Auto, …; reject Veteran,
+  Urgestein, Altes), `acquainted` → `get acquainted` (accept sich kennenlernen, kennenlernen, …), `weenie` + `roast` → `weenie roast`.
+  17 scored items. The eval scores the displayed (first) gloss only, as the app shows only that one since round 5.
+- Pro v1 v7: 16/17, 0 reject hits; the one failure is `tacks` → "Nadel" (the precise "Reißzwecke" came second). In the spot check run
+  the same model put "Reißzwecke" first: the order still varies between runs.
 

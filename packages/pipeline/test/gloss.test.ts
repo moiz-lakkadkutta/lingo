@@ -73,7 +73,7 @@ describe('gloss v3', () => {
   it('GLOSS_PROMPT_VERSION must be bumped when the system prompt or the tool schema changes (sha256 snapshot of both)', () => {
     const sha = createHash('sha256').update(glossSystemPrompt('de', 'en', 'A2', 'warten')).update(JSON.stringify(glossToolConfig('de', 'en'))).digest('hex')
     // If this fails because you edited the prompt or the tool: bump GLOSS_PROMPT_VERSION and update both values here.
-    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 6, sha: 'e1632f9e890ae630070612d7b2b1bd0518420d4c435d880003b5df869efb4f64' })
+    expect({ version: GLOSS_PROMPT_VERSION, sha }).toEqual({ version: 7, sha: 'd51dc9a2c2d95bf071195c042880e7299c9fe9b118ce95152d04711588de7633' })
   })
 
   it('the en and de prompts carry their own FORMS and EXAMPLES blocks and no few-shot word from the English gold set', () => {
@@ -88,9 +88,9 @@ describe('gloss v3', () => {
     expect(de).toContain('[[Regenschirm]]')
     expect(de).not.toContain('[[coat]]')
     expect(glossSystemPrompt('en', 'tr', 'A2', 'racket')).toContain('The glosses below are German; yours must be in Turkish.')
-    const gold = ['tennis', 'racket', 'sale', 'scavenger', 'swell', 'wagon', 'sal', 'old-timer', 'refreshment', 'tack', 'activity', 'acquaint', 'roast', 'weenie', 'expense', 'baseball', 'comfortably', 'inexpensive', 'loafer', 'supervise']
+    const gold = ['tennis', 'racket', 'sale', 'scavenger', 'swell', 'wagon', 'sal', 'old-timer', 'refreshment', 'tack', 'activity', 'acquaint', 'roast', 'weenie', 'expense', 'baseball', 'comfortably', 'inexpensive', 'loafer', 'supervise', 'scavenger sale', 'get acquainted', 'weenie roast', 'wagon train']
     const fewShotWords = [...en.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]!.toLowerCase()).filter((w) => w !== 'this')
-    expect(fewShotWords).toEqual(['coat', 'nifty', 'tidied'])
+    expect(fewShotWords).toEqual(['look forward to', 'pick up', 'coat', 'nifty', 'tidied'])
     for (const w of fewShotWords) expect(gold).not.toContain(w)
   })
 
@@ -316,5 +316,22 @@ describe('gloss v3', () => {
     const r2 = await createAi({ send: twice, model: MODEL, cacheDir: join(dir, 'b'), log: () => {}, germanLexicon: lexicon }).gloss(roast)
     expect(r2.status).toBe('rejected')
     expect(r2.issues.join(' ')).toContain('G-NONWORD')
+  })
+
+  it('a fixed expression is marked as one span and sent with phrase: true and its note; a phrase card needs no forms', async () => {
+    const card = { sense: 'a sale of collected second-hand things', pos: 'phrase', gloss: ['Wohltätigkeitsbasar'], register: 'neutral', example: 'The scavenger sale made a lot of money.' }
+    const send = fakeSend(withCard(card))
+    const r = await createAi({ send, model: MODEL, cacheDir: dir, log: () => {}, germanLexicon: false }).gloss({ word: 'scavenger sale', lemma: 'scavenger sale', cue: 'on Friday to fix up\nthat scavenger sale?', lang: 'en', native: 'de', level: 'A2', phrase: { note: 'a sale of collected things' } })
+    expect(r).toMatchObject({ status: 'ok', gloss: { gloss: 'Wohltätigkeitsbasar', grammar: 'Redewendung' } })
+    expect(JSON.parse(userTexts(send)[0]!)).toEqual({ line: 'on Friday to fix up that [[scavenger sale]]?', word: 'scavenger sale', lemma: 'scavenger sale', phrase: true, note: 'a sale of collected things' })
+    expect(glossSystemPrompt('en', 'de', 'A2', 'x')).toMatch(/"phrase" is true.*gloss the whole expression as a unit/s)
+  })
+
+  it('puts a more precise compound gloss first ("Nadel, Pinnnadel" → "Pinnnadel"); the prompt asks for the most specific word first', async () => {
+    const tacks = { sense: 'a short pin', pos: 'noun', gloss: ['Nadel', 'Pinnnadel'], register: 'neutral', plural: 'tacks', example: 'I need more tacks for the board.' }
+    const send = fakeSend(withCard(tacks))
+    const r = await createAi({ send, model: MODEL, cacheDir: dir, log: () => {}, germanLexicon: false }).gloss({ word: 'tacks', lemma: 'tack', cue: 'Got any more tacks?', lang: 'en', native: 'de', level: 'A2' })
+    expect(r).toMatchObject({ status: 'ok', gloss: { gloss: 'Pinnnadel' } })
+    expect(glossSystemPrompt('en', 'de', 'A2', 'x')).toMatch(/most specific and precise/)
   })
 })
