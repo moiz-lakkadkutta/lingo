@@ -1,25 +1,25 @@
 # Lingo: pre-submission checklist
 
-The definition of done for the hackathon submission (runbook §9), mapped to owners, due dates and a check anyone can run. Status as of 2026-10-01.
+The definition of done for the hackathon submission (runbook §9), mapped to owners, due dates and a check anyone can run. Status as of 2026-10-14 (§3 rules facts checked on the live Devpost pages that day).
 
-- Dates are 2026, Berlin time. **Submit by Oct 22, 23:00 Berlin.**
+- Dates are 2026, Berlin time. **Submit by Oct 22, 23:00 Berlin** (internal safe date). Official deadline: **Fri Oct 23, 2026, 12:00 pm PT (PDT) = 21:00 Berlin (CEST)** (checked on the rules page 2026-10-14).
 - Owners: **Moiz** (human: devices, filming, voice-over, accounts, upload, final sign-off, submit) · **Orchestrator** (dispatch, commit, push) · **Scribe** (opus; docs) · **Reviewer** (fable; cold read) · **LING-00x implementer** where a feature blocks a claim.
 - Line format: `- [ ] item · owner · due · how to verify`.
 - Companion files: docs/video-script.md (file A), docs/submission.md (file B), plan docs/plans/LING-009.md.
 
 ## 1. Definition of done (runbook §9) → owner, due, verify
 
-| DoD item | Status 2026-10-01 | Owner | Due | Verify |
+| DoD item | Status 2026-10-14 | Owner | Due | Verify |
 |---|---|---|---|---|
-| Public GitHub repo, MIT LICENSE visible at the root | LICENSE exists; repo visibility unknown; GitHub push is broken from this environment | Moiz | Oct 15 | Open https://github.com/moiz-lakkadkutta/lingo logged out; LICENSE shows "MIT" |
+| Public GitHub repo, MIT LICENSE visible at the root | LICENSE exists; repo is public (checked on the rules page 2026-10-14: the rules require a public repo with a licence file) | Moiz | Oct 15 | Open https://github.com/moiz-lakkadkutta/lingo logged out; LICENSE shows "MIT" |
 | README: ≤ 10-step setup, architecture, "what's new since Aug 31" | Present (README.md) | Scribe (LING-008) | Oct 15 | Count the setup steps (≤ 10); architecture block and "What's new since Aug 31, 2026" present |
-| Runs on the stick **and** the VVD, or documents exactly why Vega is experimental | Neither verified; the Vega app installs, typechecks and bundles (decision 0013) but has not run on the VVD (status 2026-10-02) | LING-003 / LING-008 implementers + Moiz | Oct 15 | Screenshots in README from both, or a written "Vega status" note linked from README |
-| ≥ 3 Fire TV integrations (Content Launcher, Personalization, Media Controls; IAP), each with a screenshot or log in README | Code done (IAP on both OSes, launch intents; Personalization and Media Controls through the kit, whose bindings are no-ops); none verified on a device (status 2026-10-02) | LING-007 implementer + Moiz | Oct 15 (freeze) | README section with one artifact each. Anything missing is removed from the video and from docs/submission.md |
-| Video < 3:00, public, device shown, a moment of Fire OS and of Vega | Not shot | Moiz | Shoot Oct 16–18, cut Oct 19, **upload Oct 20** | `ffprobe` prints < 180; logged-out playback works; visibility as the rules page asks |
+| Runs on the stick **and** the VVD, or documents exactly why Vega is experimental | Fire OS: **Code done, not on device** (spike S1 on a Fire TV Stick 2026-10-04, 9 of 13 rows; full device checklist pending). Vega: **Code done, not on device** (experimental): runs on the Vega Virtual Device (SDK 0.24, 2026-10-14): Home, the rail, Clip and Words with the live catalog; no video until KIT-010, the Player says so on screen; Pair/QR, Quiz and the S2 questions not run there (docs/spikes/2026-10-14-vega-vvd.md, screenshots and recording there) (status 2026-10-14) | LING-003 / LING-008 implementers + Moiz | Oct 15 | Screenshots in README from both, or a written "Vega status" note linked from README |
+| ≥ 3 Fire TV integrations (Content Launcher, Personalization, Media Controls; IAP), each with a screenshot or log in README | **Code done, not on device**: IAP on both OSes, launch intents; Personalization and Media Controls through the kit, whose bindings are no-ops; none checked on a device yet (status 2026-10-14) | LING-007 implementer + Moiz | Oct 15 (freeze) | README section with one artifact each. Anything missing is removed from the video and from docs/submission.md |
+| Video < 3:00, public on YouTube or Vimeo, in English, Lingo running on a real Fire TV device or the Fire TV / Vega simulator; a moment of Fire OS and of Vega | Not shot | Moiz | Shoot Oct 16–18, cut Oct 19, **upload Oct 20** | `ffprobe` prints < 180; logged-out playback works; visibility public (checked on the rules page 2026-10-14) |
 | Text: what, how, who, impact with a cited number | Draft (docs/submission.md) | Scribe, Reviewer | **Forms Oct 21** | Claims register (submission.md §15) has no unresolved placeholder; every number has a source |
 | Tracks Fire TV + AWS Builder + Open Source; kit repo, release tag, GitHub handle, upstream PR | Tag and PR missing | Moiz | Oct 18 | Every link in submission.md §8 and §13 opens logged out |
-| docs/aws.md lists every AWS call with purpose and cost | Present; Polly listed under "Declared, not used"; Nova Lite prices not yet checked (status 2026-10-02) | Scribe | Oct 15 | Matches plan §1; Nova price checked at https://aws.amazon.com/bedrock/pricing/ |
-| Feedback (five answers), feature requests with priorities, ≥ 8 friction logs | Feedback and feature requests drafted, TBD-by-human items remain; 23 friction logs (status 2026-10-02) | Scribe (LING-008) | Oct 15 | All five feedback questions answered; each feature request has a priority; `ls docs/friction/*.md` minus README ≥ 8 |
+| docs/aws.md lists every AWS call with purpose and cost | Present; Polly listed under "Declared, not used"; Nova Pro v1 is the default model since 2026-10-04; Nova Pro and Nova Lite prices not yet checked (status 2026-10-14) | Scribe | Oct 15 | Matches plan §1; Nova price checked at https://aws.amazon.com/bedrock/pricing/ |
+| Feedback (five answers), feature requests with priorities, ≥ 8 friction logs | Feedback and feature requests drafted, TBD-by-human items remain; 36 friction logs (status 2026-10-14) | Scribe (LING-008) | Oct 15 | All five feedback questions answered; each feature request has a priority; `ls docs/friction/*.md` minus README ≥ 8 |
 | Tests pass in CI on the default branch; `pnpm i && pnpm dev` shows something | Baseline: one known TS error (`apps/expo/RemoteBridge.tsx`, TS2305) | Orchestrator | Oct 15 | CI run link is green |
 | All materials in English | — | Reviewer | Oct 21 | Read-through of README, docs/submission.md, the video captions and the Devpost forms |
 
@@ -27,16 +27,16 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 
 ### By Oct 8 (kill date)
 
-- [ ] Decide per plan §1 row whether the video shows the feature or uses the fallback (S02 Content Launcher, S06 TV quiz score, S07b client IAP, S07c Personalization, S08 Vega); record each in docs/video-script.md §3 · Orchestrator (asks Moiz once) · Oct 8 · the five decision placeholders in docs/video-script.md are filled
+- [x] Decide per plan §1 row whether the video shows the feature or uses the fallback (S02 Content Launcher, S06 TV quiz score, S07b client IAP, S07c Personalization, S08 Vega); record each in docs/video-script.md §3 · Orchestrator (asks Moiz once) · Oct 8 · the five decision placeholders in docs/video-script.md are filled · **Decided by Moiz and recorded 2026-10-14** (S02 fallback path, S06 if built, S07b attempt the App Tester dialog only, S07c partial, S08 VVD Home without video)
 
 ### By Oct 15 (freeze)
 
 - [ ] Re-check every plan §1 row; update the Status cells in docs/video-script.md §3 and the claims register in docs/submission.md §15 · Scribe · Oct 15 · each row cites a file, test or screenshot that exists on the branch
-- [ ] Demo clip prepared and its full attribution string copied from the ZDF page (`terra-x-so-trinken-baeume`, else `terra-x-friedlaender`) · LING-008 implementer + Moiz · Oct 15 · clip plays from CloudFront; attribution in the DB row matches the ZDF page character for character
+- [ ] Demo clip `terra-x-friedlaender` (B1, approx.; decided 2026-10-14, replacing `terra-x-so-trinken-baeume`, which now rates about B2) plays from CloudFront on the stick, with its full attribution · LING-008 implementer + Moiz · Oct 15 · clip plays from CloudFront; the attribution in the `Clip` row matches docs/content.md row 3 character for character
 - [ ] Saved line reads correctly for one word (risk R3: "Saved. 1 words this clip.") · LING-005 implementer · Oct 15 · unit test for `explain.saved(1)`
 - [ ] Gloss of the chosen save word passed the spot check (risk R4) · Scribe + Moiz · Oct 15 · docs/spot-checks/ lists the word as judged correct
 - [ ] Kit release: git tag and npm publish of `@moizp/vega-media-kit` · Moiz · Oct 15 · `git -C ../vega-media-kit tag` lists the tag; `npm view @moizp/vega-media-kit version` prints it
-- [ ] docs/aws.md corrected: Polly removed unless used in code; Nova Lite prices checked; dev-tooling line confirmed (open question 3) · Scribe · Oct 15 · `grep -rn -i polly apps packages` finds code, or docs/aws.md no longer lists Polly
+- [ ] docs/aws.md corrected: Polly removed unless used in code; Nova Pro (default) and Nova Lite prices checked; dev-tooling line confirmed (open question 3) · Scribe · Oct 15 · `grep -rn -i polly apps packages` finds code, or docs/aws.md no longer lists Polly
 - [ ] docs/feedback.md (five answers) and docs/feature-requests.md (with priorities) filled · Scribe (LING-008) · Oct 15 · no empty template fields left
 - [ ] README: Vega status note, and one screenshot or log per Fire TV integration that exists · Scribe (LING-008) + Moiz · Oct 15 · links from README open
 - [ ] Montero Perez 2017 source URL found and added to docs/submission.md §16 · Scribe · Oct 15 · URL opens to the article
@@ -44,8 +44,10 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 
 ### Oct 16–18 (shoot)
 
-- [ ] Pre-shoot checklist done (docs/video-script.md §5) · Moiz · Oct 16 · every box ticked
-- [ ] Save word, cue index and timecode written into docs/video-script.md §2 · Moiz · Oct 16 · placeholder filled
+- [x] Ask the organisers whether the CC BY / CC BY-SA / public-domain demo clips may appear in the video; the rules ask for this before using CC footage (checked on the rules page 2026-10-14) · Moiz · before the shoot, Oct 16 · the organisers' answer saved; if no, the video shows a public-domain clip or the pipeline's own test pattern · **Approved by the organisers (reported by Moiz 2026-10-14); save their reply here**
+- [ ] Shoot in the order of docs/video-script.md §4 "Shoot schedule": Oct 15 device run; Oct 16 both-screens setup (cold open, then S06), then the other camera positions and screen captures; Oct 17 App Tester (S07b); Oct 17–18 VVD (S08); graphics and voice-over any time, after the S07d price is fixed · Moiz · Oct 15–18 · each day's shots in hand, or the decided fallback used
+- [ ] Pre-shoot checklist done (docs/video-script.md §5), including the learner level reset to about A2 on the stick · Moiz · Oct 16 · every box ticked
+- [ ] Save word, cue index and timecode written into docs/video-script.md §2 · Moiz · Oct 16 · filled 2026-10-14 from the clip data (S05 registrieren, cue 9, 0:39.2; S04 Konsulat, cue 11, 0:47.0); Moiz confirms both on the device run
 - [ ] Shoot all setups (tripods 1–3, FOS-cap, PH-cap, VVD if used, voice-over) · Moiz · Oct 18 · at least three good takes of S05 with both screens in one frame
 - [ ] Upstream PR to an AmazonAppDev sample opened; URL in hand · Moiz · Oct 18 · the PR URL opens logged out
 
@@ -56,7 +58,7 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 
 ### Oct 20 (upload)
 
-- [ ] **Upload the video to YouTube**; paste the URL into docs/submission.md §13 and docs/video-script.md §5 · Moiz · **Oct 20** · logged-out playback works at the chosen visibility (open question 2)
+- [ ] **Upload the video to YouTube**; paste the URL into docs/submission.md §13 and docs/video-script.md §5 · Moiz · **Oct 20** · logged-out playback works with visibility **public** (checked on the rules page 2026-10-14)
 
 ### Oct 21 (forms)
 
@@ -68,23 +70,24 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 
 ### Oct 22 (submit)
 
-- [ ] Re-read the deadline and timezone on https://amazonappdev2026.devpost.com/rules (the runbook gives Oct 23 21:00 without a timezone; this plan uses Oct 22, 23:00 Berlin as the safe date) · Moiz · before Oct 22 · the rules page date and timezone written into §3 below
-- [ ] Re-read the rules page for video visibility, the language rule and the mini-challenge fields; record any difference in §3 below · Moiz · before Oct 22 · §3 filled (this environment could not fetch the rules page; egress was blocked on 2026-10-01)
+- [x] Re-read the deadline and timezone on https://amazonappdev2026.devpost.com/rules: Fri Oct 23, 2026, 12:00 pm PT (PDT) = 21:00 Berlin (CEST); this plan keeps Oct 22, 23:00 Berlin as the safe date · Orchestrator · 2026-10-14 · written into §3 below (checked on the rules page 2026-10-14)
+- [x] Re-read the rules page for video visibility, the language rule and the mini-challenge fields; record any difference in §3 below · Orchestrator · 2026-10-14 · §3 filled (checked on the rules page 2026-10-14)
 - [ ] **Submit by Oct 22, 23:00 Berlin** · Moiz · **Oct 22, 23:00 Berlin** · Devpost shows "Submitted"; screenshot of the confirmation saved
 
 ## 3. Rules page notes (fill before Oct 22)
 
 | Rule | Runbook / plan says | Rules page says (date read) |
 |---|---|---|
-| Deadline and timezone | Runbook: Oct 23 21:00, no timezone. Plan: submit by Oct 22, 23:00 Berlin | `[PLACEHOLDER: deadline as on the rules page · owner Moiz · due Oct 21 · ticket LING-009]` |
-| Video length and visibility | < 3 minutes; public (default) | `[PLACEHOLDER: video rule as on the rules page · owner Moiz · due Oct 21 · ticket LING-009]` |
-| Language | English | `[PLACEHOLDER: language rule as on the rules page · owner Moiz · due Oct 21 · ticket LING-009]` |
-| Mini-challenge fields (AWS Builder, Open Source) | Repo, tag, handle, upstream PR | `[PLACEHOLDER: mini-challenge fields as on the rules page · owner Moiz · due Oct 21 · ticket LING-009]` |
+| Deadline and timezone | Runbook: Oct 23 21:00, no timezone. Plan: submit by Oct 22, 23:00 Berlin | Fri Oct 23, 2026, 12:00 pm PT (PDT) = 21:00 Berlin (CEST). The internal safe date stays Oct 22, 23:00 Berlin (checked on the rules page 2026-10-14) |
+| Video length and visibility | < 3 minutes; public (default) | Under 3 minutes; public on YouTube or Vimeo; in English; must show the app running on a real Fire TV device or the Fire TV / Vega simulator (the FAQ accepts an emulator); no third-party trademarks or copyrighted footage; ask the organisers before using CC footage (checked on the rules page 2026-10-14) |
+| Language | English | English (checked on the rules page 2026-10-14) |
+| Mini-challenge fields (AWS Builder, Open Source) | Repo, tag, handle, upstream PR | Open Source: contribution URL, repo URL, GitHub username, description. AWS Builder: documented AWS integrations (checked on the rules page 2026-10-14) |
+| Judging | — | Stage 1 pass/fail: theme fit and required technology. Stage 2: four equally weighted criteria, Technological Implementation, Design, Potential Impact, Quality of the Idea. Friction logs: up to a 10 % bonus. Repo must be public with a licence file; it is public (checked on the rules page 2026-10-14) |
 
 ## 4. Open questions
 
 - [QUESTION for Moiz (Orchestrator decides): should `scripts/lint-words.mjs` also scan `docs/*.md`? Out of scope for LING-009, which touches docs only.]
-- [QUESTION for Moiz: YouTube visibility. The runbook says "unlisted" in week 5 and "public" in its definition of done. The default is **public** unless the rules page says otherwise.]
+- Resolved: video visibility is **public**, on YouTube or Vimeo (checked on the rules page 2026-10-14).
 - [QUESTION for Moiz: were Kiro Crew and the Amazon Devices Builder Tools MCP actually used? docs/aws.md says so; nothing in the repo shows it. Confirm, or the claim goes.]
-- [QUESTION for Moiz: Described's current feature set is not in this checkout. Read its README before Oct 21 so the uniqueness paragraph (docs/submission.md §9) names Described's services only as its README does.]
+- Resolved: Described's README (https://github.com/moiz-lakkadkutta/described) says Qwen3-VL on Amazon Bedrock describes shots, Nova Lite fits narration into dialogue gaps, Polly voices it, ffmpeg ducks the soundtrack, delivered as a second HLS audio track; it shares `@moizp/vega-media-kit`. docs/submission.md §9 now names these as the README does (checked against Described's README 2026-10-14).
 - Risk, not a question: without a Fire TV Stick the "device shown" rule cannot be met (plan R2). If no stick is available by Oct 15, the Orchestrator escalates.

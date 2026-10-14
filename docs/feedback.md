@@ -15,7 +15,8 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
 - **AWS CDK** (TypeScript): two stacks in two regions from one app (`infra/`).
 - **Fire OS on the Fire TV Stick** through Expo SDK 54 + react-native-tvos 0.81, the pattern of Amazon's multi-TV sample (`apps/expo`, LING-003).
 - **Vega SDK docs, `@amazon-devices/react-native-kepler`, `@amazon-devices/react-native-w3cmedia`, `@amazon-devices/react-native-svg`**: read
-  and planned against; `apps/vega` installs, typechecks and bundles without the SDK, but has not run on a device — experimental (apps/vega/README.md).
+  and planned against; `apps/vega` builds with SDK 0.24 and runs on the Vega Virtual Device (2026-10-14: Home, rail, Clip, Words; no video), not on a
+  physical device — experimental (apps/vega/README.md, docs/spikes/2026-10-14-vega-vvd.md).
 - **Amazon Appstore IAP and the Receipt Verification Service (RVS)**: one subscription, Lingo Plus, bought on the TV and verified on the
   server before it is fulfilled (decision 0012). Fire OS uses `react-native-iap` ~16.7.2 with the Amazon store flavour and App Tester
   (`apps/expo/src/fireosStore.ts`); Vega uses `@amazon-devices/keplerscript-appstore-iap-lib` ~2.13.0 (`apps/vega/src/iap/vegaStore.ts`);
@@ -42,8 +43,8 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
 - **CDK**: two stacks in two regions from one app; the media stack deployed (the root-user caveat is a friction log).
 - **Amazon's sample repos** gave a starting point for both OSes. The multi-TV sample built and ran on the Fire TV Stick (device matrix).
   From vega-video-sample, the Vega app is a project shape that installs, typechecks and bundles: `npm install`, `tsc` and
-  `react-native bundle --platform kepler` passed without the SDK (apps/vega/README.md). It has never run on a device or the Vega Virtual
-  Device.
+  `react-native bundle --platform kepler` passed without the SDK (apps/vega/README.md). With SDK 0.24 it ran on the Vega Virtual Device on 2026-10-14 after two
+  fixes (manifest modules, Metro redirect; docs/spikes/2026-10-14-vega-vvd.md); it has not run on a physical Vega device.
 
 ## 3. What needs improvement
 
@@ -105,9 +106,9 @@ Third party (not Amazon or AWS)
 
 - Time from zero to first app on device: **TBD by human** hours.
 - Record to place around it: the repository was created on 2026-09-14; the first Fire OS playback on the stick through the kit was on
-  2026-09-26 (`../vega-media-kit/docs/device-matrix.md`). The Vega SDK was not installed: at Gate B (2026-09-26) the SDK install alone was
+  2026-09-26 (`../vega-media-kit/docs/device-matrix.md`). The Vega SDK was not installed until 2026-10-14: at Gate B (2026-09-26) the SDK install alone was
   ~20 GB plus an unknown day with the kill date twelve days out, so the human chose Fire OS primary and Vega experimental
-  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). If the Vega Virtual Device checklist (apps/vega/README.md) is run, add its hours here.
+  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). The Vega Virtual Device spike ran on 2026-10-14 (docs/spikes/2026-10-14-vega-vvd.md; SDK download 8 min); add its hours here: **TBD by human**.
 
 ## 5. Would you build with these tools again? Yes / No — rationale
 

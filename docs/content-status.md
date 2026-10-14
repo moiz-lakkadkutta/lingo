@@ -2,9 +2,9 @@
 
 Where each of the 12 shortlist clips (docs/content.md §2) stands. Updated by the batch runs; the source of truth for metadata stays
 docs/content.md and content/clips.json. Work dirs live in `packages/pipeline/work/<slug>/` (gitignored), sources in
-`packages/pipeline/work/sources/`. Bucket: `s3://lingo-media-dev-128425594526/clips/`.
+`packages/pipeline/work/sources/`. Bucket: `s3://lingo-media-dev-<account-id>/clips/`.
 
-Last updated: 2026-10-10 (elephants-dream swap; content staged in content/).
+Last updated: 2026-10-14 (all 12 published and verified through CloudFront; see "Published").
 
 ## Inventory
 
@@ -223,6 +223,14 @@ were verified: **12 ok · 0 failed · 0 skipped**, no Transcribe (every clip re-
 - Served from `https://d15iq6m6ohqp4j.cloudfront.net/published/<slug>/` (`master.m3u8`, `poster.jpg`, `clip.json`); checked 200 for four
   clips, and the first video, audio and subtitle segment of `duck-and-cover`.
 - `pnpm clips:import` re-run against the local database: 12 of 12 `published`.
+- Verified 2026-10-14 (later the same day, no re-run): for every one of the 12 clips `master.m3u8` (`application/vnd.apple.mpegurl`),
+  `vtt/<lang>.vtt` and `vtt/<native>.vtt` (`text/vtt`), `poster.jpg` and `clip.json` answer 200 through CloudFront; the three BY-SA clips
+  carry the `NOTE` line in both tracks. Local database: 12 `published` rows with the cue, highlight and quiz counts of the table above
+  (plus the two `draft` fixtures `demo-de` and `s1-spike`). `terra-x-so-trinken-baeume`'s attribution is the full ZDF credit line
+  (content.md row 6, [^g5]) in content/clips.json and in the `Clip` row; nothing is cut off any more.
+- Known rough edges, not blocking playback: the `clip.json` copies on CloudFront have `publishedBase: null` (prepare uploads the file
+  before it sets the field; the local copies have it; the app reads `manifestKey` from the database) and their `source.uri` names the
+  bucket with the account suffix; `content/clips.json` `prepared.published` is still `false` on every row (informational block only).
 - The run's "Needs a human" list is review hints only (rare highlights, possible names), kept in the local log
   `packages/pipeline/work/publish-2026-10-14.log`. One to check: `what-to-do-on-a-date-1950` `old-timer` is glossed "Oldtimer"
   (German for a vintage car), the gloss Gate C r3 scored as a fail.
