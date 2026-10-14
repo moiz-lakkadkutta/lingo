@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "prisma": "prisma",
-    "clips:import": "tsx scripts/import-clips.ts"
+    "clips:import": "tsx scripts/import-clips.ts",
+    "seed:dev": "tsx scripts/seed-dev.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

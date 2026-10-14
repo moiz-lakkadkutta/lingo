@@ -18,6 +18,8 @@
     "clips:import": "pnpm --filter @lingo/api clips:import",
     "friction": "node scripts/new-friction.mjs",
     "lint:words": "node scripts/lint-words.mjs",
+    "media:dev": "node scripts/media-dev.mjs",
+    "test:scripts": "node --test scripts/media-dev.test.mjs",
     "check:vega": "node --test scripts/check-vega.test.mjs && node scripts/check-vega.mjs"
   },
   "devDependencies": {
