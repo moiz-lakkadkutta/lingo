@@ -165,7 +165,7 @@ New 10 s previews are in `packages/pipeline/work/trim-preview/`.
 
 Spend: Transcribe 9.45 min ≈ $0.23, Translate ≈ 3 800 characters ≈ $0.06, Bedrock $0.03 → **≈ $0.31**. **Total so far ≈ $3.65.**
 
-## Staged for the app (2026-10-10, not published)
+## Staged for the app (2026-10-10; published 2026-10-14, see below)
 
 - `content/cues/<slug>.<lang>.vtt` for all 12 clips: the final target VTT of each clip's last `prepare` run (the timing-only retime
   where there was one). Timings checked equal to `work/<slug>/clip.json` and to the retimed file; BY-SA clips carry the `NOTE` line.
@@ -199,6 +199,34 @@ Spend: Transcribe 9.45 min ≈ $0.23, Translate ≈ 3 800 characters ≈ $0.06, 
   starting at 01:55 would make it a 4-min clip with the same text.
 - The two Terra X clips were uploaded as the original `.webm`, untrimmed (whole file), as `terra-x-friedlaender` was.
 
+## Published (2026-10-14)
+
+`pnpm pipeline batch content/clips.json --phase final` after Gate C passed, all trims were confirmed by a human and the Terra X licences
+were verified: **12 ok · 0 failed · 0 skipped**, no Transcribe (every clip re-ran from its `--cues` file). Estimate ≈ $1.56 (Translate
+≈ $0.96, Bedrock ≤ $0.60); Bedrock as reported per clip ≈ $0.13. **Total so far ≈ $5.21** (estimates, unverified prices).
+
+| slug | level | cues | highlights | quiz |
+|---|---|---|---|---|
+| jung-naiv-drogen | B2 | 106 | 35 | 10 |
+| openhpi-vandalismus | B2 | 128 | 38 | 10 |
+| terra-x-friedlaender | B1 | 54 | 13 | 6 |
+| terra-x-klimafaktoren | B2 | 115 | 45 | 10 |
+| terra-x-becker-interview | B2 | 75 | 26 | 10 |
+| terra-x-so-trinken-baeume | B2 | 52 | 18 | 7 |
+| what-to-do-on-a-date-1950 | A2 | 113 | 17 | 10 |
+| sprite-fright | B2 | 72 | 16 | 9 |
+| shy-guy-1947 | A2 | 112 | 33 | 10 |
+| cosmos-laundromat | A2 | 50 | 12 | 7 |
+| elephants-dream | A1 | 73 | 10 | 8 |
+| duck-and-cover | A2 | 109 | 21 | 10 |
+
+- Served from `https://d15iq6m6ohqp4j.cloudfront.net/published/<slug>/` (`master.m3u8`, `poster.jpg`, `clip.json`); checked 200 for four
+  clips, and the first video, audio and subtitle segment of `duck-and-cover`.
+- `pnpm clips:import` re-run against the local database: 12 of 12 `published`.
+- The run's "Needs a human" list is review hints only (rare highlights, possible names), kept in the local log
+  `packages/pipeline/work/publish-2026-10-14.log`. One to check: `what-to-do-on-a-date-1950` `old-timer` is glossed "Oldtimer"
+  (German for a vintage car), the gloss Gate C r3 scored as a fail.
+
 ## Next
 
-All 12 rows are processed and staged (see "Staged for the app"). Nothing is published.
+All 12 clips are published. Left: the device listening checks on retimed cues (klimafaktoren, openhpi) and the demo on the stick.
