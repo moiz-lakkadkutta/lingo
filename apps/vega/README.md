@@ -1,9 +1,14 @@
 # Lingo — Vega OS (experimental)
 
-**Status: experimental.** This project is built and checked without the Vega SDK and has not run on a Vega device or the Vega Virtual
-Device (Gate B, `../vega-media-kit/docs/decisions/0001-week0-gates.md`). Video playback is off on Vega until the kit's Vega adapter is
+**Status: experimental — runs on the Vega Virtual Device since 2026-10-14** (SDK 0.24.12112, Vega CLI 1.4.4, macOS arm64): Home, the
+rail, Clip and Words render from shared-ui with the catalog from the host API; the Player shows the playback-off message
+(docs/spikes/2026-10-14-vega-vvd.md, screenshots and a recording in docs/spikes/). Not run on a physical Vega device (Gate B,
+`../vega-media-kit/docs/decisions/0001-week0-gates.md`). Checklist rows 7, 9 and 10 below are still open. Video playback is off on Vega until the kit's Vega adapter is
 rewritten (KIT-010, kit decision 0002): shared-ui's `caps.playback` is `false` on `kepler`/`vega`. Every other screen comes from
 `packages/shared-ui`, the same code as Fire OS.
+
+`src/config.ts` targets the VVD: `API_BASE_URL` is `http://localhost:4000`, which reaches the host only through reverse port forwarding
+(checklist step 5). Before a build for a physical Vega device, set it to the Mac's LAN address (e.g. `http://192.168.1.x:4000`).
 
 Vega-specific code lives in `src/` only:
 
@@ -57,6 +62,16 @@ Results in the agent sandbox on 2026-10-01 (Linux, Node 22.22, npm 10.9, no Vega
 | `npm run bundle:check` (`react-native bundle --platform kepler`) | OK: Metro 0.83.8, 1 287 modules, 3.6 MB bundle, 11 assets (w3cmedia icons); 90 s cold, 14 s warm. The `kepler` platform comes from `@amazon-devices/kepler-cli-platform` without the SDK. Source-map check: one React (19.2.0, this app); react-native, react-native-kepler, w3cmedia and svg all from this app's `node_modules`; shared-ui and the kit from their sources; no Shaka. The kit's `react-native-video` (Fire OS adapter, required lazily) is bundled as dead code. After the LING-007 merge (same day): OK, 1 393 `__d` module definitions, 2.97 MB bundle, 43 s; one copy each of react, react-native and react-native-kepler (`npm ls`). The IAP lib brings `@react-native-async-storage/async-storage` 1.23.1 (its own dependency, not the `@amazon-devices` port); record on the VVD whether it loads. |
 | `pnpm check:vega` | OK (23 `node --test` cases + the check on this directory) |
 
+Results on the human's Mac on 2026-10-14 (macOS 26.2, arm64, Node 22.19, npm 10.9.3, no Vega SDK; docs/spikes/2026-10-14-vega-vvd.md):
+
+| Check | Result |
+|---|---|
+| `npm install` | OK: 779 packages in 7 s (warm npm cache), `node_modules` 493 MB; the same deprecation warnings |
+| `npm run typecheck` | OK in 0.9 s |
+| `npm run copy-fonts` | OK: the three TTFs to `assets/fonts/` |
+| `npm run bundle:check` | OK: 42 s, 3.10 MB bundle, 1 409 `__d` module definitions, 11 assets |
+| RN CLI plugin (`@amazon-devices/kepler-cli-platform` 0.22.14) | `react-native build-kepler --help` prints "[DEPRECATED] Please use 'build-vega' instead" (the command still runs); `run-vega` is "currently unimplemented". The scripts keep `build-kepler`, as both Amazon samples do, until `build-vega` is verified on this project |
+
 `package-lock.json` is committed. Fonts: `npm run copy-fonts` (also run by `prebuild:release` / `prebuild:debug`) copies
 `packages/shared-ui/assets/fonts/*.ttf` to `assets/fonts/` (gitignored), where Vega apps keep fonts (vega-video-sample README,
 react-native-vector-icons section).
@@ -107,18 +122,18 @@ Docs: [Vega IAP overview](https://developer.amazon.com/docs/vega/0.22/vega-iap-o
 
 | # | Step | Expected | Record |
 |---|---|---|---|
-| 0 | Install Vega SDK 0.24 per https://developer.amazon.com/docs/vega/0.23/install-vega-sdk.html (Rosetta 2 on Apple Silicon); `vega --version` | version prints | SDK version, disk used, minutes |
-| 1 | In a temp dir: `vega project create` (exact flags per the SDK doc; hello-world template) | a project is generated | its `react-native`, `react`, `react-native-kepler`, runtime-module; diff its package.json / manifest.toml / metro / babel against this directory and confirm or switch the RN track (decision 1) |
-| 2 | Repo root `pnpm i`; `cd apps/vega && npm install` | no errors | warnings worth noting |
-| 3 | `npm run build:release` | `build/<arch>-release/lingo_<arch>.vpkg` (file name derived from `kepler.appName`; record the real one) | path, size, minutes |
-| 4 | `vega virtual-device start`; `vega run-app build/aarch64-release/lingo_aarch64.vpkg` (x86_64 on Intel) | app launches, Home renders in Noto Sans on the dark ground | photo/screenshot |
-| 5 | Set `src/config.ts` to the API host as seen from the VVD (try the host LAN IP first) and run `pnpm api` on the host | catalog loads | the address that worked |
-| 6 | D-pad around Home, rail, cards | focus = outline + 1.04 scale, 150 ms; Back works | pass/fail per item |
+| 0 | Install Vega SDK 0.24 per https://developer.amazon.com/docs/vega/0.24/install-vega-sdk.html: Homebrew prerequisites (`brew install binutils coreutils gawk findutils grep jq lz4 gnu-sed watchman`, done 2026-10-14), then from a native arm64 shell `NONINTERACTIVE=true curl -fsSL https://sdk-installer.vega.labcollab.net/get_vvm.sh | bash && source ~/vega/env`; `vega --version`. The page asks for 20 GB free (15 GB free on 2026-10-14); the installer accepts the Program Materials License by running, turns telemetry on (`~/vega/telemetry/config.json` → `"optIn": false`) and edits the shell rc files, so the human runs it (docs/spikes/2026-10-14-vega-vvd.md §2) | "Active SDK Version" and "Vega CLI Version" print | SDK version, disk used (`du -sh ~/vega`), minutes |
+| 1 | In a temp dir: `vega project list-templates`, then `vega project generate --template helloWorld --name hellolingo --packageId dev.moizp.hellolingo --outputDir hellolingo` (0.24 cli-tools page; there is no `vega project create`) | a project is generated | its `react-native`, `react`, `react-native-kepler`, runtime-module; diff its package.json / manifest.toml / metro / babel against this directory and confirm or switch the RN track (decision 1) |
+| 2 | Repo root `pnpm i`; `cd apps/vega && npm install` | no errors | 2026-10-14: OK (779 packages, deprecation warnings only) |
+| 3 | `KEPLER_SDK_PATH=~/vega/sdk/vega-sdk/main/0.24.12112 npm run build:release` | `build/aarch64-release/vega_aarch64.vpkg` (named after the directory, not `kepler.appName`) | 2026-10-14: OK, 1.5 MB, 9–13 s warm, after two fixes: `manifest.toml` (`IVega_1_2` needs module, `[offers.module]` for the launch message; the build also writes seven system-module `needs.module` entries into the file) and `metro.config.js` rule 3 (`react-native` → `@amazon-devices/react-native-kepler` on kepler). Friction logs 2026-10-14-vega-manifest-*, -vega-metro-* |
+| 4 | `vega virtual-device start --display-res=1920,1080`; `vega run-app build/aarch64-release/vega_aarch64.vpkg dev.moizp.lingo.main -d VirtualDevice` (x86_64 on Intel; the component id is the second argument, run-apps page) | app launches, Home renders in Noto Sans on the dark ground | 2026-10-14: **pass** — docs/spikes/2026-10-14-vega-home.png. The GUI emulator crashed on the host GPU; it runs with `hw.gpu.mode = swangle_indirect` in the instance's `config.ini` (or `--no-gui`, 8 s boot). Screenshot through the emulator console (docs/spikes/2026-10-14-vega-vvd.md §4); the device-side `gwsi-tool-screenshooter` fails on the VVD |
+| 5 | With `pnpm api` on the host: `vega device start-port-forwarding --device VirtualDevice -p 4000 --forward false` (`--forward false` = reverse, device port → host port) and `src/config.ts` at `http://localhost:4000` | catalog loads | 2026-10-14: **pass** — `http://localhost:4000` through the reverse forward (device `curl localhost:4000/health` → ok; Home and Clip show the catalog). Re-run the forwarding after every VVD start |
+| 6 | D-pad around Home, rail, cards | focus = outline + 1.04 scale, 150 ms; Back works | 2026-10-14: focus and Back pass (keys via `inputd-cli button_press KEY_*`); LEFT into the rail lands on the geometrically nearest item (Settings from Watch at rest, Review when scrolled), not the current item; after UP from a row the hero stays scrolled (title cut); see spike §3 |
 | 7 | Pair screen | QR renders (react-native-svg alias) and the phone joins over websocket | pass/fail |
-| 8 | Open a clip | playback-unavailable message ("Video plays on Fire TV with Fire OS for now."), no crash; Back returns | pass/fail + log |
+| 8 | Open a clip | playback-unavailable message ("Video plays on Fire TV with Fire OS for now."), no crash; Back returns | 2026-10-14: **pass** — docs/spikes/2026-10-14-vega-player-playback-off.png; Back returns to the Clip screen |
 | 9 | Quiz (TV) | options focus, correct/incorrect states | pass/fail |
 | 10 | Spike S2 questions (a)–(e), docs/plans/LING-003.md §Spikes (TVEventHandler events and repeats, chip focus, `playbackRate`, preferred focus after remount, FF/Rewind names) | as written there | logs |
-| 11 | Logs | app logs visible (command per the SDK docs) | the command used |
+| 11 | Logs: `vega exec vda -s emulator-5554 shell "loggingctl log -f -o short_precise"` (the format is `short_precise`, not `short-precise`; without `-f` only a short window prints) | app logs visible | 2026-10-14: native lines appear as `dev.moizp.lingo[pid]`; JS crashes do not reach the log — they land in `vega device get-log-info` → `copy-logs --artifact SYSTEM_TOMBSTONE/acr` (text files with the JS stack) |
 
 Afterwards: fill the Vega column of `../vega-media-kit/docs/device-matrix.md`, the Gate B line in docs/decisions/0001, and friction logs
 for anything that differed from the docs. A clean run reopens kit Gate B and un-defers KIT-010 (kit decision 0001).

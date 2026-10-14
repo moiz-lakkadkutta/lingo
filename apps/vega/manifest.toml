@@ -110,6 +110,41 @@ id = "/com.amazon.kepler.appstore.iap.purchase.core@IAppstoreIAPPurchaseCoreServ
 [[needs.module]]
 id = "/com.amazon.kepler.media@IContentLauncher1"
 
+# OS Version module for [os.version] 1.2: SDK 0.24 `vpt validate` requires it ("[os.version] is declared … but the manifest declares no OS
+# Version module entries"); vega-video-sample manifest.toml carries the same entry. Found on the first VVD build, 2026-10-14.
+[[needs.module]]
+id = "/com.amazon.vega.os@IVega_1_2"
+
+# The seven entries below are written into this file by `react-native build-kepler` (SDK 0.24.12112, 2026-10-14): one per system JS module
+# the bundle depends on (`SystemModules/*.modules.txt` of the @amazon-devices packages). The build re-inserts them if removed.
+[[needs.module]]
+id = "/com.amazon.kepler.kepler_media_content_launcher_2@IKeplerMediaContentLauncher_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.keplermediadescriptor_1@IKeplermediadescriptor_1"
+
+[[needs.module]]
+id = "/com.amazon.kepler.appstore_iap_lib_2@IAppstoreIapLib_12"
+
+[[needs.module]]
+id = "/com.amazon.kepler.keplerscript_4@IKeplerScript_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.svg_3@ISVG_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.w3cmedia_2@IW3cmedia_3"
+
+# The launch message below must be included by a module this package offers (vpt validate: "[offers.module.includes-messages] message uri
+# 'pkg://dev.moizp.lingo.main' not included by any module"); shape from vega-video-sample manifest.toml ([[offers.module]] … IMod1).
+[offers]
+[[offers.module]]
+id = "/dev.moizp.lingo.main@IMod1"
+includes-messages = ["pkg://dev.moizp.lingo.main"]
+
 [[message]]
 uri = "pkg://dev.moizp.lingo.main"
 sender-privileges = ["*"]

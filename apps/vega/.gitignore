@@ -2,3 +2,4 @@ node_modules/
 build/
 assets/fonts/
 .kepler/
+buildinfo.json

@@ -27,6 +27,12 @@ const singletons = {
 }
 const appOrigin = path.join(__dirname, 'index.js')
 const vegaAdapterDir = path.join(kit, 'src/player/adapters') + path.sep
+// 3. On platform `kepler`, `react-native` must resolve to Amazon's fork, @amazon-devices/react-native-kepler (the RN CLI's out-of-tree
+//    platform `npmPackageName`). RN 0.83's CLI installs that redirect as a *framework default* `resolver.resolveRequest`; a project that
+//    defines its own `resolveRequest` (this file) replaces it, so plain react-native 0.83 was bundled and its `Libraries/Utilities/Platform.js`
+//    (a self-import with no `.kepler.js` variant) left `Platform` undefined: the app aborted in `MMKV()` → `AppState` with
+//    "TypeError: Cannot read property 'OS' of undefined" (VVD, 2026-10-14; docs/friction/2026-10-14-vega-metro-*). Redirect here instead.
+const VEGA_RN = '@amazon-devices/react-native-kepler'
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), {
   watchFolders: [sharedUi, path.join(root, 'packages/contracts'), kit, path.join(root, 'node_modules')],
@@ -36,6 +42,7 @@ module.exports = mergeConfig(getDefaultConfig(__dirname), {
     extraNodeModules: { '@lingo/shared-ui': sharedUi },
     resolveRequest: (context, moduleName, platform) => {
       if (moduleName === 'shaka-player' && context.originModulePath.startsWith(vegaAdapterDir)) return { type: 'empty' }
+      if (platform === 'kepler' && (moduleName === 'react-native' || moduleName.startsWith('react-native/'))) moduleName = VEGA_RN + moduleName.slice('react-native'.length)
       const base = Object.keys(singletons).find((s) => moduleName === s || moduleName.startsWith(`${s}/`))
       if (base === 'react-native-svg') return context.resolveRequest({ ...context, originModulePath: appOrigin }, singletons[base] + moduleName.slice(base.length), platform)
       // pin react / react-native to this app's copy by resolving them as if imported from index.js (as apps/expo does)
