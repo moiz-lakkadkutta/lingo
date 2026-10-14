@@ -12,10 +12,11 @@ export const PRICES = {
   translatePerMillionChars: 15,
   /** characters of subtitle text per second of clip — an upper estimate; replace with the measured mean of the Phase 1 cue text */
   speechCharsPerSecond: 15,
-  /** USD per clip for glosses + quiz plan on the default model, Nova Pro v1, upper bound (decision 0009 eval measured ≈ $0.035–0.042 per clip;
-   * Nova Lite v1 measured $0.0010–0.0014: docs/spot-checks/2026-10-02-gate-c.md). The per-token prices in src/ai/cost.ts are themselves unverified.
+  /** USD per clip for glosses + quiz plan on the default model, Nova Pro v1, by clip language. German: ≈ $0.07–0.12 per clip in the first
+   * clip batch (LING-008; longer clips, more highlights, the G-NONWORD retries). English: the decision 0009 eval measured ≈ $0.035–0.042
+   * (Nova Lite v1 measured $0.0010–0.0014). The per-token prices in src/ai/cost.ts are themselves unverified.
    * verify: https://aws.amazon.com/bedrock/pricing/ */
-  bedrockPerClipUpperBound: 0.05,
+  bedrockPerClip: { de: { low: 0.07, high: 0.12 }, en: { low: 0.035, high: 0.05 } },
 } as const
 
 export const PRICING_PAGES = [
@@ -28,7 +29,8 @@ export interface CostEstimate {
   phases: Phase[]
   transcribe: { slugs: string[]; minutes: number; usd: number }
   translate: { chars: number; usd: number }
-  bedrock: { clips: number; usd: number }
+  /** usd = upper bound (counted in totalUsd), lowUsd = lower bound; byLang = clips per language */
+  bedrock: { clips: number; usd: number; lowUsd: number; byLang: Partial<Record<BatchClip['lang'], number>> }
   totalUsd: number
   note: string
 }
@@ -56,12 +58,23 @@ export function estimateBatch(m: BatchManifest, fs: FsRead, o: { work: string; p
   const chars = o.phases.length * clips.reduce((s, c) => s + c.expectedDurationS * PRICES.speechCharsPerSecond * c.natives.length, 0)
   const transcribe = { slugs: tr.map((c) => c.slug), minutes, usd: minutes * PRICES.transcribePerMinute }
   const translate = { chars, usd: (chars * PRICES.translatePerMillionChars) / 1e6 }
-  const bedrockClips = o.phases.includes('final') ? clips.length : 0
-  const bedrock = { clips: bedrockClips, usd: bedrockClips * PRICES.bedrockPerClipUpperBound }
+  const glossed = o.phases.includes('final') ? clips : []
+  const byLang: Partial<Record<BatchClip['lang'], number>> = {}
+  for (const c of glossed) byLang[c.lang] = (byLang[c.lang] ?? 0) + 1
+  const bedrock = {
+    clips: glossed.length, byLang,
+    usd: glossed.reduce((s, c) => s + PRICES.bedrockPerClip[c.lang].high, 0),
+    lowUsd: glossed.reduce((s, c) => s + PRICES.bedrockPerClip[c.lang].low, 0),
+  }
   return {
     phases: o.phases, transcribe, translate, bedrock, totalUsd: transcribe.usd + translate.usd + bedrock.usd,
     note: 'S3 storage and CloudFront demo traffic add cents (not estimated). Prices are unverified — see the pricing pages.',
   }
+}
+
+const bedrockParts = (e: CostEstimate) => {
+  const parts = (Object.entries(e.bedrock.byLang) as Array<[BatchClip['lang'], number]>).map(([l, n]) => `${l} ${n} × $${PRICES.bedrockPerClip[l].low}–${PRICES.bedrockPerClip[l].high}`)
+  return parts.length ? ` (${parts.join(', ')})` : ''
 }
 
 export function renderEstimate(e: CostEstimate): string {
@@ -70,7 +83,7 @@ export function renderEstimate(e: CostEstimate): string {
     `Cost estimate (${e.phases.join(' + ')}; prices UNVERIFIED, docs/aws.md):`,
     `  Transcribe  ${e.transcribe.slugs.length} clips, ${e.transcribe.minutes.toFixed(1)} min × $${PRICES.transcribePerMinute}/min = ${$(e.transcribe.usd)}`,
     `  Translate   ${Math.round(e.translate.chars).toLocaleString('en-US')} chars (${PRICES.speechCharsPerSecond} ch/s × natives × phases) × $${PRICES.translatePerMillionChars}/M = ${$(e.translate.usd)}`,
-    `  Bedrock     ${e.bedrock.clips} clips × ≤ $${PRICES.bedrockPerClipUpperBound} = ≤ ${$(e.bedrock.usd)}`,
+    `  Bedrock     ${e.bedrock.clips} clips${bedrockParts(e)} = ${$(e.bedrock.lowUsd)}–${$(e.bedrock.usd)} (Nova Pro v1; the total counts the upper bound)`,
     `  Total       ≈ ${$(e.totalUsd)}  (${e.note})`,
     `  Verify: ${PRICING_PAGES.join(' · ')}`,
   ].join('\n')

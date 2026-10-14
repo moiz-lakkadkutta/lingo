@@ -7,7 +7,7 @@ import type { GermanLexiconFn } from './germanWords'
 
 /** Everything a gloss or quiz call needs; injected so tests never reach Bedrock. */
 export type Reasoning = 'off' | 'low' | 'medium'
-export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn; /** quiz planner: 'code' (default) or 'model' (LINGO_AI_QUIZ=model) */ quizMode?: 'code' | 'model' }
+export interface AiDeps { send: BedrockSend; cache: AiCache; ledger: CostLedger; model: string; log: (m: string) => void; now: () => Date; /** Nova 2 extended thinking; default off */ reasoning?: Reasoning; /** G-NONWORD word knowledge for German glosses */ germanLexicon?: GermanLexiconFn; /** quiz planner: 'code' (default) or 'model' (LINGO_AI_QUIZ=model) */ quizMode?: 'code' | 'model'; /** backoff wait between throttled calls; default setTimeout (tests pass a recorder) */ sleep?: (ms: number) => Promise<void> }
 
 export interface AskSpec<T> {
   kind: AiKind
@@ -46,14 +46,42 @@ export const resetTemperature = () => { temperature = TEMPERATURE }
 
 const isTemperatureRejection = (e: unknown) => e instanceof Error && e.name === 'ValidationException' && /temperature/i.test(e.message)
 
+/**
+ * Throttling and short outages that outlast the SDK's own retries (client.ts) are retried here: a batch of clips glossing in a row hit
+ * ThrottlingException on Nova Pro in batch 1 (LING-008). Converse errors: https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html#API_runtime_Converse_Errors
+ * Backoff with jitter: https://docs.aws.amazon.com/sdkref/latest/guide/feature-retry-behavior.html
+ */
+export const BACKOFF = { attempts: 5, baseMs: 1000 } as const
+const RETRYABLE = new Set(['ThrottlingException', 'ServiceUnavailableException', 'ServiceUnavailable'])
+export const isRetryableBedrockError = (e: unknown): boolean => e instanceof Error && RETRYABLE.has(e.name)
+/** Wait before retry n (1-based): baseMs × 2^(n-1), scaled by a jitter factor in [0.5, 1]. */
+export const backoffDelayMs = (n: number, baseMs: number, random: () => number = Math.random): number => Math.round(baseMs * 2 ** (n - 1) * (0.5 + 0.5 * random()))
+const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+export interface BackoffOptions { attempts?: number; baseMs?: number; sleep?: (ms: number) => Promise<void>; random?: () => number; log: (m: string) => void }
+export async function sendWithBackoff(send: BedrockSend, input: ConverseCommandInput, o: BackoffOptions): Promise<ConverseCommandOutput> {
+  const attempts = o.attempts ?? BACKOFF.attempts, baseMs = o.baseMs ?? BACKOFF.baseMs, sleep = o.sleep ?? realSleep
+  for (let n = 1; ; n++) {
+    try {
+      return await send(input)
+    } catch (e) {
+      if (n >= attempts || !isRetryableBedrockError(e)) throw e
+      const ms = backoffDelayMs(n, baseMs, o.random)
+      o.log(`WARNING ai: ${(e as Error).name} from Bedrock (attempt ${n}/${attempts}); retry in ${ms} ms`)
+      await sleep(ms)
+    }
+  }
+}
+
 async function converse(d: AiDeps, input: ConverseCommandInput): Promise<ConverseCommandOutput> {
+  const send = (i: ConverseCommandInput) => sendWithBackoff(d.send, i, { log: d.log, ...(d.sleep ? { sleep: d.sleep } : {}) })
   try {
-    return await d.send({ ...input, inferenceConfig: { ...input.inferenceConfig, temperature } })
+    return await send({ ...input, inferenceConfig: { ...input.inferenceConfig, temperature } })
   } catch (e) {
     if (temperature === TEMPERATURE_FLOOR || !isTemperatureRejection(e)) throw e
     d.log(`WARNING ai: temperature ${temperature} rejected by Bedrock (${(e as Error).message}); using ${TEMPERATURE_FLOOR} from now on`)
     temperature = TEMPERATURE_FLOOR
-    return d.send({ ...input, inferenceConfig: { ...input.inferenceConfig, temperature } })
+    return send({ ...input, inferenceConfig: { ...input.inferenceConfig, temperature } })
   }
 }
 
@@ -70,7 +98,7 @@ const zodIssues = (e: z.ZodError) => e.issues.map((i) => `${i.path.join('.')}: $
 
 /**
  * Converse with forced tool use: attempt 1, then exactly one retry whose user message appends the issues and the rejected answer
- * (greedy decoding would otherwise repeat the same answer). Transport errors are thrown as-is (the SDK already retried them).
+ * (greedy decoding would otherwise repeat the same answer). Throttling is retried with backoff (sendWithBackoff); other transport errors are thrown as-is (the SDK already retried them).
  */
 export async function askWithRetry<T>(d: AiDeps, spec: AskSpec<T>): Promise<AskResult<T>> {
   let issues: string[] = []
