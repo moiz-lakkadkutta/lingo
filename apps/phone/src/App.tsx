@@ -26,10 +26,20 @@ import { color } from './theme'
 
 const DEFAULT_API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000'
 
+/** crypto.randomUUID exists only in secure contexts (https, localhost); the web app served over LAN http falls back to a v4 UUID from getRandomValues, which every context has. */
+function newId(): string {
+  try { return Crypto.randomUUID() } catch {
+    const b = Crypto.getRandomBytes(16)
+    b[6] = ((b[6] ?? 0) & 0x0f) | 0x40; b[8] = ((b[8] ?? 0) & 0x3f) | 0x80
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+  }
+}
+
 /** Four screens, no drawer: Join → Live (saved words as the TV saves them) → Review (SM-2 graded server-side) → Progress. Side effects live here only. */
 export default function App() {
   const [fontsLoaded] = useFonts({ NotoSans_400Regular, NotoSans_600SemiBold, Manrope_800ExtraBold })
-  const store = useMemo(() => createStore(AsyncStorage, () => Crypto.randomUUID()), [])
+  const store = useMemo(() => createStore(AsyncStorage, newId), [])
   const [s, dispatch] = useReducer(appReducer, initialApp)
   const [booted, setBooted] = useState(false)
   const [apiUrl, setApiUrl] = useState(DEFAULT_API)
