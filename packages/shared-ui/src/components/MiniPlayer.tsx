@@ -51,7 +51,7 @@ export function MiniPlayer({ manifestUrl, startS, endS, playKey, caption, onEnd,
           />
         )}
       </View>
-      {caption ? <T variant="cueTarget" numberOfLines={3} style={{ fontSize: px(32), lineHeight: px(42), padding: px(16) }}>{caption}</T> : null}
+      {caption ? <T variant="cueTarget" numberOfLines={2} style={{ fontSize: px(32), lineHeight: px(42), padding: px(16) }}>{caption}</T> : null}
     </View>
   )
 }

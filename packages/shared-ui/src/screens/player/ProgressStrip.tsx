@@ -26,7 +26,7 @@ export function ProgressStrip({ positionS, durationS, bottom }: { positionS: num
         accessibilityValue={dur === null ? { text: strings.player.progressLabel(elapsed, total) } : { min: 0, max: Math.round(dur), now: Math.round(Math.min(positionS, dur)) }}
         style={{
           width: px(tokens.layout.explainW), flexDirection: 'row', alignItems: 'center', justifyContent: f === null ? 'center' : 'flex-start', gap: px(tokens.layout.progressPadX),
-          backgroundColor: tokens.color.cueBox, borderRadius: 8, paddingHorizontal: px(tokens.layout.progressPadX), paddingVertical: px(tokens.layout.progressPadY),
+          backgroundColor: tokens.color.cueBox, borderRadius: px(tokens.radius.lg), paddingHorizontal: px(tokens.layout.progressPadX), paddingVertical: px(tokens.layout.progressPadY),
         }}
       >
         {f !== null ? (

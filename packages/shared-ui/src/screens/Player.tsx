@@ -32,6 +32,8 @@ export interface PlayerProps {
 }
 
 const REPORTED = new Set(['loading', 'ready', 'playing', 'paused', 'buffering', 'ended'])
+/** The Explain card draws after this long from mount even if the cue block was never measured (review L5): never stuck invisible. */
+export const MEASURE_FALLBACK_MS = 250
 
 /**
  * caps.playback === false (Vega OS until the kit's Vega adapter plays, KIT-010): an honest message instead of mounting KitPlayer, which
@@ -157,6 +159,14 @@ function PlayerView(props: PlayerProps) {
   // so it never shows on top of a cue block taller than that.
   const [cueBlockH, setCueBlockH] = useState<number | null>(null)
   const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(tokens.layout.gutter)
+  // Review M2: the card never runs past the top safe edge, however long its gloss.
+  const cardMaxH = Math.max(0, px(1080) - px(tokens.layout.safeY) - cardBottom)
+  // Review L5: if onLayout never fires (a platform that skips it), draw the card anyway after MEASURE_FALLBACK_MS.
+  const [measureLate, setMeasureLate] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setMeasureLate(true), MEASURE_FALLBACK_MS)
+    return () => clearTimeout(t)
+  }, [])
   // The card's own height, for the progress strip above it; forgotten when the card closes so a new card is measured first.
   const [cardH, setCardH] = useState<number | null>(null)
   useEffect(() => { if (!explaining) setCardH(null) }, [explaining])
@@ -225,7 +235,8 @@ function PlayerView(props: PlayerProps) {
           chipRefs={chipRefs}
           saveRef={saveRef}
           bottom={cardBottom}
-          ready={cueBlockH !== null}
+          maxHeight={cardMaxH}
+          ready={cueBlockH !== null || measureLate}
           onCardLayout={setCardH}
         />
       ) : null}

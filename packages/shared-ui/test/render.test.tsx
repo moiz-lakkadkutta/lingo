@@ -175,6 +175,28 @@ describe('Explain', () => {
     expect(flat(wrapOf(m).props.style).opacity).toBe(0)
   })
 
+  it('a long gloss cannot push the card off the top: gloss 2 lines, grammar 3, text shrinks under maxHeight, title and actions stay (review M2, L6)', () => {
+    const long = 'sehr lang '.repeat(40)
+    const h: HighlightDto = { ...hl('h1', 'Stunden'), gloss: long, grammar: long }
+    const c = cue(0, 1, 3, 'Ich habe zwei\nStunden gewartet.', [h])
+    const r = render(<Explain {...props({ cue: c, highlight: h, maxHeight: 640 })} />)
+    const textNode = (t: string) => r.root.find((n) => is(n, 'Text') && textOf(n) === t)
+    const glossAndGrammar = r.root.findAll((n) => is(n, 'Text') && textOf(n) === long)
+    expect(glossAndGrammar.map((n) => n.props.numberOfLines)).toEqual([2, 3]) // gloss, grammar
+    const cardV = r.root.find((n) => is(n, 'View') && flat(n.props.style).backgroundColor === tokens.color.surface1)
+    expect(flat(cardV.props.style)).toMatchObject({ maxHeight: 640, overflow: 'hidden', borderRadius: tokens.radius.lg })
+    // Only the text block gives way under the cap; the word title row and the action row keep their height.
+    const textBlock = cardV.find((n) => is(n, 'View') && n.props.testID === 'explain-text')
+    expect(flat(textBlock.props.style)).toMatchObject({ flexShrink: 1, overflow: 'hidden' })
+    expect(textBlock.findAll((n) => is(n, 'Text') && textOf(n) === 'Stunden')).toHaveLength(0)
+    expect(textBlock.findAll((n) => is(n, 'Pressable'))).toHaveLength(0)
+    expect(textOf(textNode('Stunden'))).toBe('Stunden')
+    expect(byLabel(r, strings.explain.saveLabel('Stunden'))).toBeTruthy()
+    expect(byLabel(r, strings.explain.replay)).toBeTruthy()
+    // No cap given: none applied.
+    expect(flat(render(<Explain {...props()} />).root.find((n) => is(n, 'View') && flat(n.props.style).backgroundColor === tokens.color.surface1).props.style).maxHeight).toBeUndefined()
+  })
+
   it('has at most three actions, no Slower without caps.rate, and a one-line Plus upsell on the free tier', async () => {
     const r = render(<Explain {...props()} />)
     expect(actions(r).map((a) => a.props['aria-label'])).toEqual([strings.explain.saveLabel('Stunden'), strings.explain.replay, strings.explain.slowerPlus])

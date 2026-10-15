@@ -22,6 +22,8 @@ export interface ExplainProps {
   ready?: boolean
   /** The card's measured height, so the Player can stack the progress strip above it (QA #12). */
   onCardLayout?(height: number): void
+  /** Tallest the card may be: from its bottom edge to the top safe edge (the Player computes it). Under the cap only the text block gives way. */
+  maxHeight?: number
 }
 
 /**
@@ -29,7 +31,7 @@ export interface ExplainProps {
  * word · lemma · rank chip / gloss / grammar / the cue as the example / at most three actions / status line.
  * Not an RN Modal: Vega publishes no Back events behind a Modal (decision 0006 §2). Back resumes (the Player handles it).
  */
-export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, savedIds, savedCount, plus, caps, rate, onSave, onReplay, onSlower, onPlus, chipRefs, saveRef, bottom, ready = true, onCardLayout }: ExplainProps) {
+export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, savedIds, savedCount, plus, caps, rate, onSave, onReplay, onSlower, onPlus, chipRefs, saveRef, bottom, ready = true, onCardLayout, maxHeight }: ExplainProps) {
   const [status, setStatus] = useState<string | null>(null)
   const [limit, setLimit] = useState(false)
   const [justSaved, setJustSaved] = useState<ReadonlySet<string>>(new Set())
@@ -64,8 +66,8 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
 
   return (
     <View pointerEvents="box-none" accessibilityViewIsModal style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center', opacity: ready ? 1 : 0 }}>
-      {/* Sized to its content (QA #8): no minimum height, so a short gloss leaves no gap above the actions. */}
-      <View onLayout={onCardLayout ? (e) => onCardLayout(e.nativeEvent.layout.height) : undefined} style={{ width: px(tokens.layout.explainW), backgroundColor: tokens.color.surface1, borderRadius: 8, padding: px(tokens.layout.explainPad), gap: px(tokens.layout.explainGap) }}>
+      {/* Sized to its content (QA #8): no minimum height, so a short gloss leaves no gap above the actions. Capped at the top safe edge (review M2). */}
+      <View onLayout={onCardLayout ? (e) => onCardLayout(e.nativeEvent.layout.height) : undefined} style={{ width: px(tokens.layout.explainW), backgroundColor: tokens.color.surface1, borderRadius: px(tokens.radius.lg), padding: px(tokens.layout.explainPad), gap: px(tokens.layout.explainGap), ...(maxHeight !== undefined ? { maxHeight, overflow: 'hidden' as const } : {}) }}>
         {wordFocus === 'card' && cue.highlights.length > 0 ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: px(tokens.layout.wordGap) }}>
             {cue.highlights.map((h, i) => (
@@ -100,9 +102,12 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
               </View>
             </View>
             {/* gloss/grammar may be empty for clips prepared with --no-ai (LING-001); rows collapse cleanly. */}
-            {highlight.gloss ? <T variant="cueTarget">{highlight.gloss}</T> : null}
-            {highlight.grammar ? <T variant="body" color={tokens.color.textSecondary}>{highlight.grammar}</T> : null}
-            <T variant="body" style={{ fontStyle: 'italic' }}>{`“${cue.text.replace(/\n/g, ' ')}”`}</T>
+            {/* Review M2: gloss ≤ 2 lines, grammar ≤ 3; under the card's maxHeight only this block shrinks, so the word and the actions stay. */}
+            <View testID="explain-text" style={{ gap: px(tokens.layout.explainGap), flexShrink: 1, overflow: 'hidden' }}>
+              {highlight.gloss ? <T variant="cueTarget" numberOfLines={2}>{highlight.gloss}</T> : null}
+              {highlight.grammar ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={3}>{highlight.grammar}</T> : null}
+              <T variant="body" style={{ fontStyle: 'italic' }}>{`“${cue.text.replace(/\n/g, ' ')}”`}</T>
+            </View>
           </>
         ) : cue.native ? (
           <T variant="cueTarget" color={tokens.color.nativeCue}>{cue.native}</T>

@@ -64,7 +64,6 @@ export function FirstRun({ learner, session, onProfile, onLevel, onDone }: First
   }
   if (s.panel === 'speak') {
     const opts = speakOptions(s.learning)
-    const pref = opts.some((o) => o.code === s.native) ? s.native : opts[0]!.code
     if (opts.length === 1) {
       // QA #15: one supported language → a confirmed value and Continue, not a picker with one choice (as Settings shows a single option).
       const only = opts[0]!
@@ -81,6 +80,7 @@ export function FirstRun({ learner, session, onProfile, onLevel, onDone }: First
         </Screen>
       )
     }
+    const pref = opts.some((o) => o.code === s.native) ? s.native : opts[0]!.code
     return (
       <Screen>
         <View style={{ flex: 1, justifyContent: 'center', gap: px(40) }}>

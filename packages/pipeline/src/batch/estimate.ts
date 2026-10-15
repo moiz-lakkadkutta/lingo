@@ -1,20 +1,22 @@
 /**
- * Cost estimate printed by `batch --dry-run` (docs/plans/LING-008.md §2.11). Every price is the repo's own figure and UNVERIFIED —
- * check each against its pricing page (and the eu-central-1 rate) before relying on it.
+ * Cost estimate printed by `batch --dry-run` (docs/plans/LING-008.md §2.11). The Transcribe rate is checked (2026-10-15); the other
+ * figures are the repo's own and unverified — check each against its pricing page (and the eu-central-1 rate) before relying on it.
  */
 import { join } from 'node:path'
 import { segmentKey, type BatchClip, type BatchManifest } from './manifest'
 
 export const PRICES = {
-  /** USD per audio minute, docs/aws.md. verify: https://aws.amazon.com/transcribe/pricing/ (billed per second with a per-request minimum) */
-  transcribePerMinute: 0.024,
+  /** USD per audio minute: $0.0001 per second = $0.006/min, standard batch, eu-central-1 (AWS Price List API, accessed 2026-10-15:
+   * https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/transcribe/current/eu-central-1/index.json; https://aws.amazon.com/transcribe/pricing/).
+   * Billed per second with a per-request minimum. */
+  transcribePerMinute: 0.006,
   /** USD per million characters, docs/aws.md. verify: https://aws.amazon.com/translate/pricing/ */
   translatePerMillionChars: 15,
   /** characters of subtitle text per second of clip — an upper estimate; replace with the measured mean of the Phase 1 cue text */
   speechCharsPerSecond: 15,
   /** USD per clip for glosses + quiz plan on the default model, Nova Pro v1, by clip language. German: ≈ $0.07–0.12 per clip in the first
    * clip batch (LING-008; longer clips, more highlights, the G-NONWORD retries). English: the decision 0009 eval measured ≈ $0.035–0.042
-   * (Nova Lite v1 measured $0.0010–0.0014). The per-token prices in src/ai/cost.ts are themselves unverified.
+   * (Nova Lite v1 measured $0.0010–0.0014). The per-token prices in src/ai/cost.ts were checked 2026-10-15.
    * verify: https://aws.amazon.com/bedrock/pricing/ */
   bedrockPerClip: { de: { low: 0.07, high: 0.12 }, en: { low: 0.035, high: 0.05 } },
 } as const

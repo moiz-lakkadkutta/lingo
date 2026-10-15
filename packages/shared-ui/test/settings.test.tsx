@@ -69,4 +69,19 @@ describe('Settings', () => {
     expect(texts(col('about'))).toEqual([strings.keys.right])
     expect(labels(r)).toContain(S.linkLabel(S.about, S.open)) // the label still says what Select does
   })
+  it('review M1: a long value shrinks with an ellipsis instead of spilling over the row name; the chevron never shrinks', () => {
+    const phone = 'Wohnzimmer-Telefon von Alexandra Müller-X' // 40+ characters
+    expect(phone.length).toBeGreaterThanOrEqual(40)
+    const r = render(<Settings {...props({ phoneName: phone })} />)
+    const col = r.root.find((n) => n.props.testID === 'value-pair')
+    const value = col.find((n) => is(n, 'Text') && n.props.children === S.pairValue(phone))
+    expect(value.props.numberOfLines).toBe(1)
+    expect(value.props.ellipsizeMode ?? 'tail').toBe('tail')
+    expect(flat(value.props.style).flexShrink).toBe(1)
+    expect(flat(col.find((n) => is(n, 'Text') && n.props.testID === 'chevron').props.style).flexShrink).toBe(0)
+    // every value text in the column can shrink, cycle rows included
+    for (const k of ['learning', 'native']) {
+      for (const t of r.root.find((n) => n.props.testID === `value-${k}`).findAll((n) => is(n, 'Text'))) expect(flat(t.props.style).flexShrink).toBe(1)
+    }
+  })
 })

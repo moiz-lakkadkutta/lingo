@@ -35,12 +35,14 @@ describe('estimateBatch', () => {
     const e = estimateBatch(m, fsOf('/w/clip-3/transcript.json'), { work: '/w', phases: ['draft', 'final'] })
     expect(e.transcribe.slugs.length).toBe(10)
     expect(e.transcribe.minutes.toFixed(1)).toBe('58.9')
-    expect(e.transcribe.usd.toFixed(2)).toBe('1.41')
+    // Transcribe at $0.0001/s = $0.006/min (Price List API, eu-central-1, 2026-10-15)
+    expect(PRICES.transcribePerMinute).toBe(0.006)
+    expect(e.transcribe.usd.toFixed(2)).toBe('0.35')
     expect(e.translate.usd.toFixed(2)).toBe('1.90')
     // Bedrock at the Nova Pro v1 default for German (batch 1, LING-008): 12 × $0.07–0.12 = $0.84–1.44
     expect(e.bedrock.lowUsd.toFixed(2)).toBe('0.84')
     expect(e.bedrock.usd.toFixed(2)).toBe('1.44')
-    expect(e.totalUsd.toFixed(1)).toBe('4.8')
+    expect(e.totalUsd.toFixed(1)).toBe('3.7')
   })
 
   it('Bedrock per clip on Nova Pro v1: German ≈ $0.07–0.12 (batch 1), English keeps the 0009 eval bound; the range is printed', () => {

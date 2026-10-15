@@ -40,6 +40,17 @@ describe('FirstRun', () => {
     expect(onProfile).toHaveBeenCalledWith({ learning: 'de', native: 'en' })
     expect(texts(r)).toContain(F.item(1, 6)) // the flow goes on to placement
   })
+  it('learning English with native Deutsch already set: the speak panel confirms Deutsch and saves en → de (review L7)', async () => {
+    const onProfile = vi.fn()
+    const r = render(<FirstRun {...props({ onProfile, learner: learner({ learning: 'en', native: 'de' }) })} />)
+    await press(byLabel(r, F.learningLabel('English')))
+    expect(labels(r)).toEqual([F.speakContinueLabel('Deutsch')])
+    expect(texts(r.root.find((n) => n.props.testID === 'speak-value'))).toEqual(['Deutsch'])
+    expect(texts(r)).toContain(F.speakNote('English', 'Deutsch'))
+    await press(byLabel(r, F.speakContinueLabel('Deutsch')))
+    expect(onProfile).toHaveBeenCalledWith({ learning: 'en', native: 'de' })
+    expect(texts(r)).toContain(F.item(1, 6))
+  })
   it('placement shows one line at a time in a cue box with Yes focused and a Skip button', async () => {
     const onLevel = vi.fn()
     const r = render(<FirstRun {...props({ onLevel })} />)

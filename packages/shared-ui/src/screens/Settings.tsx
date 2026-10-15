@@ -55,11 +55,12 @@ export function Settings({ learner, phoneName, remote, status, onAction, initial
               <View testID={`value-${r.key}`} style={{ width: px(L.rowValueW), flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: px(16) }}>
                 {r.kind === 'cycle'
                   ? r.single
-                    ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{r.value}</T>
-                    : <T variant="body" color={tokens.color.interactive} numberOfLines={1}>{strings.settings.cycleValue(r.value)}</T>
+                    ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1} style={{ flexShrink: 1 }}>{r.value}</T>
+                    : <T variant="body" color={tokens.color.interactive} numberOfLines={1} style={{ flexShrink: 1 }}>{strings.settings.cycleValue(r.value)}</T>
                   : <>
-                      {linkValue ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{linkValue}</T> : null}
-                      <T testID="chevron" variant="body" color={tokens.color.textSecondary}>{strings.keys.right}</T>
+                      {/* Review M1: a long value ("Connected: <phone name>") shrinks and ends in an ellipsis inside its column; the chevron keeps its width. */}
+                      {linkValue ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1} style={{ flexShrink: 1 }}>{linkValue}</T> : null}
+                      <T testID="chevron" variant="body" color={tokens.color.textSecondary} style={{ flexShrink: 0 }}>{strings.keys.right}</T>
                     </>}
               </View>
             </Focusable>

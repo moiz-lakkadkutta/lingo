@@ -94,6 +94,7 @@ describe('ProgressStrip', () => {
     expect(fill).toHaveLength(1)
     expect(fill[0]!.props.style.width).toBe('25%')
     expect(filled(r, tokens.color.track)).toHaveLength(1)
+    expect(s.props.style.borderRadius).toBe(tokens.radius.lg) // review L6: the radius token, not a literal
   })
   it('without a duration shows elapsed time only and no bar', () => {
     const r = render(<ProgressStrip positionS={65} durationS={0} bottom={300} />)
