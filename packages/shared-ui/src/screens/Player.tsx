@@ -192,7 +192,7 @@ function PlayerView(props: PlayerProps) {
         nextFocusDown={saveHandle}
         chipRefs={wordFocus === 'cue' ? chipRefs : undefined}
       />
-      <StatusLine parts={pausedNoCue ? [...statusParts({ challenge, rate: state.rate }), strings.player.pausedHint] : statusParts({ challenge, rate: state.rate })} visible={chromeVisible} />
+      <StatusLine parts={[...statusParts({ challenge, rate: state.rate }), ...(stageActive && !pausedNoCue ? [strings.player.seekHint] : []), ...(pausedNoCue ? [strings.player.pausedHint] : [])]} visible={chromeVisible} />
       {explaining && cue ? (
         <Explain
           cue={cue}

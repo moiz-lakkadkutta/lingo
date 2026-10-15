@@ -53,6 +53,8 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
     else setStatus(strings.explain.saveError)
   }
 
+  // More than one word in the line: ▲ reaches the word row, where ◄► move between words (native focus; QA #7).
+  const manyWords = cue.highlights.length > 1
   const saveText = limit ? strings.explain.plusCta : saved ? strings.explain.savedState : strings.explain.save
   const saveLabel = highlight ? (limit ? strings.explain.plusCta : saved ? strings.explain.savedLabel(highlight.word) : strings.explain.saveLabel(highlight.word)) : ''
 
@@ -117,7 +119,9 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
             />
           ) : null}
         </View>
-        <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{status ?? strings.explain.continueHint}</T>
+        <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite" aria-label={status ?? (manyWords ? strings.explain.wordsHintLabel : strings.explain.continueHint)}>
+          {status ?? (manyWords ? strings.explain.wordsHint : strings.explain.continueHint)}
+        </T>
       </View>
     </View>
   )

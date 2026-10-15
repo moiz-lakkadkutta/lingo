@@ -1,4 +1,4 @@
-import { cycleSetting, selectSetting, settingsRows } from '../src/screens/settings/model'
+import { cycleSetting, selectSetting, settingsRows, SUPPORTED_NATIVES } from '../src/screens/settings/model'
 import { strings } from '../src/strings'
 import { learner } from './fixtures'
 
@@ -18,11 +18,29 @@ describe('settings model', () => {
     expect(cycleSetting('learning', -1, learner({ learning: 'de', native: 'en' }))).toMatchObject({ kind: 'patch', patch: { learning: 'en', native: 'de' } })
     expect(cycleSetting('learning', 1, learner({ learning: 'en', native: 'de' }))).toMatchObject({ kind: 'patch', patch: { learning: 'de', native: 'en' } })
   })
-  it('native cycles through the list and skips the learning language', () => {
-    expect(cycleSetting('native', 1, learner({ learning: 'de', native: 'en' }))).toMatchObject({ patch: { native: 'tr' } })
-    expect(cycleSetting('native', -1, learner({ learning: 'de', native: 'tr' }))).toMatchObject({ patch: { native: 'en' } })
-    expect(cycleSetting('native', -1, learner({ learning: 'de', native: 'en' }))).toMatchObject({ patch: { native: 'ro' } })
+  it('learning swaps carry a visible notice; a plain learning change has none', () => {
+    const swap = cycleSetting('learning', 1, learner({ learning: 'de', native: 'en' }))
+    expect(swap).toMatchObject({ kind: 'patch', notice: S.nativeSwapped('Deutsch') })
+    expect(swap).toMatchObject({ announce: `${S.rowLabel(S.learning, 'English')}. ${S.nativeSwapped('Deutsch')}` })
+    expect(cycleSetting('learning', 1, learner({ learning: 'de', native: 'tr' }))).not.toHaveProperty('notice')
+  })
+  it('I speak only offers languages with native lines (en, de), never the learning language (QA #15)', () => {
+    expect(SUPPORTED_NATIVES).toEqual(['en', 'de'])
+    // One supported value besides the learning language: left, right and Select leave it as it is.
+    for (const learning of ['de', 'en'] as const) {
+      const l = learner({ learning, native: learning === 'de' ? 'en' : 'de' })
+      expect(cycleSetting('native', 1, l)).toBeNull()
+      expect(cycleSetting('native', -1, l)).toBeNull()
+      expect(selectSetting('native', l)).toBeNull()
+    }
+  })
+  it('a stored unsupported I speak is shown as is and moves onto a supported value', () => {
+    const l = learner({ learning: 'de', native: 'tr' })
+    expect(settingsRows(l, null)[1]!.value).toBe('Türkçe')
+    expect(cycleSetting('native', 1, l)).toMatchObject({ kind: 'patch', patch: { native: 'en' }, announce: S.rowLabel(S.native, 'English') })
+    expect(cycleSetting('native', -1, l)).toMatchObject({ patch: { native: 'en' } })
     expect(cycleSetting('native', 1, learner({ learning: 'en', native: 'ro' }))).toMatchObject({ patch: { native: 'de' } })
+    expect(selectSetting('native', learner({ learning: 'en', native: 'ar' }))).toMatchObject({ patch: { native: 'de' } })
   })
   it('level steps without wrapping on left and right and wraps on Select', () => {
     expect(cycleSetting('level', 1, learner({ level: 'A2' }))).toMatchObject({ kind: 'level', level: 'B1' })
@@ -52,8 +70,8 @@ describe('settings model', () => {
   })
   it('every action carries an announcement with the new value', () => {
     const l = learner()
-    expect(cycleSetting('learning', 1, l)).toMatchObject({ announce: S.rowLabel(S.learning, 'English') })
-    expect(cycleSetting('native', 1, l)).toMatchObject({ announce: S.rowLabel(S.native, 'Türkçe') })
+    expect(cycleSetting('learning', 1, learner({ native: 'tr' }))).toMatchObject({ announce: S.rowLabel(S.learning, 'English') })
+    expect(cycleSetting('native', 1, learner({ native: 'tr' }))).toMatchObject({ announce: S.rowLabel(S.native, 'English') })
     expect(cycleSetting('level', 1, l)).toMatchObject({ announce: S.rowLabel(S.level, 'about B1') })
     expect(cycleSetting('nativeLine', 1, l)).toMatchObject({ announce: S.rowLabel(S.nativeLine, 'On pause') })
     expect(cycleSetting('autoPause', 1, l)).toMatchObject({ announce: S.rowLabel(S.autoPause, 'On') })

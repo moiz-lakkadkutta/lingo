@@ -212,8 +212,8 @@ describe('Root · clip cache (review-005 M3)', () => {
     .filter((c) => String(c[0]).endsWith('/clips/zug'))
     .map((c) => ((c[1] as RequestInit | undefined)?.headers as Record<string, string>)['x-native'])
   const settingsRow = (r: ReturnType<typeof render>, name: string) => r.root.find((n) => is(n, 'Pressable') && String(n.props['aria-label']).startsWith(`${name}: `))
-  async function openClipThenSettings() {
-    const b = await boot()
+  async function openClipThenSettings(o: Parameters<typeof boot>[0] = {}) {
+    const b = await boot(o)
     await press(byLabel(b.r, zugCard)) // Clip fetches and caches zug for (de, en, A2)
     await settle()
     expect(pressBack()).toBe(true)
@@ -223,18 +223,20 @@ describe('Root · clip cache (review-005 M3)', () => {
     return b
   }
   it('M3: after "I speak" changes, Watch refetches the clip with the new native language instead of playing the cached lines', async () => {
-    const { r, srv, remote } = await openClipThenSettings()
-    expect(clipFetches(srv)).toEqual(['en'])
+    // Learning de, the only supported "I speak" is en (QA #15); a stored tr moves onto it.
+    const { r, srv, remote } = await openClipThenSettings({ me: { native: 'tr' } })
+    expect(clipFetches(srv)).toEqual(['tr'])
     focus(settingsRow(r, strings.settings.native))
     act(() => remote.emit({ eventType: 'right' }))
     await settle()
     const native = (srv.calls.find((c) => c.path === '/me' && c.method === 'PUT')!.body as { native: string }).native
-    expect(native).not.toBe('en')
+    expect(native).toBe('en')
+    expect(r.root.findAll((n) => is(n, 'Text') && n.props.children === strings.settings.saved)).toHaveLength(1) // QA #5
     expect(pressBack()).toBe(true)
     await settle()
     await press(byLabel(r, strings.home.watchLabel('Title zug')))
     await settle()
-    expect(clipFetches(srv)).toEqual(['en', native])
+    expect(clipFetches(srv)).toEqual(['tr', native])
     expect(r.root.find((n) => (n.type as unknown) === 'Player').props.clip.slug).toBe('zug')
   })
   it('M3: after a level change, Watch refetches the clip (highlights follow the level); without a change the cache is used', async () => {
