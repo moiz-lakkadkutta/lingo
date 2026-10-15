@@ -20,7 +20,7 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
 - **Amazon Appstore IAP and the Receipt Verification Service (RVS)**: one subscription, Lingo Plus, bought on the TV and verified on the
   server before it is fulfilled (decision 0012). Fire OS uses `react-native-iap` ~16.7.2 with the Amazon store flavour and App Tester
   (`apps/expo/src/fireosStore.ts`); Vega uses `@amazon-devices/keplerscript-appstore-iap-lib` ~2.13.0 (`apps/vega/src/iap/vegaStore.ts`);
-  the API calls the RVS Cloud Sandbox (`apps/api/src/lib/rvs.ts`). Code done; the App Tester and Vega Virtual Device sandbox runs: TBD by human.
+  the API calls the RVS Cloud Sandbox (`apps/api/src/lib/rvs.ts`). Code done; the App Tester and Vega Virtual Device sandbox runs: TBD by human. <!-- HUMAN: say whether the App Tester (stick) and VVD sandbox purchase runs were done and what happened. -->
 - **Content Launcher, Personalization, Media Controls**: a launch intent opens the clip (Fire OS deep link `lingo://clip/<slug>`,
   `apps/expo/LaunchBridge.tsx`; Vega Content Launcher handler, `apps/vega/src/platform/contentLauncher.ts`). Personalization and Media
   Controls go through `@moizp/vega-media-kit`, whose bindings are still no-ops (KIT-007). Not checked on a device.
@@ -33,7 +33,7 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
   Gate A passed on two real clips; terra-x-friedlaender gave 54 cues with 0 gate findings (docs/decisions/0001-week0-gates.md, 0007).
 - **Translate's `Formality` and `Brevity` settings** are documented with exact language-pair tables, so the register fix for neighbouring
   cues switching between `du` and `Sie` was one request setting per clip (decision 0008 §11; friction log `translate-per-cue-register…`).
-  Whether it removed every switch on the 12 clips: TBD by human after the batch.
+  Whether it removed every switch on the 12 clips: TBD by human after the batch. <!-- HUMAN: skim the 12 published clips' native lines for Sie/du switches and write yes or the count. -->
 - **Bedrock Converse with forced tool use and Zod validation** is cheap to run: the first real Gate C run cost $0.0024 for 37 calls across two
   clips (docs/spot-checks/2026-10-02-gate-c.md). Gloss quality is in answer 3, not here.
 - **Fire OS via the shared kit on the Fire TV Stick** (AFTSS, Fire OS 7.7.1.6; `../vega-media-kit/docs/device-matrix.md`, Described's
@@ -104,14 +104,14 @@ Third party (not Amazon or AWS)
 
 ## 4. Onboarding quality
 
-- Time from zero to first app on device: **TBD by human** hours.
+- Time from zero to first app on device: **TBD by human** hours. <!-- HUMAN: enter the hours from a blank machine to Lingo first running on the stick. -->
 - Record to place around it: the repository was created on 2026-09-14; the first Fire OS playback on the stick through the kit was on
   2026-09-26 (`../vega-media-kit/docs/device-matrix.md`). The Vega SDK was not installed until 2026-10-14: at Gate B (2026-09-26) the SDK install alone was
   ~20 GB plus an unknown day with the kill date twelve days out, so the human chose Fire OS primary and Vega experimental
-  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). The Vega Virtual Device spike ran on 2026-10-14 (docs/spikes/2026-10-14-vega-vvd.md; SDK download 8 min); add its hours here: **TBD by human**.
+  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). The Vega Virtual Device spike ran on 2026-10-14 (docs/spikes/2026-10-14-vega-vvd.md; SDK download 8 min); add its hours here: **TBD by human**. <!-- HUMAN: enter the hours the VVD spike took. -->
 
 ## 5. Would you build with these tools again? Yes / No — rationale
 
-**TBD by human** (Yes/No is the human's call). The record the rationale can draw on: the AWS AI services were cheap and well documented,
+**TBD by human** (Yes/No is the human's call). <!-- HUMAN: answer Yes or No and keep or rewrite the rationale below. --> The record the rationale can draw on: the AWS AI services were cheap and well documented,
 with quality work needed around Transcribe punctuation and Nova Lite glosses; Fire OS worked through the community react-native-tvos fork
 and the kit; Vega's version story and SDK size kept it experimental.

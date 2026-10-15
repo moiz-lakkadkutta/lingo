@@ -1,12 +1,12 @@
 # Lingo: Devpost submission draft
 
-Devpost draft for Lingo. Paste-ready. Status as of 2026-10-14.
+Devpost draft for Lingo. Paste-ready. Status as of 2026-10-15.
 
 How to use this file:
 - Each section below is headed with the Devpost field it fills. Paste the text under "Paste:" as it stands.
 - Footnote numbers (¹ ²…) point to §16 Sources. On Devpost, write each source inline as a link, or paste §16 as the last block of "About the project".
 - §15 (claims register) is **not** pasted. The Reviewer audits every claim in §2–§13 against it.
-- Placeholders follow docs/plans/LING-009.md §1.1. `grep -n "PLACEHOLDER" docs/submission.md` lists every one. On Oct 21 none may remain: each is either filled with the real value or the sentence that needed it is deleted.
+- Placeholders follow docs/plans/LING-009.md §1.1. Everything the repo or public sources could answer was filled on 2026-10-15; what only Moiz can decide or supply is marked `<!-- HUMAN: ... -->`. `grep -n "PLACEHOLDER\|HUMAN:" docs/submission.md` lists every open item. On Oct 21 none may remain: each is either filled with the real value or the sentence that needed it is deleted. HTML comments are not pasted.
 - Re-check docs/plans/LING-009.md §1 at the Oct 15 freeze. Any feature that lands moves from "What's next" into "What it does", and its row in §15 changes status.
 
 ---
@@ -33,7 +33,7 @@ Paste:
 
 > Lingo turns a 3–8 minute clip on Fire TV into a German or English lesson. Two subtitle lines play together: the language you are learning, large and bright, and your own language, small and cool. One or two words per line are marked as worth learning at your level, an approximate CEFR band worked out from word frequency. Pause, and the Explain card gives the word's meaning, one grammar note and the line itself as the example. Save the word, and it appears on your paired phone within a second. The phone quizzes you and spaces each review further out with SM-2, scheduled on the server. Lingo Plus (sandbox) adds Challenge mode, unlimited saved words and slower playback.
 
-`[PLACEHOLDER: Lingo Plus client purchase flow working in sandbox, else delete the last sentence · owner LING-007 implementer · due Oct 15 · ticket LING-007]`
+<!-- HUMAN: keep the last sentence (Lingo Plus) only if a purchase completes in the App Tester sandbox on the stick (docs/plans/LING-007.md checklist A); otherwise delete it. Due Oct 15. -->
 
 ## 4. How we built it (About the project → How we built it)
 
@@ -59,7 +59,7 @@ Paste:
 
 > Vega OS: experimental — the same shared-ui screens build with React Native for Vega 0.83 and run on the Vega Virtual Device (SDK 0.24, 2026-10-14): Home, the rail, Clip and Words render with the live catalog; video playback is off on Vega until the kit's player is rewritten, and the Player says so on screen.
 
-[QUESTION for Moiz: docs/aws.md lists "Kiro Crew" and the "Amazon Devices Builder Tools MCP" as dev tooling, but nothing in the repo shows they were used. Were they? If yes, add one sentence here naming them; if no, the claim goes from docs/aws.md too. Until confirmed, this draft names no dev tools.]
+<!-- HUMAN: were Kiro Crew and the Amazon Devices Builder Tools MCP used? Nothing in the repo shows it. If yes, add one sentence here naming them; if no, delete the open line in docs/aws.md "Tooling". Until confirmed, this draft names no dev tools. -->
 
 ## 5. Who it's for (About the project → custom heading "Who it's for")
 
@@ -90,10 +90,10 @@ Form fields: AWS Builder asks for the documented AWS integrations (docs/aws.md);
 Paste:
 
 > - Library: **vega-media-kit**, MIT. Repo: https://github.com/moiz-lakkadkutta/vega-media-kit
-> - npm: `@moizp/vega-media-kit`, version `0.1.0-alpha.0` `[PLACEHOLDER: npm publish confirmed · owner Moiz · due Oct 15 · ticket kit release]`
-> - Release tag: `[PLACEHOLDER: kit release tag, e.g. v0.1.0 · owner Moiz · due Oct 15 · ticket kit release]`
+> - npm: `@moizp/vega-media-kit`, version `0.1.0` <!-- HUMAN: publish to npm or delete this line. `npm view @moizp/vega-media-kit` returned E404 on 2026-10-15 (not published); the git tag v0.1.0 holds package.json version 0.1.0. -->
+> - Release tag: `v0.1.0`, https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0
 > - GitHub handle: `moiz-lakkadkutta`
-> - Upstream contribution: `[PLACEHOLDER: AmazonAppDev PR URL · owner Moiz · due Oct 18 · ticket LING-009]`
+> - Upstream contribution: <!-- HUMAN: open the PR to an AmazonAppDev sample and paste its URL here by Oct 18; if there is none, delete this line. -->
 > - App repo: https://github.com/moiz-lakkadkutta/lingo (MIT)
 >
 > vega-media-kit is a React Native player and subtitle library for Fire TV apps: one player component (`KitPlayer`) with Fire OS and web adapters, a WebVTT parser with a subtitle-limit linter (2 lines × 42 characters, 20 characters per second), a cue overlay with 10-foot defaults, remote-key and focus helpers, and Fire TV platform bindings. On Fire OS it is verified on a Fire TV Stick (playback, two text tracks at once, seek, pause, 0.75×). Its Vega OS adapter is experimental and has not been run on a Vega device or the Vega Virtual Device yet.
@@ -105,7 +105,7 @@ Paste:
 > Lingo and our other entry, Described (https://github.com/moiz-lakkadkutta/described), share one open-source library, vega-media-kit, the way two apps can both use React Native: it is infrastructure. Beyond the kit they share only AWS building blocks (Amazon Transcribe, Amazon Bedrock, Amazon S3 and CloudFront) and ffmpeg; the users, the AI task, the interaction and the business model differ. **Users:** Lingo is for language learners; Described is for blind and low-vision viewers. **The AI that does the work:** in Lingo, Amazon Transcribe, Amazon Translate and Amazon Nova Pro turn speech into aligned two-language subtitles and word glosses, and code builds the quiz from them; in Described, Qwen3-VL on Amazon Bedrock describes each shot, Nova Lite fits the narration into the gaps between dialogue, Amazon Polly voices it and ffmpeg ducks the soundtrack, and the narration arrives as a second audio track. **Interaction:** Lingo is pause-and-study with a second screen that quizzes you; Described is listening. **Business model:** Lingo sells a Lingo Plus subscription through Amazon in-app purchasing.
 
 Described's services are named as its README names them (https://github.com/moiz-lakkadkutta/described; checked against Described's README 2026-10-14).
-`[PLACEHOLDER: Lingo Plus sentence kept only if the client IAP flow works in sandbox · owner LING-007 implementer · due Oct 15 · ticket LING-007]`
+<!-- HUMAN: keep the "Business model" sentence only if a Lingo Plus purchase completes in the App Tester sandbox (LING-007 checklist A); otherwise delete it. Due Oct 15. -->
 
 ## 9a. How Lingo differs from subtitle-learning apps (About the project → custom heading)
 
@@ -119,11 +119,11 @@ The pasted text names the compared service once, only as the source of its own s
 
 Paste (one tag each):
 
-> React Native, react-native-tvos, Expo, TypeScript, Node.js, Express, Zod, Prisma, PostgreSQL, pg-boss, Socket.IO, Amazon Transcribe, Amazon Translate, Amazon Bedrock, Amazon Nova Pro, Amazon S3, Amazon CloudFront, AWS CDK, Shaka Packager, ffmpeg, simplemma, vega-media-kit, Vitest, Turborepo, pnpm
+> React Native, react-native-tvos, Expo, TypeScript, Node.js, Express, Zod, Prisma, PostgreSQL, pg-boss, Socket.IO, Amazon Transcribe, Amazon Translate, Amazon Bedrock, Amazon Nova Pro, Amazon S3, Amazon CloudFront, AWS CDK, Shaka Packager, ffmpeg, simplemma, vega-media-kit, Vega SDK, Vitest, Turborepo, pnpm
 
 Add only when true:
-- `[PLACEHOLDER: add tag "Amazon Appstore IAP" once the client flow works in sandbox · owner LING-007 implementer · due Oct 15 · ticket LING-007]`
-- `[PLACEHOLDER: add tag "Vega SDK" only if the Vega app exists · owner Orchestrator · due Oct 15 · ticket LING-008]`
+- <!-- HUMAN: add the tag "Amazon Appstore IAP" only once a purchase completes in the App Tester sandbox (LING-007 checklist A). -->
+- "Vega SDK" is in the list above: `apps/vega` is a Vega project built with Vega SDK 0.24.12112 and Vega CLI 1.4.4 and runs on the Vega Virtual Device (docs/spikes/2026-10-14-vega-vvd.md, apps/vega/README.md).
 
 ## 11. Challenges, accomplishments, what we learned
 
@@ -162,19 +162,19 @@ Paste:
 > - Content Launcher, so a viewer can ask for a clip by voice and land in Lingo.
 > - Fire TV Personalization, so your place in each clip is kept.
 > - The quiz score from the phone shown on the TV, and the quiz on the TV itself.
-> - Lingo running on Vega devices, not only written for them.
+> - Video on Vega, and Lingo on Vega devices: today it runs on the Vega Virtual Device, without video.
 
-Before pasting, delete any line whose feature shipped by Oct 15 and move it into §3. `[PLACEHOLDER: What's next list re-checked against docs/plans/LING-009.md §1 · owner Scribe · due Oct 15 · ticket LING-009]`
+Before pasting, delete any line whose feature shipped by Oct 15 and move it into §3. Re-checked 2026-10-15 against docs/plans/LING-009.md §1 and TASKS.md: none of the five is Built. Translate takes more target languages but only en/de clips and natives exist; Content Launcher voice search and Fire TV Personalization are not built (kit bindings are no-ops, KIT-007, TASKS.md LING-007 E1–E4); the phone-to-TV quiz score and the TV quiz are code done, not on device (claims register C36); Vega runs on the Vega Virtual Device without video (KIT-010), so the last line was reworded.
 
 ## 13. Links (Devpost "Try it out" and video)
 
 Paste:
 
-> - Video: `[PLACEHOLDER: YouTube URL · owner Moiz · due Oct 20 · ticket LING-009]`
+> - Video: <!-- HUMAN: paste the public YouTube or Vimeo URL after the Oct 20 upload. -->
 > - Lingo repo: https://github.com/moiz-lakkadkutta/lingo
 > - vega-media-kit repo: https://github.com/moiz-lakkadkutta/vega-media-kit
-> - vega-media-kit release: `[PLACEHOLDER: kit release tag URL · owner Moiz · due Oct 15 · ticket kit release]`
-> - Upstream PR: `[PLACEHOLDER: AmazonAppDev PR URL · owner Moiz · due Oct 18 · ticket LING-009]`
+> - vega-media-kit release: https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0
+> - Upstream PR: <!-- HUMAN: paste the AmazonAppDev sample PR URL by Oct 18, or delete this line. -->
 > - Described: https://github.com/moiz-lakkadkutta/described
 
 ## 14. Product feedback (Devpost feedback fields)
@@ -185,7 +185,7 @@ Paste the five required answers from docs/feedback.md and link the feature reque
 > - Feature requests, with priorities: https://github.com/moiz-lakkadkutta/lingo/blob/main/docs/feature-requests.md
 > - Friction logs: https://github.com/moiz-lakkadkutta/lingo/tree/main/docs/friction
 
-`[PLACEHOLDER: docs/feedback.md five answers and docs/feature-requests.md filled (drafted 2026-10-02; TBD-by-human items and sign-off remain) · owner Scribe · due Oct 15 · ticket LING-008]`
+<!-- HUMAN: fill the "TBD by human" lines in docs/feedback.md and docs/feature-requests.md and sign off; the drafts from 2026-10-02 are otherwise complete. -->
 
 ## 15. Claims register (not pasted; the Reviewer audits against this)
 
@@ -215,10 +215,10 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C20 | §4, §8 | Kit Vega adapter experimental, not device-verified | Built (honest status) | ../vega-media-kit README §Status | No |
 | C21 | §6 | 363,466 new integration-course participants in 2024; 146,176 (about 40 %) voluntary | Sourced number | source ⁶ | No |
 | C22 | §6 | 79 min of TV a day, ages 14–49, 2024 | Sourced number | source ⁷ (secondary report ⁷ᵃ) | No |
-| C23 | §6 | Peters & Webb 2018; Rodgers & Webb 2020; Montero Perez et al. 2017 | Sourced research, no effect sizes claimed | sources ⁸ ⁹ ¹⁰ | **Yes** (¹⁰ URL) |
+| C23 | §6 | Peters & Webb 2018; Rodgers & Webb 2020; Montero Perez et al. 2017 | Sourced research, no effect sizes claimed | sources ⁸ ⁹ ¹⁰ | No (¹⁰ URL added 2026-10-15) |
 | C24 | §6 | Retrieval practice: 56 % vs 42 % after a week | Sourced number | source ¹¹ | No |
 | C25 | §7 | AWS Builder: every AWS call listed with purpose and cost | Built, with unverified prices: docs/aws.md lists Polly under "Declared, not used"; Nova Pro (and Nova Lite) prices not yet checked against the pricing page (`MODEL_PRICES` all `verified: false`) | docs/aws.md; plan R5 | Price check (checklist) |
-| C26 | §8 | vega-media-kit MIT, npm `0.1.0-alpha.0`, release tag, upstream PR | Built (code); publish, tag and PR missing | ../vega-media-kit/package.json; `git tag` empty | **Yes** |
+| C26 | §8 | vega-media-kit MIT, release tag `v0.1.0`, npm `0.1.0`, upstream PR | Built (code); tag `v0.1.0` and GitHub release published 2026-10-14; npm not published (E404 on 2026-10-15); upstream PR missing | ../vega-media-kit/package.json (0.1.0 at the tag); https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0 | **Yes** (HUMAN: npm, upstream PR) |
 | C27 | §8 | Kit verified on a Fire TV Stick (Fire OS): playback, two text tracks, seek, pause, 0.75× | Built (kit device matrix, 2026-09-26) | ../vega-media-kit/README.md §Status; ../vega-media-kit/docs/device-matrix.md | No |
 | C28 | §9 | Described: blind and low-vision viewers; Qwen3-VL on Bedrock describes shots, Nova Lite fits narration into dialogue gaps, Polly voices it, ffmpeg ducks the soundtrack, second audio track | Sourced (Described's README, read 2026-10-14) | https://github.com/moiz-lakkadkutta/described README; source ¹⁴ | No |
 | C29 | §11 | Hesitation stops repaired; pauses bound cues | Built | decision 0008 §1–§2; friction `2026-10-01-transcribe-punctuation-and-diarization-unreliable.md` | No |
@@ -231,7 +231,7 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C36 | — | **Never claim:** Content Launcher voice search, Fire TV Personalization, Amazon Polly (in Lingo; §9 names it only as Described's), Strands Agents, AgentCore, Lingo playing video on Vega, Kiro Crew / Devices Builder Tools MCP. Client IAP and the TV quiz score from the phone are code done, not on device: claim them only with a take or log that shows them working | Not built / Not used / Unconfirmed | plan §1, §6 check 8 | — |
 | C37 | §9a | Lingopie's TV app has clickable subtitles that its own page calls easier to use on mobile or computer; Lingo picks the words per level, Pause explains, the phone reviews, the pipeline needs no hand-subtitling | Sourced (Lingopie) · rests on C3, C4, C5, C6, C8 (C4 and the phone deck Code done, not on device) | source ¹³; C3–C8 | No |
 | C38 | §11 | First Nova Lite glosses ≈ 6 of 15 on the English clip; set of test words, checks in code; Nova Pro scored best; no valid model quiz plan in three runs → quiz by code; passed 2026-10-10 on human-scored sheets, both languages | Built | decision 0009 (Context, Eval results, Round 6); decision 0001 Gate C; docs/aws.md; friction `…bedrock-nova-lite-temperature-structured-outputs-eol.md` | No |
-| C39 | video S07d (docs/video-script.md §3) | "Preparing a clip costs about 35 cents in AWS calls" (caption "about 35 cents a clip (estimate)"); not pasted in the Devpost text | Estimate, unverified prices | docs/aws.md "Cost per clip and for the 12-clip batch": ≈ $3.9 for 12 clips, one native (≈ $0.33 a clip, rounded to about 35 cents); docs/content-status.md §Published: ≈ $5.21 spent so far, reruns and gate runs included (the project total, not a per-clip price). Any per-clip figure in the video or this file uses "about 35 cents a clip (estimate)" | Price check (checklist) |
+| C39 | video S07d (docs/video-script.md §3) | "Preparing a clip costs about 25 cents in AWS calls" (caption "about 25 cents a clip (estimate)"); not pasted in the Devpost text | Estimate; Nova, Transcribe and Translate prices checked 2026-10-15 (S3 and CloudFront not checked) | docs/aws.md "Cost per clip and for the 12-clip batch": ≈ $2.9 for 12 clips, one native (≈ $0.24 a clip, rounded to about 25 cents; was ≈ $3.9 before Transcribe's current $0.006/min was checked); docs/content-status.md §Published: ≈ $5.21 spent so far, reruns and gate runs included, at the old prices (the project total, not a per-clip price). Any per-clip figure in the video or this file uses "about 25 cents a clip (estimate)" | No |
 
 ## 16. Sources
 
@@ -247,7 +247,7 @@ Numbers match the footnotes above. Repo files are cited by path in §15.
    7a. Secondary report (heise online): https://www.heise.de/news/Fernsehkonsum-in-Deutschland-2024-erneut-gesunken-10221980.html
 8. Peters, E. & Webb, S. (2018). Incidental vocabulary acquisition through viewing L2 television and factors that affect learning. *Studies in Second Language Acquisition*: https://www.cambridge.org/core/journals/studies-in-second-language-acquisition/article/abs/incidental-vocabulary-acquisition-through-viewing-l2-television-and-factors-that-affect-learning/0E45A630F37C48A5BDB6CC3F725ADDC9
 9. Rodgers, M. P. H. & Webb, S. (2020). *ITL – International Journal of Applied Linguistics*: https://www.jbe-platform.com/content/journals/10.1075/itl.18034.rod
-10. Montero Perez, M. et al. (2017), glossed keyword captions. `[PLACEHOLDER: Montero Perez 2017 URL (not in the plan artifact's Sources list) · owner Scribe · due Oct 15 · ticket LING-009]`
+10. Montero Perez, M., Peters, E. & Desmet, P. (2018; online 2017). Vocabulary learning through viewing video: the effect of two enhancement techniques. *Computer Assisted Language Learning*, 31(1–2), 1–26 (the glossed keyword captions group scored best on form recognition and meaning recall; abstract read through OpenAlex 2026-10-15): https://doi.org/10.1080/09588221.2017.1375960
 11. Roediger, H. L. & Karpicke, J. D. (2006). Test-enhanced learning. *Psychological Science*: https://colinallen.dnsalias.org/Readings/2006_Roediger_Karpicke_PsychSci.pdf
 12. Hackathon rules: https://amazonappdev2026.devpost.com/rules
 13. A subtitle-learning service's own "What is …" page (features and TV apps; says interactive subtitles work on TV but are easier to use on mobile or computer; paraphrased, re-check the exact wording before pasting), read 2026-10-14: https://lingopie.com/blog/what-is-lingopie/
@@ -255,7 +255,7 @@ Numbers match the footnotes above. Repo files are cited by path in §15.
 
 ## 17. Open questions
 
-- [QUESTION for Moiz: were Kiro Crew and the Amazon Devices Builder Tools MCP actually used? docs/aws.md says so; nothing in the repo shows it. Confirm, or the claim goes (here and in docs/aws.md).]
+- <!-- HUMAN: were Kiro Crew and the Amazon Devices Builder Tools MCP actually used? Nothing in the repo shows it. Confirm (one sentence in §4), or delete the open line in docs/aws.md "Tooling". -->
 - Resolved: Described's services in §9 now follow its README (Qwen3-VL on Amazon Bedrock, Nova Lite, Amazon Polly, ffmpeg, second audio track) (checked against Described's README 2026-10-14).
 - Resolved: the video must be **public** on YouTube or Vimeo, under 3 minutes, in English, and show Lingo running on a real Fire TV device or the Fire TV / Vega simulator; no third-party trademarks or copyrighted footage (ask the organisers before using CC footage) (checked on the rules page 2026-10-14). See docs/submission-checklist.md §3.
 - [QUESTION for Moiz (Orchestrator decides): should `scripts/lint-words.mjs` also scan `docs/*.md`? Today it scans only `packages/shared-ui/src/**` and `apps/phone/src/**`, so this file is checked by hand with the grep in docs/plans/LING-009.md §5.]
