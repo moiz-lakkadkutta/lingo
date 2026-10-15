@@ -18,3 +18,5 @@ apps/expo/android
 apps/expo/ios
 # Local HLS for `pnpm media:dev` (device spikes; apps/expo/README.md)
 /media/
+# Claude Code agent worktrees (local only)
+.claude/

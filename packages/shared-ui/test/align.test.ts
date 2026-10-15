@@ -1,4 +1,4 @@
-import { alignHighlights, stripToken } from '../src/screens/player/align'
+import { alignHighlights, splitToken, stripToken } from '../src/screens/player/align'
 
 const w = (word: string) => ({ word })
 const slots = (text: string, hs: { word: string }[]) => alignHighlights(text, hs).lines.map((l) => l.map((s) => [s.text, s.highlightIdx]))
@@ -62,5 +62,39 @@ describe('alignHighlights: two-speaker cues (mirrors pipeline tokenizeCues)', ()
   it('strips other punctuation the pipeline strips («…», en dash, ellipsis)', () => {
     const a = alignHighlights('–«Wirklich…» Na gut.', [{ word: 'Wirklich' }])
     expect(a.unmatched).toEqual([])
+  })
+})
+
+describe('splitToken: only the word core is marked (QA #10)', () => {
+  const parts = (t: string, speaker = false) => { const p = splitToken(t, speaker); return [p.lead, p.core, p.trail] }
+  it.each([
+    ['lernen.', ['', 'lernen', '.']],
+    ['nein,', ['', 'nein', ',']],
+    ['Hallo!', ['', 'Hallo', '!']],
+    ['wirklich?', ['', 'wirklich', '?']],
+    ['so;', ['', 'so', ';']],
+    ['Achtung:', ['', 'Achtung', ':']],
+    ['Wirklich…', ['', 'Wirklich', '…']],
+    ['„Hallo!“', ['„', 'Hallo', '!“']],
+    ['«Wirklich…»', ['«', 'Wirklich', '…»']],
+    ['(heute)', ['(', 'heute', ')']],
+    ['"Ja?"', ['"', 'Ja', '?"']],
+    ['lernen', ['', 'lernen', '']],
+    ["geht's?", ['', "geht's", '?']],
+    ['E-Mail.', ['', 'E-Mail', '.']],
+  ])('%s', (t, want) => {
+    expect(parts(t)).toEqual(want)
+  })
+  it('core is what alignHighlights matches (stripToken), and the parts rebuild the token', () => {
+    for (const t of ['lernen.', '„Hallo!“', '(heute)', 'lernen', '–«Wirklich…»', '...']) {
+      const p = splitToken(t)
+      expect(p.core).toBe(stripToken(t))
+      expect(p.lead + p.core + p.trail).toBe(t)
+    }
+  })
+  it('a speaker dash at the start of a line stays outside the marker', () => {
+    expect(parts('-Genau.', true)).toEqual(['-', 'Genau', '.'])
+    expect(parts('-„Ja“', true)).toEqual(['-„', 'Ja', '“'])
+    expect(parts('-heute.', false)).toEqual(['', '-heute', '.']) // mid-line the pipeline keeps the dash
   })
 })

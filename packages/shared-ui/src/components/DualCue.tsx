@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { Animated, View } from 'react-native'
+import { Animated, Text, View } from 'react-native'
 import { defaultCueTheme } from '@moizp/vega-media-kit'
 import type { CueDto } from '@lingo/contracts'
-import type { Alignment } from '../screens/player/align'
+import { splitToken, type Alignment } from '../screens/player/align'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
@@ -27,6 +27,16 @@ export interface DualCueProps {
 
 const geo = defaultCueTheme // kit geometry (padding, radius, line height); Lingo owns the colours (decision 0006)
 
+/**
+ * Punctuation beside a highlighted word, outside its marker (QA #10); same type as the WordChip text. A negative margin equal to the
+ * chip's marker padding (WordChip: wordPadX × userScale) keeps it against the word, not a gap away ("lernen ." → "lernen.", review L7).
+ */
+function Punct({ text, size, side, userScale }: { text: string; size: number; side: 'lead' | 'trail'; userScale: number }) {
+  if (!text) return null
+  const pull = -px(tokens.layout.wordPadX * userScale)
+  return <Text style={{ fontFamily: tokens.type.cueTarget.family, fontWeight: tokens.type.cueTarget.weight, fontSize: px(size), lineHeight: px(size * 1.3), color: tokens.color.text, ...(side === 'trail' ? { marginLeft: pull } : { marginRight: pull }) }}>{text}</Text>
+}
+
 /** Two-line cue: native (32 px, cooler) above target (44 px, bright) as rows of word chips; the hold bar sits under the target box. */
 export function DualCue({ cue, alignment, nativeVisible, wordFocus, onFocusWord, savedIds, userScale, hold, nextFocusDown, chipRefs, onBlockLayout }: DualCueProps) {
   const [boxW, setBoxW] = useState(0)
@@ -42,22 +52,25 @@ export function DualCue({ cue, alignment, nativeVisible, wordFocus, onFocusWord,
             </View>
           ) : null}
           <View style={box} onLayout={(e) => setBoxW(e.nativeEvent.layout.width)} pointerEvents="box-none">
-            {alignment.lines.map((line, li) => (
+            {alignment.lines.map((line, li) => { const speaker = cue.text.split('\n')[li]?.startsWith('-') ?? false; return (
               <View key={li} pointerEvents="box-none" style={{ flexDirection: 'row', justifyContent: 'center', columnGap: px(tokens.layout.wordGap * userScale), flexWrap: 'wrap' }}>
                 {line.map((slot, si) => {
                   const h = slot.highlightIdx !== null ? cue.highlights[slot.highlightIdx] : undefined
                   const idx = slot.highlightIdx
                   const saved = !!h && savedIds.has(h.id)
                   const word = h?.word ?? slot.text
-                  return (
+                  // Only the word core takes the marker; its punctuation renders plain beside it ("lernen" + ".").
+                  const parts = h ? splitToken(slot.text, si === 0 && speaker) : null
+                  const size = tokens.type.cueTarget.size * userScale
+                  const chip = (
                     <WordChip
                       key={si}
-                      text={slot.text}
+                      text={parts ? parts.core : slot.text}
                       highlighted={!!h}
                       focusable={wordFocus === 'cue' && !!h}
                       saved={saved}
                       label={saved ? strings.explain.wordSavedLabel(word) : strings.explain.wordLabel(word)}
-                      size={tokens.type.cueTarget.size * userScale}
+                      size={size}
                       userScale={userScale}
                       onFocus={idx !== null ? () => onFocusWord(idx) : undefined}
                       nextFocusDown={h ? nextFocusDown : undefined}
@@ -65,9 +78,17 @@ export function DualCue({ cue, alignment, nativeVisible, wordFocus, onFocusWord,
                       chipRef={idx !== null && chipRefs ? (r) => { chipRefs.current[idx] = r } : undefined}
                     />
                   )
+                  if (!parts || (!parts.lead && !parts.trail)) return chip
+                  return (
+                    <View key={si} pointerEvents="box-none" style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Punct text={parts.lead} size={size} side="lead" userScale={userScale} />
+                      {chip}
+                      <Punct text={parts.trail} size={size} side="trail" userScale={userScale} />
+                    </View>
+                  )
                 })}
               </View>
-            ))}
+            ) })}
           </View>
           {hold ? (
             <View style={{ height: px(tokens.layout.holdBarH), width: boxW }} accessibilityLabel={strings.player.hold}>

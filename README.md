@@ -9,14 +9,16 @@ Built for the [Build, Ship, Shape: Amazon Developer Hackathon](https://amazonapp
 AWS Builder and Open Source mini-challenges. Shares [`@moizp/vega-media-kit`](https://github.com/moiz-lakkadkutta/vega-media-kit)
 with [Described](https://github.com/moiz-lakkadkutta/described). MIT. Demo clips are CC BY / CC BY-SA / public domain.
 
-## Status (2026-10-02)
+## Status (2026-10-14)
+
+Status words as in [docs/submission.md](docs/submission.md) §15: **Built** · **Code done, not on device** · **Not built**.
 
 | Part | State | Evidence |
 |---|---|---|
-| Fire OS app (`apps/expo`, react-native-tvos) | Player done (LING-003); **device spike S1 pending** (remote events and word-chip focus on the stick) | [docs/spikes/S1-fire-os-remote.md](docs/spikes/S1-fire-os-remote.md) |
-| Vega OS app (`apps/vega`) | **Experimental**: installs, typechecks and bundles for `--platform kepler` without the SDK; not run on a device or the Virtual Device; no video playback until the kit's Vega adapter is rewritten (KIT-010): the Player, the Words mini player and Quiz replay show a message instead | [apps/vega/README.md](apps/vega/README.md) |
-| Pipeline (`packages/pipeline`) | Gate A **passed** 2026-10-02 on two real clips; Gate C (Nova Lite gloss and quiz quality) **pending — not passing** on the first run | [docs/decisions/0001-week0-gates.md](docs/decisions/0001-week0-gates.md), [docs/spot-checks/2026-10-02-gate-c.md](docs/spot-checks/2026-10-02-gate-c.md) |
-| Clips | 0 of 12 published. The batch runner is ready (`pnpm pipeline batch content/clips.json`); the AI + publish phase waits for Gate C. If Gate C is not passing by Oct 13, the fallback is the human's decision (ship draft clips without glosses, move the freeze, or publish only clips that pass a spot check) | [content/clips.json](content/clips.json), [docs/plans/LING-008.md](docs/plans/LING-008.md) §2 |
+| Fire OS app (`apps/expo`, react-native-tvos) | **Code done, not on device** (Player, LING-003; full device checklist pending). Spike S1 ran on a Fire TV Stick on 2026-10-04 with a test clip: 9 of 13 rows pass (seek keys, long-press replay, settings sheet, Explain card and word-chip focus); Play/Pause, Rewind/FF, the Play/Pause hold and the Menu effect on the Player are still open | [docs/spikes/S1-fire-os-remote.md](docs/spikes/S1-fire-os-remote.md), [friction log](docs/friction/2026-10-05-s1-fire-os-remote-events-and-chip-focus.md) |
+| Vega OS app (`apps/vega`) | **Code done, not on device** (experimental; runs on the Vega Virtual Device): built with SDK 0.24 and run on the Vega Virtual Device on 2026-10-14 (no physical Vega device): Home, the rail, Clip and Words render with the live catalog; Pair/QR, Quiz and the S2 questions not run there yet. No video playback until the kit's Vega adapter is rewritten (KIT-010): the Player, the Words mini player and Quiz replay show a message instead | [apps/vega/README.md](apps/vega/README.md), [VVD spike](docs/spikes/2026-10-14-vega-vvd.md) |
+| Pipeline (`packages/pipeline`) | **Built.** Gate A passed 2026-10-02 on two real clips. Gate C (AI gloss and quiz quality) passed 2026-10-10 on human-scored sheets for both languages (≥ 90 %): Amazon Nova Pro v1 writes the glosses (gloss prompt v7); the quiz is built by code from those glosses, with no model call | [decision 0001](docs/decisions/0001-week0-gates.md), [decision 0009](docs/decisions/0009-gloss-quality.md), [en sheet](docs/spot-checks/2026-10-05-gate-c-en-r3.md), [de sheet](docs/spot-checks/2026-10-10-gate-c-de-r3.md) |
+| Clips | **Built.** 12 of 12 published 2026-10-14 (`pnpm pipeline batch content/clips.json --phase final`: 12 ok, none skipped), served from CloudFront, and imported into the local database with the clip importer `pnpm clips:import` (commit 65db7bb): 12 of 12 `published`. Left: listening checks on a device for the retimed cues of two clips | [docs/content-status.md](docs/content-status.md) §Published, [content/clips.json](content/clips.json) |
 | TV screens: first run, Home, Clip, Summary, Quiz, Words, Settings | **Code done, not checked on a device** (LING-005): placement, focus memory, level rule, TV quiz, saved words; device checklist pending <!-- LING-005: device screenshot slot --> | [decision 0010](docs/decisions/0010-tv-navigation-focus-memory-and-level-rule.md), [0014](docs/decisions/0014-per-install-tv-device-id.md), [review](docs/reviews/2026-10-02-ling-005.md) |
 | Phone (`apps/phone`) | **Code done, not checked on a device** (LING-006): Join (QR or code), Live words, Quiz (SM-2 on the server, result mirrored to the TV), Progress; on-device TTS, no Polly. EAS builds and device steps pending <!-- LING-006: device evidence slot --> | [decision 0011](docs/decisions/0011-phone-session-code-access.md), [review](docs/reviews/2026-10-02-ling-006.md) |
 | Lingo Plus (Amazon Appstore IAP + RVS sandbox) | **Code done, not checked on a device** (LING-007): Plus screen and purchase/restore flow on both OSes (react-native-iap on Fire OS, the Vega IAP library), server-side RVS verification and entitlement. App Tester / RVS sandbox run pending — screenshot or log slot <!-- LING-007: sandbox evidence --> | [decision 0012](docs/decisions/0012-lingo-plus.md), [review](docs/reviews/2026-10-02-ling-007.md) |
@@ -34,9 +36,12 @@ had no Docker daemon, so step 3's `pnpm db:up` did not run and the database step
    not the root `.env` file, so export it in every shell you use.
 4. `python3 -m venv .venv-lemma && .venv-lemma/bin/pip install simplemma==2.0.0`, then `pnpm typecheck && pnpm test && pnpm lint && pnpm lint:words && pnpm check:vega`
 5. Pipeline without AWS: `pnpm pipeline prepare --clip demo-de --source s3://unused --lang de --native en --fixture --no-publish` → `packages/pipeline/work/demo-de/`
-6. `pnpm api`, then `curl localhost:4000/health` → `{"success":true,…}`. Importing clips into the database: no importer yet (TASKS.md, LING-005 follow-up).
+6. `pnpm api`, then `curl localhost:4000/health` → `{"success":true,…}`. Import clips into the database with `pnpm clips:import [--dry-run]`
+   (reads `content/clips.json` and `packages/pipeline/work/<slug>/clip.json`; work dirs are not committed, so run the pipeline first).
 7. (device) Fire OS, Fire TV Stick on `adb connect <ip>`: `cd apps/expo && EXPO_TV=1 npx expo prebuild --clean && EXPO_PUBLIC_API_URL=http://<lan-ip>:4000 pnpm --filter @lingo/expo android`
 8. (device) Phone: `pnpm --filter @lingo/phone start`; EAS builds and device steps: [docs/plans/LING-006.md](docs/plans/LING-006.md) §Manual device steps.
+   To pair a phone that runs the app as a web page, start the API with `PHONE_URL=http://<lan-ip>:8083/join`: the TV's QR then opens the
+   web app, which joins by itself; without it the QR is `lingo://join/<code>` for the native app ([device run](docs/spot-checks/2026-10-14-device-run.md) row 8).
 9. (device) Vega, experimental: [apps/vega/README.md](apps/vega/README.md) (npm project; VVD checklist).
 10. (AWS) Real clips: `pnpm --filter @lingo/infra exec cdk deploy lingo-media-dev --exclusively`, export `S3_BUCKET_MEDIA` and
     `CLOUDFRONT_DOMAIN` from its outputs, then `pnpm pipeline batch content/clips.json --dry-run` and the runbook in
@@ -56,12 +61,12 @@ had no Docker daemon, so step 3's `pnpm db:up` did not run and the database step
         ▼                                            apps/api  Express 4 · Zod · Prisma/Postgres · pg-boss · Socket.IO
  @moizp/vega-media-kit  player adapters (Fire OS:              │  POST /iap/verify → Amazon RVS sandbox   code done, not on a device
    react-native-video · Vega: w3cmedia + Shaka, KIT-010)       │
-        ▲ HLS + WebVTT over HTTPS                              ▼ (clip import: no importer yet)
+        ▲ HLS + WebVTT over HTTPS                              ▼ (clip import: pnpm clips:import)
  CloudFront (OAC) ◄── S3 media bucket ◄── packages/pipeline (CLI; `pnpm pipeline prepare` / `batch`)
                                             normalise (ffmpeg) → Amazon Transcribe [eu-central-1]
                                             → segment (42×2, 20 cps, gate) → Amazon Translate [eu-central-1]
                                             → lemmatize (simplemma) + rank → highlights
-                                            → Bedrock Nova Lite glosses + quiz plan [us-east-1, `us.` profile]
+                                            → Bedrock Nova Pro v1 glosses [us-east-1, `us.` profile] → quiz built by code
                                             → Shaka Packager HLS → aws s3 sync/cp
  infra/ (AWS CDK): lingo-media-dev (S3 + CloudFront + PipelineRole, eu-central-1) · lingo-nova-dev (declared, not used, us-east-1)
  Phone audio is on-device TTS (expo-speech, decision 0011), not Polly. Personalization and Media Controls are wired to the kit, whose
@@ -78,15 +83,21 @@ Everything. The repository was created on 2026-09-14 (first commit `3f87a00`), d
 - 2026-10-01 — LING-001 pipeline (Transcribe, segmenter and quality gate, Translate, lemmas and frequency bands, highlights); LING-002 Nova Lite
   glosses and quiz plans with cache, retry and cost ledger; LING-003 player (dual cues, word focus, Explain card, settings sheet, remote bridges);
   LING-008 clip batch runner and manifest, Vega project, Noto Sans and Manrope fonts, these docs.
-- 2026-10-02 — Gate A passed on two real clips; Gate C first run recorded (not passing yet). LING-005 TV screens (first run with placement,
+- 2026-10-02 — Gate A passed on two real clips; Gate C first run recorded (not passing yet, on Nova Lite). LING-005 TV screens (first run with placement,
   Home, Clip, Summary, TV quiz, Words, Settings), LING-006 phone (Join, Live, SM-2 review, Progress) and LING-007 Lingo Plus (IAP on both OSes,
   RVS verification) with Content Launcher, Personalization and Media Controls wiring: code done and reviewed, not checked on a device yet.
-- Pending: the device checklists for LING-003/005/006/007, the 12-clip batch, LING-009 video and submission.
+- 2026-10-04 — Gate C round 2: the default model moves from Nova Lite v1 to Nova Pro v1 after measurement (decision 0009); spike S1 on a
+  Fire TV Stick (9 of 13 rows pass).
+- 2026-10-05 — Gate C round 6: fixed expressions, most precise gloss first (gloss prompt v7); the quiz is built by code, no model call.
+- 2026-10-10 — Gate C passed on human-scored sheets for both languages; 12 clips prepared with AI.
+- 2026-10-12 — clip importer (`pnpm clips:import`, 65db7bb).
+- 2026-10-14 — all 12 clips published to CloudFront and imported into the local database.
+- Pending: the device checklists for LING-003/005/006/007, LING-009 video and submission.
 
 ## Built with Amazon and AWS
 
 Every AWS call, its purpose and cost: [docs/aws.md](docs/aws.md). Product feedback: [docs/feedback.md](docs/feedback.md); feature requests
-with priorities: [docs/feature-requests.md](docs/feature-requests.md). 23 friction logs: [docs/friction](docs/friction/README.md).
+with priorities: [docs/feature-requests.md](docs/feature-requests.md). 36 friction logs: [docs/friction](docs/friction/README.md).
 
 ## Licences
 

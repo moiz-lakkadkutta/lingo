@@ -4,7 +4,7 @@ import type { Resource } from '../src/data/resource'
 import { Home, type HomeProps } from '../src/screens/Home'
 import { strings } from '../src/strings'
 import { card, catalog, learner } from './fixtures'
-import { byLabel, focus, is, labels, preferred, pressables, render, texts } from './helpers'
+import { byLabel, focus, is, labels, preferred, pressables, render, renderTagged, texts } from './helpers'
 
 const full = catalog({ continue: [card('c1', { resumeS: 30 })], justRight: [card('a'), card('b')], harder: [card('h', { level: 'B1' })], fresh: [card('f')] })
 const props = (catalogR: Resource<Catalog>, over: Partial<HomeProps> = {}): HomeProps => ({
@@ -51,6 +51,14 @@ describe('Home', () => {
     expect(onReload).toHaveBeenCalled()
     expect(texts(render(<Home {...props({ state: 'error', error: 'server' })} />))).toContain(strings.common.error)
   })
+  it('the hero offers Your words, which opens the saved-words list (QA #16)', () => {
+    const onRail = vi.fn()
+    const r = render(<Home {...props({ state: 'ready', data: full }, { onRail })} />)
+    byLabel(r, strings.home.yourWordsLabel).props.onPress()
+    expect(onRail).toHaveBeenCalledWith('words')
+    const m = render(<Home {...props({ state: 'ready', data: full }, { initialFocus: 'hero:words' })} />)
+    expect(preferred(m).map((p) => p.props['aria-label'])).toEqual([strings.home.yourWordsLabel])
+  })
   it('keeps showing stale rows when a reload fails', () => {
     const r = render(<Home {...props({ state: 'error', error: 'offline', data: full })} />)
     expect(texts(r)).not.toContain(strings.offline)
@@ -82,5 +90,16 @@ describe('Home', () => {
     const w = byLabel(r, strings.home.resumeLabel('Title s', '1:05'))
     w.props.onPress()
     expect(onWatch).toHaveBeenCalledWith(started.justRight[0])
+  })
+  it('hero buttons: Your words goes left to the rail like Watch; Down from the hero row goes to the first card row (review L6)', () => {
+    const { r, tagOf } = renderTagged(<Home {...props({ state: 'ready', data: full })} />)
+    const railHome = tagOf(strings.rail.label(strings.rail.watchLabel))
+    const firstCard = tagOf(strings.home.cardLabel('Title c1', 'A2', '3 min'))
+    expect(railHome).toBeDefined()
+    expect(firstCard).toBeDefined()
+    const hero = [heroWatch('Title a'), strings.home.meetLabel('Title a'), strings.home.yourWordsLabel]
+    expect(byLabel(r, strings.home.yourWordsLabel).props.nextFocusLeft).toBe(railHome)
+    expect(byLabel(r, heroWatch('Title a')).props.nextFocusLeft).toBe(railHome)
+    for (const label of hero) expect(byLabel(r, label).props.nextFocusDown).toBe(firstCard)
   })
 })

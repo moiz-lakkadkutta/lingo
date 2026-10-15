@@ -6,8 +6,14 @@
     "version": "0.1.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F151B",
+    "splash": {
+      "backgroundColor": "#0F151B",
+      "resizeMode": "contain"
+    },
     "android": {
       "package": "dev.moizp.lingo",
+      "backgroundColor": "#0F151B",
       "usesCleartextTraffic": true,
       "permissions": [],
       "intentFilters": [

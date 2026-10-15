@@ -53,6 +53,29 @@ describe('DualCue', () => {
     expect(pressables(card).some((c) => c.props.focusable)).toBe(false)
   })
 
+  it('marks only the word core: punctuation renders plain beside the chip (QA #10)', () => {
+    const c = cue(0, 1, 3, 'Wir wollen lernen.\n-„Genau“, sagt er', [hl('h1', 'lernen'), hl('h2', 'Genau')])
+    const r = render(<DualCue {...props({ cue: c, alignment: alignHighlights(c.text, c.highlights), savedIds: new Set() })} />)
+    const marked = pressables(r).filter((p) => flat(p.props.style).backgroundColor === tokens.color.marker)
+    expect(marked.map((p) => textOf(p.findByType('Text' as never)))).toEqual(['lernen', 'Genau'])
+    const all = texts(r)
+    expect(all).toEqual(expect.arrayContaining(['.', '-„', '“,', 'Wir', 'wollen', 'sagt', 'er']))
+    expect(all).not.toContain('lernen.')
+  })
+
+  it('punctuation beside a chip sits against the word: a negative margin equal to the marker padding (review L7)', () => {
+    const c = cue(0, 1, 3, 'Wir wollen lernen.\n-„Genau“, sagt er', [hl('h1', 'lernen'), hl('h2', 'Genau')])
+    for (const userScale of [1, 1.5]) {
+      const r = render(<DualCue {...props({ cue: c, alignment: alignHighlights(c.text, c.highlights), savedIds: new Set(), userScale })} />)
+      const pad = flat(pressables(r).find((p) => flat(p.props.style).backgroundColor === tokens.color.marker)!.props.style).paddingHorizontal as number
+      expect(pad).toBeGreaterThan(0)
+      const punct = (t: string) => flat(r.root.find((n) => is(n, 'Text') && textOf(n) === t).props.style)
+      expect(punct('.')).toMatchObject({ marginLeft: -pad })
+      expect(punct('“,')).toMatchObject({ marginLeft: -pad })
+      expect(punct('-„')).toMatchObject({ marginRight: -pad })
+    }
+  })
+
   it('sizes target 44 and native 32 by userScale, follows nativeVisible, and shows the hold bar only while holding', () => {
     const words = (r: ReactTestRenderer) => pressables(r).map((p) => flat(p.findByType('Text' as never).props.style))
     const nativeText = (r: ReactTestRenderer) => r.root.findAll((n) => is(n, 'Text') && textOf(n) === twoWords.native)

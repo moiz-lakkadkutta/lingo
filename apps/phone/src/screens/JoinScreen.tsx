@@ -26,6 +26,7 @@ export function JoinScreen({ hint, joining, apiUrl, onCode, onScanned, onReview,
   const [draft, setDraft] = useState(apiUrl)
   const [draftBad, setDraftBad] = useState(false)
   const full = boxes.every((b) => b.length === 1)
+  const canScan = Platform.OS !== 'web' // a browser gives the camera only to https pages, and the LAN dev page is http: the typed code is the way in on web
 
   const scan = async () => {
     const p = permission?.granted ? permission : await requestPermission()
@@ -79,7 +80,7 @@ export function JoinScreen({ hint, joining, apiUrl, onCode, onScanned, onReview,
           </View>
         ) : null}
         <Button label={strings.join.join} variant="primary" disabled={!full || joining} onPress={() => onCode(boxes.join(''))} />
-        <Button label={strings.join.scan} onPress={scan} />
+        {canScan ? <Button label={strings.join.scan} onPress={scan} /> : null}
         <Button label={strings.join.review} onPress={onReview} />
         <View style={{ flex: 1 }} />
         <View style={{ gap: space.s }}>
