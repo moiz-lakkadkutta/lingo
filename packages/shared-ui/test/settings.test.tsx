@@ -4,8 +4,9 @@ import { AccessibilityInfo } from 'react-native'
 import { createRemoteBus } from '../src/remote/types'
 import { Settings, type SettingsProps } from '../src/screens/Settings'
 import { strings } from '../src/strings'
+import { tokens } from '../src/theme/tokens'
 import { learner } from './fixtures'
-import { byLabel, focus, is, labels, preferred, press, render, texts } from './helpers'
+import { box, byLabel, flat, focus, is, labels, preferred, press, render, texts } from './helpers'
 
 const S = strings.settings
 const props = (over: Partial<SettingsProps> = {}): SettingsProps => ({ learner: learner(), phoneName: null, remote: createRemoteBus(), status: null, onAction: vi.fn(), onFocusId: vi.fn(), ...over })
@@ -53,5 +54,19 @@ describe('Settings', () => {
     expect(texts(r)).toContain('English')
     expect(texts(r)).not.toContain(S.cycleValue('English'))
     expect(texts(r)).toContain(S.cycleValue('Deutsch')) // Learning language still cycles
+  })
+  it('QA #1: rows share token height, padding and radius; values sit in one right-aligned column; link rows end in a chevron, not "Open"', () => {
+    const r = render(<Settings {...props()} />)
+    const L = tokens.layout
+    for (const l of labels(r)) {
+      expect(box(byLabel(r, l))).toMatchObject({ width: L.rowW, minHeight: L.rowH, paddingHorizontal: L.rowPadX, paddingVertical: L.rowPadY, borderRadius: tokens.radius.md })
+    }
+    const col = (k: string) => r.root.find((n) => n.props.testID === `value-${k}`)
+    for (const k of ['learning', 'native', 'pair', 'about']) expect(flat(col(k).props.style)).toMatchObject({ width: L.rowValueW, justifyContent: 'flex-end' })
+    expect(texts(r)).not.toContain(S.open)
+    expect(r.root.findAll((n) => is(n, 'Text') && n.props.testID === 'chevron').map((n) => n.props.children)).toEqual([strings.keys.right, strings.keys.right, strings.keys.right])
+    expect(texts(col('pair'))).toEqual([S.pairValue(null), strings.keys.right])
+    expect(texts(col('about'))).toEqual([strings.keys.right])
+    expect(labels(r)).toContain(S.linkLabel(S.about, S.open)) // the label still says what Select does
   })
 })
