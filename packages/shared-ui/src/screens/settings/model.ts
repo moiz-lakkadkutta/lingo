@@ -4,7 +4,11 @@ import { LINES, SIZES, step } from '../../settings/options'
 import { strings } from '../../strings'
 
 export type SettingsKey = 'learning' | 'native' | 'level' | 'nativeLine' | 'autoPause' | 'cueSize' | 'pair' | 'plus' | 'about'
-export interface SettingsRow { key: SettingsKey; name: string; value: string; kind: 'cycle' | 'link'; /** aria-label */ label: string }
+export interface SettingsRow {
+  key: SettingsKey; name: string; value: string; kind: 'cycle' | 'link'; /** aria-label */ label: string
+  /** A cycle row with one option (◄ ► and Select change nothing): shown as a plain value, no "to change" in its label (review L4). */
+  single: boolean
+}
 export type SettingsAction =
   /** notice: a visible status line for a side effect the learner did not ask for directly (QA #4: I speak swapped with the learning language). */
   | { kind: 'patch'; patch: LearnerSettingsPatch; announce: string; notice?: string } | { kind: 'level'; level: Level; announce: string }
@@ -32,8 +36,11 @@ const say = (key: SettingsKey, v: string) => S.rowLabel(NAMES[key], v)
 
 /** Order = plan §8: Learning language · I speak · Level · Native line · Auto-pause · Cue size · Pair phone · Lingo Plus · About. */
 export function settingsRows(l: LearnerDto, phoneName: string | null): SettingsRow[] {
-  const cycle = (key: SettingsKey, v: string): SettingsRow => ({ key, name: NAMES[key], value: v, kind: 'cycle', label: S.rowLabel(NAMES[key], v) })
-  const link = (key: SettingsKey, v: string): SettingsRow => ({ key, name: NAMES[key], value: v, kind: 'link', label: S.linkLabel(NAMES[key], v) })
+  const cycle = (key: SettingsKey, v: string): SettingsRow => {
+    const single = !change(key, 1, l, true) && !change(key, -1, l, true)
+    return { key, name: NAMES[key], value: v, kind: 'cycle', label: single ? S.valueLabel(NAMES[key], v) : S.rowLabel(NAMES[key], v), single }
+  }
+  const link = (key: SettingsKey, v: string): SettingsRow => ({ key, name: NAMES[key], value: v, kind: 'link', label: S.linkLabel(NAMES[key], v), single: false })
   return [
     cycle('learning', value.learning(l.learning)), cycle('native', value.native(l.native)), cycle('level', value.level(l.level)),
     cycle('nativeLine', value.nativeLine(l.nativeLine)), cycle('autoPause', value.autoPause(l.autoPause)), cycle('cueSize', value.cueSize(l.cueScale)),

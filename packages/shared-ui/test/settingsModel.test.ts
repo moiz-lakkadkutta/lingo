@@ -77,4 +77,16 @@ describe('settings model', () => {
     expect(cycleSetting('autoPause', 1, l)).toMatchObject({ announce: S.rowLabel(S.autoPause, 'On') })
     expect(cycleSetting('cueSize', 1, l)).toMatchObject({ announce: S.rowLabel(S.cueSize, '125 %') })
   })
+  it('a cycle row with one option is single: plain value, label without "to change" (review L4)', () => {
+    const rows = settingsRows(learner({ learning: 'de', native: 'en' }), null)
+    const native = rows.find((r) => r.key === 'native')!
+    expect(native.single).toBe(true)
+    expect(native.label).toBe(S.valueLabel(S.native, 'English'))
+    expect(native.label).not.toMatch(/to change/)
+    expect(rows.filter((r) => r.key !== 'native').every((r) => !r.single)).toBe(true)
+    // an unsupported stored value can still move onto the list, so the row is not single
+    expect(settingsRows(learner({ learning: 'de', native: 'tr' }), null)[1]!.single).toBe(false)
+    // level at an end still moves the other way
+    expect(settingsRows(learner({ level: 'B2' }), null)[2]!.single).toBe(false)
+  })
 })

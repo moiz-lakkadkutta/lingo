@@ -25,7 +25,7 @@ import { Plus } from '../screens/Plus'
 import { Quiz } from '../screens/Quiz'
 import { Settings } from '../screens/Settings'
 import type { SettingsAction } from '../screens/settings/model'
-import { flashStatus, NOTICE_MS, SAVED_MS, savedStatus } from '../screens/settings/status'
+import { createStatusFlasher, NOTICE_MS, SAVED_MS, savedStatus } from '../screens/settings/status'
 import { Summary } from '../screens/Summary'
 import { Words } from '../screens/Words'
 import type { SessionHandle, SessionTransport } from '../session/types'
@@ -51,6 +51,8 @@ interface Ctx {
   saved: HighlightDto[]; setSaved: React.Dispatch<React.SetStateAction<HighlightDto[]>>; lastPlayerSlug: React.MutableRefObject<string | null>
   tvQuiz: Record<string, Score>; setTvQuiz: React.Dispatch<React.SetStateAction<Record<string, Score>>>
   settingsStatus: string | null; setSettingsStatus: React.Dispatch<React.SetStateAction<string | null>>
+  /** Show a transient status ("Saved.") that clears itself; one timer for the app, so a newer flash is never cleared early. */
+  flashSettingsStatus(msg: string, ms: number): void
 }
 
 /**
@@ -72,6 +74,11 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
   const lastPlayerSlug = useRef<string | null>(null)
   const [tvQuiz, setTvQuiz] = useState<Record<string, Score>>({})
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null)
+  // One Settings status timer, cleared before each flash and on unmount (review L3).
+  const statusFlasher = useRef<ReturnType<typeof createStatusFlasher> | null>(null)
+  statusFlasher.current ??= createStatusFlasher(setSettingsStatus)
+  useEffect(() => () => statusFlasher.current?.cancel(), [])
+  const flashSettingsStatus = useCallback((msg: string, ms: number) => statusFlasher.current?.flash(msg, ms), [])
 
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl, deviceId, getNative: () => learnerRef.current.native }), [apiBaseUrl, deviceId])
   const ep = useMemo(() => endpoints(api), [api])
@@ -134,7 +141,7 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
 
   const ctx: Ctx = {
     ep, learner, setLearner, patchLearner, nav: dispatchNav, focus, memory, catalog, setCatalog, clips, session, scale, remote, api, plusStore, refreshMe,
-    saved, setSaved, lastPlayerSlug, tvQuiz, setTvQuiz, settingsStatus, setSettingsStatus,
+    saved, setSaved, lastPlayerSlug, tvQuiz, setTvQuiz, settingsStatus, setSettingsStatus, flashSettingsStatus,
   }
   const route = top(nav)
   return <RouteView key={`${nav.stack.length}:${routeKey(route)}`} route={route} ctx={ctx} />
@@ -335,7 +342,7 @@ function SettingsRoute({ ctx }: { ctx: Ctx }) {
     if (a.kind === 'patch') {
       if (a.patch.learning) { ctx.memory.forget('home'); ctx.setCatalog(null) }
       void ctx.patchLearner(a.patch).then((ok) => {
-        if (ok) flashStatus(ctx.setSettingsStatus, savedStatus(a.notice), a.notice ? NOTICE_MS : SAVED_MS)
+        if (ok) ctx.flashSettingsStatus(savedStatus(a.notice), a.notice ? NOTICE_MS : SAVED_MS)
         else ctx.setSettingsStatus(strings.common.saveError)
       })
       return
@@ -343,7 +350,7 @@ function SettingsRoute({ ctx }: { ctx: Ctx }) {
     const before = learner.level
     ctx.setLearner((l) => ({ ...l, level: a.level }))
     ctx.memory.forget('home'); ctx.setCatalog(null) // rows and their titles follow the new level (review-005 L1)
-    ep.putLevel({ source: 'settings', level: a.level }).then(() => { flashStatus(ctx.setSettingsStatus, savedStatus(), SAVED_MS) }, () => {
+    ep.putLevel({ source: 'settings', level: a.level }).then(() => { ctx.flashSettingsStatus(savedStatus(), SAVED_MS) }, () => {
       ctx.setLearner((l) => (l.level === a.level ? { ...l, level: before } : l))
       ctx.setSettingsStatus(strings.common.saveError)
     })

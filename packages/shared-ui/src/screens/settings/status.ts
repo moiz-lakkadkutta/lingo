@@ -17,3 +17,16 @@ export function flashStatus(set: Dispatch<SetStateAction<string | null>>, msg: s
   const t = setTimeout(() => set((cur) => (cur === msg ? null : cur)), ms)
   return () => clearTimeout(t)
 }
+
+/**
+ * One timer for the Settings status line, kept by Root in a ref (review L3): each flash clears the previous timer first, so a
+ * second "Saved." is never cleared early by the first one's timer. Call cancel() on unmount.
+ */
+export function createStatusFlasher(set: Dispatch<SetStateAction<string | null>>) {
+  let cancelTimer: (() => void) | null = null
+  const cancel = () => { cancelTimer?.(); cancelTimer = null }
+  return {
+    flash(msg: string, ms: number) { cancel(); cancelTimer = flashStatus(set, msg, ms) },
+    cancel,
+  }
+}

@@ -457,6 +457,21 @@ describe('player machine', () => {
       ;[s] = reduce(s, { type: 'position', s: 3.5, now: NOW + 500 }, ctx) // seek landed: a later report is believed
       expect([s.positionS, s.cueIndex]).toEqual([3.5, null])
     })
+    it('a report landing just before the target keeps the new line, and the next ► goes on to the line after', () => {
+      let s = reduce(at(1.5), key('right'), ctx)[0] // ► to line 1 (starts at 4)
+      let fx: unknown[]
+      ;[s, fx] = reduce(s, { type: 'position', s: 3.9, now: NOW + 250 }, ctx) // landed 0.1 s early, still in the gap
+      expect(fx).toEqual([])
+      expect([s.positionS, s.cueIndex]).toEqual([4, 1])
+      expect(s.pendingSeek).toBeNull()
+      ;[s, fx] = reduce(s, key('right'), ctx)
+      expect(fx).toEqual([{ kind: 'seek', s: 6.5 }]) // line 2, not line 1 again
+      expect(s.cueIndex).toBe(2)
+      // later reports are trusted as usual
+      ;[s] = reduce(s, { type: 'position', s: 6.6, now: NOW + 500 }, ctx)
+      ;[s] = reduce(s, { type: 'position', s: 6.8, now: NOW + 750 }, ctx)
+      expect([s.positionS, s.cueIndex]).toEqual([6.8, 2])
+    })
     it('a seek that never reports near its target stops filtering after the settle time', () => {
       let s = reduce(at(1.5), key('right'), ctx)[0]
       ;[s] = reduce(s, { type: 'position', s: 1.75, now: NOW + 100 }, ctx)

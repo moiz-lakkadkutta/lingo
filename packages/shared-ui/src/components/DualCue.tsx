@@ -27,10 +27,14 @@ export interface DualCueProps {
 
 const geo = defaultCueTheme // kit geometry (padding, radius, line height); Lingo owns the colours (decision 0006)
 
-/** Punctuation beside a highlighted word, outside its marker (QA #10); same type as the WordChip text. */
-function Punct({ text, size }: { text: string; size: number }) {
+/**
+ * Punctuation beside a highlighted word, outside its marker (QA #10); same type as the WordChip text. A negative margin equal to the
+ * chip's marker padding (WordChip: wordPadX × userScale) keeps it against the word, not a gap away ("lernen ." → "lernen.", review L7).
+ */
+function Punct({ text, size, side, userScale }: { text: string; size: number; side: 'lead' | 'trail'; userScale: number }) {
   if (!text) return null
-  return <Text style={{ fontFamily: tokens.type.cueTarget.family, fontWeight: tokens.type.cueTarget.weight, fontSize: px(size), lineHeight: px(size * 1.3), color: tokens.color.text }}>{text}</Text>
+  const pull = -px(tokens.layout.wordPadX * userScale)
+  return <Text style={{ fontFamily: tokens.type.cueTarget.family, fontWeight: tokens.type.cueTarget.weight, fontSize: px(size), lineHeight: px(size * 1.3), color: tokens.color.text, ...(side === 'trail' ? { marginLeft: pull } : { marginRight: pull }) }}>{text}</Text>
 }
 
 /** Two-line cue: native (32 px, cooler) above target (44 px, bright) as rows of word chips; the hold bar sits under the target box. */
@@ -77,9 +81,9 @@ export function DualCue({ cue, alignment, nativeVisible, wordFocus, onFocusWord,
                   if (!parts || (!parts.lead && !parts.trail)) return chip
                   return (
                     <View key={si} pointerEvents="box-none" style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Punct text={parts.lead} size={size} />
+                      <Punct text={parts.lead} size={size} side="lead" userScale={userScale} />
                       {chip}
-                      <Punct text={parts.trail} size={size} />
+                      <Punct text={parts.trail} size={size} side="trail" userScale={userScale} />
                     </View>
                   )
                 })}

@@ -1,4 +1,4 @@
-import { flashStatus, NOTICE_MS, SAVED_MS, savedStatus } from '../src/screens/settings/status'
+import { createStatusFlasher, flashStatus, NOTICE_MS, SAVED_MS, savedStatus } from '../src/screens/settings/status'
 import { strings } from '../src/strings'
 
 const S = strings.settings
@@ -45,6 +45,25 @@ describe('Settings transient status (QA #5)', () => {
     const b = box()
     const cancel = flashStatus(b.set, S.saved, SAVED_MS)
     cancel()
+    vi.advanceTimersByTime(SAVED_MS)
+    expect(b.v).toBe(S.saved)
+  })
+  it('two quick saves: the first timer never clears the second "Saved." early (review L3)', () => {
+    const b = box()
+    const f = createStatusFlasher(b.set)
+    f.flash(S.saved, SAVED_MS)
+    vi.advanceTimersByTime(SAVED_MS - 500)
+    f.flash(S.saved, SAVED_MS)
+    vi.advanceTimersByTime(500)
+    expect(b.v).toBe(S.saved) // the first save's timer was cleared
+    vi.advanceTimersByTime(SAVED_MS - 500)
+    expect(b.v).toBeNull()
+  })
+  it('cancel (on unmount) stops the pending clear', () => {
+    const b = box()
+    const f = createStatusFlasher(b.set)
+    f.flash(S.saved, SAVED_MS)
+    f.cancel()
     vi.advanceTimersByTime(SAVED_MS)
     expect(b.v).toBe(S.saved)
   })

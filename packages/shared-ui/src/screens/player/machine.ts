@@ -71,6 +71,9 @@ function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: b
   const landed = !!p && pos >= p.t - SEEK_LAND_BEFORE_S && pos <= p.t + MAX_PLAY_STEP_S
   // A report from before the seek took effect would put the old line back and make the next ► start from it.
   if (p && !landed && now < p.until) return [s, []]
+  // Landed slightly early (seekTarget returns cue.startS, so pos may sit just before it): keep the target, or the old line would
+  // snap back and the next ► would compute the same target again. Later reports are trusted as usual.
+  if (p && landed && pos < p.t) return [{ ...s, positionS: p.t, cueIndex: cueAt(ctx.cues, p.t), pendingSeek: null }, []]
   const old = s.cueIndex
   let next: PlayerState = { ...s, positionS: pos, cueIndex: cueAt(ctx.cues, pos), ...(p ? { pendingSeek: null } : {}) }
   const effects: Effect[] = []
