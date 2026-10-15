@@ -12,6 +12,8 @@ import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 import { cycleSetting, selectSetting, settingsRows, type SettingsAction, type SettingsKey } from './settings/model'
 
+const L = tokens.layout
+
 export interface SettingsProps extends FocusMemoryProps {
   learner: LearnerDto; phoneName: string | null; remote: RemoteSource; status: string | null
   /** Root applies it (PUT /me, PUT /me/level, navigation) */ onAction(a: SettingsAction): void
@@ -36,23 +38,29 @@ export function Settings({ learner, phoneName, remote, status, onAction, initial
   return (
     <Screen>
       <T variant="display" style={{ marginBottom: px(24) }}>{strings.settings.title}</T>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(8), paddingVertical: px(8) }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(L.rowGap), paddingVertical: px(8) }}>
         {rows.map((r) => {
           const id = `row:${r.key}`
+          // A link row's value is worth showing only when it says something ("Not paired", "On"); About's value is just "Open".
+          const linkValue = r.kind === 'link' && r.value !== strings.settings.open ? r.value : null
           return (
             <Focusable
               key={r.key} label={r.label} hasTVPreferredFocus={preferred === id}
               onFocus={() => { focused.current = r.key; onFocusId(id) }}
               onPress={() => act(selectSetting(r.key, live.current.learner))}
-              style={{ width: px(1100), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: px(28), paddingVertical: px(14), backgroundColor: tokens.color.surface1 }}
+              style={{ width: px(L.rowW), minHeight: px(L.rowH), flexDirection: 'row', alignItems: 'center', gap: px(L.gutter), paddingHorizontal: px(L.rowPadX), paddingVertical: px(L.rowPadY), borderRadius: px(tokens.radius.md), backgroundColor: tokens.color.surface1 }}
             >
-              <T variant="body">{r.name}</T>
-              <View style={{ flexDirection: 'row', gap: px(16) }}>
+              <T variant="body" style={{ flex: 1 }} numberOfLines={1}>{r.name}</T>
+              {/* QA #1: every value sits right-aligned in one column of the same width, so values line up down the list. */}
+              <View testID={`value-${r.key}`} style={{ width: px(L.rowValueW), flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: px(16) }}>
                 {r.kind === 'cycle'
                   ? r.single
-                    ? <T variant="body" color={tokens.color.textSecondary}>{r.value}</T>
-                    : <T variant="body" color={tokens.color.interactive}>{strings.settings.cycleValue(r.value)}</T>
-                  : <>{r.value !== strings.settings.open ? <T variant="body" color={tokens.color.textSecondary}>{r.value}</T> : null}<T variant="body" color={tokens.color.textSecondary}>{strings.settings.open}</T></>}
+                    ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{r.value}</T>
+                    : <T variant="body" color={tokens.color.interactive} numberOfLines={1}>{strings.settings.cycleValue(r.value)}</T>
+                  : <>
+                      {linkValue ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{linkValue}</T> : null}
+                      <T testID="chevron" variant="body" color={tokens.color.textSecondary}>{strings.keys.right}</T>
+                    </>}
               </View>
             </Focusable>
           )

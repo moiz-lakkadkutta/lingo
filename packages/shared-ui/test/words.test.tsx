@@ -5,7 +5,8 @@ import type { LibraryWord } from '@lingo/contracts'
 import { createRemoteBus } from '../src/remote/types'
 import { Words, type WordsProps } from '../src/screens/Words'
 import { strings } from '../src/strings'
-import { byLabel, focus, is, labels, mountId, preferred, press, pressBack, pressables, render, rerender, texts } from './helpers'
+import { tokens } from '../src/theme/tokens'
+import { box, byLabel, flat, focus, is, labels, mountId, preferred, press, pressBack, pressables, render, rerender, texts } from './helpers'
 
 vi.mock('../src/components/MiniPlayer', async (orig) => ({ ...(await orig<object>()), MiniPlayer: (p: object) => React.createElement('MiniPlayer', p) }))
 
@@ -57,6 +58,23 @@ describe('Words', () => {
     await press(byLabel(r, rowLabel(words[2]!, strings.words.dueIn(19))))
     expect(r.root.findAll((n) => (n.type as unknown) === 'MiniPlayer')).toHaveLength(0)
     expect(texts(r)).toContain(strings.words.noLine)
+  })
+  it('QA #17: the player opens in a framed right column with the word as title and a Back hint; the rows narrow so nothing overlaps', async () => {
+    const multi = [w('a', new Date(2026, 8, 30), { cue: { index: 2, startS: 4, endS: 6.5, text: 'Der Zug\nfährt\nab.', native: 'n' } })]
+    const r = render(<Words {...props({ words: { state: 'ready', data: multi } })} />)
+    const label = rowLabel(multi[0]!, strings.words.dueToday)
+    const rowW = () => box(byLabel(r, label)).width
+    expect(rowW()).toBe(1100)
+    expect(r.root.findAll((n) => n.props.testID === 'words-player')).toHaveLength(0)
+    await press(byLabel(r, label))
+    const panel = r.root.find((n) => n.props.testID === 'words-player')
+    expect(flat(panel.props.style)).toMatchObject({ width: 688, backgroundColor: tokens.color.surface1, borderRadius: tokens.radius.lg })
+    expect(texts(panel)).toEqual(expect.arrayContaining(['lemma-a', strings.words.playerHint]))
+    expect(panel.find((n) => (n.type as unknown) === 'MiniPlayer').props.caption).toBe('Der Zug fährt ab.')
+    expect(rowW()).toBe(992)
+    expect(pressBack()).toBe(true) // the hint's "Back closes" is what Back does
+    expect(r.root.findAll((n) => n.props.testID === 'words-player')).toHaveLength(0)
+    expect(rowW()).toBe(1100)
   })
   it('each filter has its own empty message with a Find a clip action', async () => {
     const onFindClip = vi.fn()
