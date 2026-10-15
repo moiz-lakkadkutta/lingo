@@ -53,6 +53,16 @@ describe('DualCue', () => {
     expect(pressables(card).some((c) => c.props.focusable)).toBe(false)
   })
 
+  it('marks only the word core: punctuation renders plain beside the chip (QA #10)', () => {
+    const c = cue(0, 1, 3, 'Wir wollen lernen.\n-„Genau“, sagt er', [hl('h1', 'lernen'), hl('h2', 'Genau')])
+    const r = render(<DualCue {...props({ cue: c, alignment: alignHighlights(c.text, c.highlights), savedIds: new Set() })} />)
+    const marked = pressables(r).filter((p) => flat(p.props.style).backgroundColor === tokens.color.marker)
+    expect(marked.map((p) => textOf(p.findByType('Text' as never)))).toEqual(['lernen', 'Genau'])
+    const all = texts(r)
+    expect(all).toEqual(expect.arrayContaining(['.', '-„', '“,', 'Wir', 'wollen', 'sagt', 'er']))
+    expect(all).not.toContain('lernen.')
+  })
+
   it('sizes target 44 and native 32 by userScale, follows nativeVisible, and shows the hold bar only while holding', () => {
     const words = (r: ReactTestRenderer) => pressables(r).map((p) => flat(p.findByType('Text' as never).props.style))
     const nativeText = (r: ReactTestRenderer) => r.root.findAll((n) => is(n, 'Text') && textOf(n) === twoWords.native)
