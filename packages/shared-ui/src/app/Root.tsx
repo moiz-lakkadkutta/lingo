@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { BackHandler } from 'react-native'
+import { BackHandler, View } from 'react-native'
 import type { Catalog, ClipCard, ClipReady, HighlightDto, LearnerDto, LearnerSettingsPatch, LevelResult, PlusStatus } from '@lingo/contracts'
 import { Screen, StateMessage, T } from '../components'
 import { createApi, type Api } from '../api/client'
@@ -25,11 +25,13 @@ import { Plus } from '../screens/Plus'
 import { Quiz } from '../screens/Quiz'
 import { Settings } from '../screens/Settings'
 import type { SettingsAction } from '../screens/settings/model'
+import { createStatusFlasher, NOTICE_MS, SAVED_MS, savedStatus } from '../screens/settings/status'
 import { Summary } from '../screens/Summary'
 import { Words } from '../screens/Words'
 import type { SessionHandle, SessionTransport } from '../session/types'
 import { useSession } from '../session/useSession'
 import { strings } from '../strings'
+import { tokens } from '../theme/tokens'
 import { nextClip, progressBody, startPosition } from './selectors'
 import { cacheContext, createClipCache, type ClipCache } from './clipCache'
 
@@ -48,7 +50,9 @@ interface Ctx {
   api: Api; plusStore: PlusStore; refreshMe(): void
   saved: HighlightDto[]; setSaved: React.Dispatch<React.SetStateAction<HighlightDto[]>>; lastPlayerSlug: React.MutableRefObject<string | null>
   tvQuiz: Record<string, Score>; setTvQuiz: React.Dispatch<React.SetStateAction<Record<string, Score>>>
-  settingsStatus: string | null; setSettingsStatus(s: string | null): void
+  settingsStatus: string | null; setSettingsStatus: React.Dispatch<React.SetStateAction<string | null>>
+  /** Show a transient status ("Saved.") that clears itself; one timer for the app, so a newer flash is never cleared early. */
+  flashSettingsStatus(msg: string, ms: number): void
 }
 
 /**
@@ -70,6 +74,11 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
   const lastPlayerSlug = useRef<string | null>(null)
   const [tvQuiz, setTvQuiz] = useState<Record<string, Score>>({})
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null)
+  // One Settings status timer, cleared before each flash and on unmount (review L3).
+  const statusFlasher = useRef<ReturnType<typeof createStatusFlasher> | null>(null)
+  statusFlasher.current ??= createStatusFlasher(setSettingsStatus)
+  useEffect(() => () => statusFlasher.current?.cancel(), [])
+  const flashSettingsStatus = useCallback((msg: string, ms: number) => statusFlasher.current?.flash(msg, ms), [])
 
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl, deviceId, getNative: () => learnerRef.current.native }), [apiBaseUrl, deviceId])
   const ep = useMemo(() => endpoints(api), [api])
@@ -125,11 +134,14 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
   if (boot === 'offline') {
     return <Screen><StateMessage title={strings.offline} announceOnMount actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: () => setBootTick((t) => t + 1) }]} /></Screen>
   }
-  if (boot === 'loading') return <Screen><T accessibilityLiveRegion="polite" style={{ opacity: 0 }}>{strings.common.loading}</T></Screen>
+  // Visible on purpose (QA #3): a centred label on ground, so start-up never looks like a blank screen.
+  if (boot === 'loading') {
+    return <Screen><View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><T accessibilityLiveRegion="polite" color={tokens.color.textSecondary}>{strings.common.loading}</T></View></Screen>
+  }
 
   const ctx: Ctx = {
     ep, learner, setLearner, patchLearner, nav: dispatchNav, focus, memory, catalog, setCatalog, clips, session, scale, remote, api, plusStore, refreshMe,
-    saved, setSaved, lastPlayerSlug, tvQuiz, setTvQuiz, settingsStatus, setSettingsStatus,
+    saved, setSaved, lastPlayerSlug, tvQuiz, setTvQuiz, settingsStatus, setSettingsStatus, flashSettingsStatus,
   }
   const route = top(nav)
   return <RouteView key={`${nav.stack.length}:${routeKey(route)}`} route={route} ctx={ctx} />
@@ -325,16 +337,20 @@ function SettingsRoute({ ctx }: { ctx: Ctx }) {
   const { ep, nav, learner } = ctx
   const onAction = (a: SettingsAction) => {
     if (a.kind === 'open') { nav({ type: 'push', route: { name: a.route } }); return }
-    ctx.setSettingsStatus(null)
+    // A side effect (I speak swapped) shows at once; "Saved." follows the PUT and clears itself (QA #4, #5).
+    ctx.setSettingsStatus(a.kind === 'patch' ? a.notice ?? null : null)
     if (a.kind === 'patch') {
       if (a.patch.learning) { ctx.memory.forget('home'); ctx.setCatalog(null) }
-      void ctx.patchLearner(a.patch).then((ok) => { if (!ok) ctx.setSettingsStatus(strings.common.saveError) })
+      void ctx.patchLearner(a.patch).then((ok) => {
+        if (ok) ctx.flashSettingsStatus(savedStatus(a.notice), a.notice ? NOTICE_MS : SAVED_MS)
+        else ctx.setSettingsStatus(strings.common.saveError)
+      })
       return
     }
     const before = learner.level
     ctx.setLearner((l) => ({ ...l, level: a.level }))
     ctx.memory.forget('home'); ctx.setCatalog(null) // rows and their titles follow the new level (review-005 L1)
-    ep.putLevel({ source: 'settings', level: a.level }).catch(() => {
+    ep.putLevel({ source: 'settings', level: a.level }).then(() => { ctx.flashSettingsStatus(savedStatus(), SAVED_MS) }, () => {
       ctx.setLearner((l) => (l.level === a.level ? { ...l, level: before } : l))
       ctx.setSettingsStatus(strings.common.saveError)
     })

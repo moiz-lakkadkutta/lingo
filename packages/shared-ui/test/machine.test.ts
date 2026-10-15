@@ -429,11 +429,56 @@ describe('player machine', () => {
     let fx: unknown[]
     ;[s, fx] = reduce(s, { type: 'position', s: 4.6, now: NOW }, c) // report from before the seek landed
     expect(fx).toEqual([])
-    expect(s.cueIndex).toBe(1)
+    expect(s.cueIndex).toBe(2) // dropped: the skipped line does not flash back (QA #11)
     ;[s, fx] = reduce(s, { type: 'position', s: 6.5, now: NOW }, c)
     expect(s.phase).toBe('playing')
     expect(s.cueIndex).toBe(2)
     expect(fx).toEqual([])
+  })
+
+  describe('stale position reports after a seek (QA #11)', () => {
+    it('a report from the old line does not pull the cue back, and the next ► goes on from the seek target', () => {
+      let s = at(1.5) // line 0
+      ;[s] = reduce(s, key('right'), ctx) // ► to line 1
+      expect([s.positionS, s.cueIndex]).toEqual([4, 1])
+      let fx: unknown[]
+      ;[s, fx] = reduce(s, { type: 'position', s: 1.75, now: NOW + 100 }, ctx) // sent before the seek took effect
+      expect(fx).toEqual([])
+      expect(s.cueIndex).toBe(1)
+      expect(s.positionS).toBe(4)
+      ;[s, fx] = reduce(s, key('right'), ctx)
+      expect(fx).toEqual([{ kind: 'seek', s: 6.5 }]) // line 2, not line 1 again
+      expect(s.cueIndex).toBe(2)
+    })
+    it('a report near the target lands the seek; later playback is tracked as usual', () => {
+      let s = reduce(at(1.5), key('right'), ctx)[0]
+      ;[s] = reduce(s, { type: 'position', s: 4.1, now: NOW + 250 }, ctx)
+      expect([s.positionS, s.cueIndex]).toEqual([4.1, 1])
+      ;[s] = reduce(s, { type: 'position', s: 3.5, now: NOW + 500 }, ctx) // seek landed: a later report is believed
+      expect([s.positionS, s.cueIndex]).toEqual([3.5, null])
+    })
+    it('a report landing just before the target keeps the new line, and the next ► goes on to the line after', () => {
+      let s = reduce(at(1.5), key('right'), ctx)[0] // ► to line 1 (starts at 4)
+      let fx: unknown[]
+      ;[s, fx] = reduce(s, { type: 'position', s: 3.9, now: NOW + 250 }, ctx) // landed 0.1 s early, still in the gap
+      expect(fx).toEqual([])
+      expect([s.positionS, s.cueIndex]).toEqual([4, 1])
+      expect(s.pendingSeek).toBeNull()
+      ;[s, fx] = reduce(s, key('right'), ctx)
+      expect(fx).toEqual([{ kind: 'seek', s: 6.5 }]) // line 2, not line 1 again
+      expect(s.cueIndex).toBe(2)
+      // later reports are trusted as usual
+      ;[s] = reduce(s, { type: 'position', s: 6.6, now: NOW + 500 }, ctx)
+      ;[s] = reduce(s, { type: 'position', s: 6.8, now: NOW + 750 }, ctx)
+      expect([s.positionS, s.cueIndex]).toEqual([6.8, 2])
+    })
+    it('a seek that never reports near its target stops filtering after the settle time', () => {
+      let s = reduce(at(1.5), key('right'), ctx)[0]
+      ;[s] = reduce(s, { type: 'position', s: 1.75, now: NOW + 100 }, ctx)
+      expect(s.positionS).toBe(4)
+      ;[s] = reduce(s, { type: 'position', s: 2, now: NOW + 5000 }, ctx)
+      expect([s.positionS, s.cueIndex]).toEqual([2, 0])
+    })
   })
 
   it('normal 0.25 s position steps still hold at the line end', () => {

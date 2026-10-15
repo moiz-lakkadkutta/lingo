@@ -42,6 +42,16 @@ describe('Settings', () => {
     const hint = render(<Settings {...props()} />)
     const live = (r: ReturnType<typeof render>) => texts(r.root.find((n) => is(n, 'Text') && n.props.accessibilityLiveRegion === 'polite'))
     expect(live(hint)).toEqual([S.hint])
+    // Select on a cycle row steps the value, so the hint says so (review L5)
+    expect(S.hint).toBe('\u2039 \u203A change a value · Select opens or changes · Back goes home')
+    expect(hint.root.find((n) => is(n, 'Text') && n.props.accessibilityLiveRegion === 'polite').props['aria-label']).toBe('Left and right change a value. Select opens or changes. Back goes home.')
     expect(live(render(<Settings {...props({ status: strings.common.saveError })} />))).toEqual([strings.common.saveError])
+  })
+  it('a row with one option shows the plain value without the arrows (review L4)', () => {
+    const r = render(<Settings {...props({ learner: learner({ learning: 'de', native: 'en' }) })} />)
+    expect(labels(r)).toContain(S.valueLabel(S.native, 'English'))
+    expect(texts(r)).toContain('English')
+    expect(texts(r)).not.toContain(S.cycleValue('English'))
+    expect(texts(r)).toContain(S.cycleValue('Deutsch')) // Learning language still cycles
   })
 })
