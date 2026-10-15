@@ -8,6 +8,20 @@ export function stripToken(s: string): string {
 }
 
 /**
+ * Splits a displayed token into leading punctuation, the word core (exactly stripToken's result) and trailing punctuation, so only
+ * the core takes the marker ("lernen" in "lernen.", QA #10). `speaker`: the token opens a speaker line, so a leading '-' goes to
+ * `lead` too (as alignHighlights compares it). lead + core + trail === text.
+ */
+export function splitToken(text: string, speaker = false): { lead: string; core: string; trail: string } {
+  const dash = speaker && text.startsWith('-') ? '-' : ''
+  const rest = text.slice(dash.length)
+  const lead = dash + (/^[^\p{L}\p{N}'’-]+/u.exec(rest)?.[0] ?? '')
+  const body = text.slice(lead.length)
+  const trail = /[^\p{L}\p{N}'’-]+$/u.exec(body)?.[0] ?? ''
+  return { lead, core: body.slice(0, body.length - trail.length), trail }
+}
+
+/**
  * text.split('\n') → lines; each line .split(/\s+/).filter(Boolean) → slots (a speaker line's leading '-' is ignored for matching,
  * as in tokenizeCues). For each highlight in order: first slot (reading order) with
  * highlightIdx === null whose stripToken(text) === h.word; if none, first with equal lowercase; if none, push the index to `unmatched`.

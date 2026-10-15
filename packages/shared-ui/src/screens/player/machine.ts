@@ -12,6 +12,8 @@ export interface PlayerCtx { cues: readonly CueDto[]; caps: Caps; plus: boolean;
 export interface PlayerState {
   phase: Phase; positionS: number; cueIndex: number | null; wordIdx: number; rate: 1 | 0.75
   revealedCue: number | null; chromeUntil: number; heldCue: number | null; stageKey: number; ended: boolean
+  /** Set by seekTo until a position report lands near `t` (or `until` passes): reports sent before the seek took effect are dropped (QA #11). */
+  pendingSeek?: { t: number; until: number } | null
 }
 export type PlayerEvent =
   | { type: 'position'; s: number; now: number }
@@ -32,6 +34,10 @@ export type Effect =
 type Result = [PlayerState, Effect[]]
 /** onPosition arrives at ≤ 4 Hz; anything beyond 1 s between two reports is not playback. */
 const MAX_PLAY_STEP_S = 1
+/** A report within [t - SEEK_LAND_BEFORE_S, t + MAX_PLAY_STEP_S] of a seek target means the seek has landed. */
+const SEEK_LAND_BEFORE_S = 0.25
+/** After this long without a report near the target, the player is believed again (a seek that landed elsewhere). */
+const SEEK_SETTLE_MS = 2000
 type KeyEvent = Extract<PlayerEvent, { type: 'key' }>
 
 export function initialState(startAt: number): PlayerState {
@@ -61,8 +67,12 @@ function ended(s: PlayerState): Result {
 
 /** Position tracking; `hold` false while the sheet is open so an auto-pause never pulls the sheet away from the learner. */
 function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: boolean): Result {
+  const p = s.pendingSeek
+  const landed = !!p && pos >= p.t - SEEK_LAND_BEFORE_S && pos <= p.t + MAX_PLAY_STEP_S
+  // A report from before the seek took effect would put the old line back and make the next ► start from it.
+  if (p && !landed && now < p.until) return [s, []]
   const old = s.cueIndex
-  let next: PlayerState = { ...s, positionS: pos, cueIndex: cueAt(ctx.cues, pos) }
+  let next: PlayerState = { ...s, positionS: pos, cueIndex: cueAt(ctx.cues, pos), ...(p ? { pendingSeek: null } : {}) }
   const effects: Effect[] = []
   // Only continuous playback holds: a forward step of 0–1 s. A larger or backward jump is a seek or a stale report from before one.
   const step = pos - s.positionS
@@ -81,28 +91,28 @@ function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: b
  * Every row that emits seek(t) also moves the state to t: positionS = t, cueIndex = cueAt(t), heldCue = null. Without this the
  * next position report is read against the cue being left (► would hold the skipped line) and a replayed line would never hold again.
  */
-function seekTo(s: PlayerState, t: number, ctx: PlayerCtx): [PlayerState, Effect] {
+function seekTo(s: PlayerState, t: number, now: number, ctx: PlayerCtx): [PlayerState, Effect] {
   const cueIndex = cueAt(ctx.cues, t)
   const revealedCue = cueIndex !== s.cueIndex && s.revealedCue !== cueIndex ? null : s.revealedCue
-  return [{ ...s, positionS: t, cueIndex, heldCue: null, revealedCue }, { kind: 'seek', s: t }]
+  return [{ ...s, positionS: t, cueIndex, heldCue: null, revealedCue, pendingSeek: { t, until: now + SEEK_SETTLE_MS } }, { kind: 'seek', s: t }]
 }
 
 /** Seek keys in the playing phase. Returns null when the key is not a seek key or the press is ignored (► held). */
 function seekKey(s: PlayerState, e: KeyEvent, ctx: PlayerCtx): Result | null {
   const c = chrome(s, e.now, ctx)
   if (e.key === 'left' && e.longPress) {
-    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, ctx)
+    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, e.now, ctx)
     return [n, [fx, { kind: 'play' }]]
   }
   if (e.key === 'left' || e.key === 'rewind') {
-    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'prev', ctx.graceS) ?? 0, ctx)
+    const [n, fx] = seekTo(c, seekTarget(ctx.cues, s.positionS, 'prev', ctx.graceS) ?? 0, e.now, ctx)
     return [n, [fx]]
   }
   if (e.key === 'right' && e.longPress) return null // ► held is ignored
   if (e.key === 'right' || e.key === 'fastForward') {
     const t = seekTarget(ctx.cues, s.positionS, 'next', ctx.graceS)
     if (t === null) return [c, []]
-    const [n, fx] = seekTo(c, t, ctx)
+    const [n, fx] = seekTo(c, t, e.now, ctx)
     return [n, [fx]]
   }
   return null
@@ -170,7 +180,7 @@ function explain(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
     case 'stageSelect': return s.cueIndex === null ? [backToStage(s, e.now, ctx), [{ kind: 'play' }]] : [s, []]
     case 'action':
       if (e.action === 'replay') {
-        const [n, fx] = seekTo(backToStage(s, e.now, ctx), seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, ctx)
+        const [n, fx] = seekTo(backToStage(s, e.now, ctx), seekTarget(ctx.cues, s.positionS, 'replay', ctx.graceS) ?? 0, e.now, ctx)
         return [n, [fx, { kind: 'play' }]]
       }
       if (e.action === 'resume') return [backToStage(s, e.now, ctx), [{ kind: 'play' }]]
