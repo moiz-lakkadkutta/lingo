@@ -15,7 +15,9 @@ const run = (s: PlayerState, events: PlayerEvent[], c: PlayerCtx = ctx) => {
 
 describe('player machine', () => {
   it('initialState is playing with no cue, wordIdx 0, rate 1, stageKey 0', () => {
-    expect(initialState(12)).toEqual({ phase: 'playing', positionS: 12, cueIndex: null, wordIdx: 0, rate: 1, revealedCue: null, chromeUntil: 0, heldCue: null, stageKey: 0, ended: false })
+    expect(initialState(0)).toEqual({ phase: 'playing', positionS: 0, cueIndex: null, wordIdx: 0, rate: 1, revealedCue: null, chromeUntil: 0, heldCue: null, stageKey: 0, ended: false })
+    // a start position is a seek on load: 'paused' is not believed until playback first reports playing (LING-003 M2)
+    expect(initialState(12)).toEqual({ ...initialState(0), positionS: 12, seekGuardUntil: Number.POSITIVE_INFINITY })
   })
 
   it('position updates cueIndex and clears the Menu reveal when the cue changes', () => {
@@ -285,10 +287,13 @@ describe('player machine', () => {
     expect(pl.phase).toBe('playing')
     expect(pl.stageKey).toBe(1)
     expect(fx2).toEqual([])
-    for (const st of ['loading', 'ready', 'buffering'] as const) {
+    for (const st of ['loading', 'ready'] as const) {
       const s0 = at(4.5)
       expect(reduce(s0, { type: 'playerState', s: st, now: NOW }, ctx)).toEqual([s0, []])
     }
+    // buffering only notes that the player is buffering (a paused report during it is not the learner's; LING-003 M2)
+    const [b, fxb] = reduce(at(4.5), { type: 'playerState', s: 'buffering', now: NOW }, ctx)
+    expect([b.phase, fxb]).toEqual(['playing', []])
   })
 
   it('ended emits end exactly once', () => {
@@ -478,6 +483,75 @@ describe('player machine', () => {
       expect(s.positionS).toBe(4)
       ;[s] = reduce(s, { type: 'position', s: 2, now: NOW + 5000 }, ctx)
       expect([s.positionS, s.cueIndex]).toEqual([2, 0])
+    })
+  })
+
+  describe('kit paused reports while a seek is pending (LING-003 M2)', () => {
+    // Fire OS reports isPlaying=false as 'paused' during the buffering every seek goes through; that is not the learner pausing.
+    const paused = (now = NOW + 100): PlayerEvent => ({ type: 'playerState', s: 'paused', now })
+    const playingAt = (now: number): PlayerEvent => ({ type: 'playerState', s: 'playing', now })
+    it('a paused report right after a ► seek does not open Explain', () => {
+      const { s, effects } = run(at(1.5), [key('right'), paused()])
+      expect(s.phase).toBe('playing')
+      expect(effects[1]).toEqual([])
+    })
+    it('a paused report after ◄, long ◄, rewind, fastForward or Replay from the card does not open Explain', () => {
+      const ex = reduce(at(4.5), { type: 'stageSelect', now: NOW }, ctx)[0]
+      const cases: [PlayerState, PlayerEvent][] = [
+        [at(4.5), key('left')], [at(4.5), key('left', { longPress: true })], [at(4.5), key('rewind')], [at(1.5), key('fastForward')],
+        [ex, { type: 'action', action: 'replay', now: NOW }],
+      ]
+      for (const [s0, e] of cases) {
+        const { s } = run(s0, [e, paused()])
+        expect(s.phase).toBe('playing')
+      }
+    })
+    it('a seek out of holding is guarded too', () => {
+      const c = { ...ctx, autoPause: true }
+      const held = at(2.9, { phase: 'holding', heldCue: 0 }, c)
+      const { s } = run(held, [key('right'), paused()], c)
+      expect(s.phase).toBe('playing')
+    })
+    it('a paused report in the ▲ sheet right after a seek does not open Explain', () => {
+      const s0 = { ...reduce(at(1.5), key('right'), ctx)[0], phase: 'sheet' as const }
+      expect(reduce(s0, paused(), ctx)[0].phase).toBe('sheet')
+    })
+    it('rapid ► ×5 with paused reports in between never opens Explain', () => {
+      const events: PlayerEvent[] = []
+      for (let i = 0; i < 5; i++) events.push({ ...key('right'), now: NOW + i * 300 } as PlayerEvent, paused(NOW + i * 300 + 50))
+      const { s, effects } = run(at(0.5), events)
+      expect(s.phase).toBe('playing')
+      expect(effects.flat().filter((f) => (f as { kind: string }).kind === 'pause')).toEqual([])
+    })
+    it('a playing report ends the guard: a later paused report is believed and opens Explain', () => {
+      const { s } = run(at(1.5), [key('right'), paused(), playingAt(NOW + 400), paused(NOW + 600)])
+      expect(s.phase).toBe('explain')
+    })
+    it('after the guard times out with no playing report, a paused report opens Explain as before', () => {
+      // Decision: a seek that has not resumed within SEEK_GUARD_MS (1.5 s) is treated as settled; a later pause is believed.
+      const { s } = run(at(1.5), [key('right'), paused(NOW + 1600)])
+      expect(s.phase).toBe('explain')
+    })
+    it('Play/Pause during or after a seek still opens Explain and pauses', () => {
+      for (const events of [[key('right'), key('playPause')], [key('right'), paused(), key('playPause')]]) {
+        const { s, effects } = run(at(1.5), events)
+        expect(s.phase).toBe('explain')
+        expect(effects[effects.length - 1]).toEqual([{ kind: 'pause' }])
+      }
+    })
+    it('a paused report while buffering does not open Explain; after playing resumes it does', () => {
+      let { s } = run(at(4.5), [{ type: 'playerState', s: 'buffering', now: NOW }, paused()])
+      expect(s.phase).toBe('playing')
+      ;({ s } = run(s, [playingAt(NOW + 200), paused(NOW + 300)]))
+      expect(s.phase).toBe('explain')
+    })
+    it('a deep-link start position is guarded until playback first reports playing', () => {
+      let s = initialState(42)
+      ;[s] = reduce(s, paused(NOW + 5000), ctx)
+      expect(s.phase).toBe('playing')
+      ;[s] = reduce(s, playingAt(NOW + 5100), ctx)
+      ;[s] = reduce(s, paused(NOW + 5200), ctx)
+      expect(s.phase).toBe('explain')
     })
   })
 
