@@ -73,3 +73,15 @@ describe('Player · start position', () => {
     expect(onBack).toHaveBeenLastCalledWith(75)
   })
 })
+
+describe('Player · progress strip (QA #12)', () => {
+  const strip = (r: ReturnType<typeof render>) => r.root.findAll((n) => is(n, 'View') && n.props.accessibilityRole === 'progressbar')
+  it('is hidden during uninterrupted playback and shows elapsed / total after a seek key', () => {
+    const remote = createRemoteBus()
+    const r = render(<Player {...props({ remote })} />)
+    expect(strip(r)).toHaveLength(0)
+    act(() => remote.emit({ eventType: 'left' }))
+    expect(strip(r)).toHaveLength(1)
+    expect(strip(r)[0]!.props['aria-label']).toMatch(/^Played \d+:\d\d of 2:30$/)
+  })
+})

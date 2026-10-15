@@ -151,6 +151,30 @@ describe('Explain', () => {
     expect(byLabel(err, strings.explain.saveLabel('Stunden'))).toBeTruthy()
   })
 
+  it('sizes the card to its content: no minimum height and no pushed-down action row (QA #8)', () => {
+    const r = render(<Explain {...props()} />)
+    const cardOf = (x: ReactTestRenderer) => x.root.find((n) => is(n, 'View') && flat(n.props.style).backgroundColor === tokens.color.surface1)
+    const wrapOf = (x: ReactTestRenderer) => x.root.find((n) => is(n, 'View') && n.props.accessibilityViewIsModal)
+    const style = flat(cardOf(r).props.style)
+    expect(style.minHeight).toBeUndefined()
+    expect(style.height).toBeUndefined()
+    expect(style.padding).toBe(tokens.layout.explainPad)
+    expect(style.gap).toBe(tokens.layout.explainGap)
+    // The action row follows the text after one extra gap instead of being pushed to the bottom of a fixed-height card.
+    const rows = cardOf(r).findAll((n) => is(n, 'View') && flat(n.props.style).flexDirection === 'row' && n.findAll((m) => is(m, 'Pressable') && m.props['aria-label'] === strings.explain.replay).length > 0)
+    const actionRow = rows[rows.length - 1]!
+    expect(flat(actionRow.props.style).marginTop).toBe(tokens.layout.explainGap)
+    expect(rows.every((n) => flat(n.props.style).marginTop !== 'auto')).toBe(true)
+    expect(flat(wrapOf(r).props.style).opacity).toBe(1)
+
+    // The card reports its height (the Player stacks the progress strip above it) and is not drawn until the cue block is measured.
+    const onCardLayout = vi.fn()
+    const m = render(<Explain {...props({ onCardLayout, ready: false })} />)
+    act(() => { cardOf(m).props.onLayout({ nativeEvent: { layout: { height: 312 } } }) })
+    expect(onCardLayout).toHaveBeenCalledWith(312)
+    expect(flat(wrapOf(m).props.style).opacity).toBe(0)
+  })
+
   it('has at most three actions, no Slower without caps.rate, and a one-line Plus upsell on the free tier', async () => {
     const r = render(<Explain {...props()} />)
     expect(actions(r).map((a) => a.props['aria-label'])).toEqual([strings.explain.saveLabel('Stunden'), strings.explain.replay, strings.explain.slowerPlus])

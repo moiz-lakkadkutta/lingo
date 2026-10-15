@@ -16,7 +16,9 @@ import { alignHighlights } from './player/align'
 import { initialState, reduce, type Effect, type PlayerCtx, type PlayerEvent, type PlayerState } from './player/machine'
 import { SettingsSheet, type SettingsSheetHandle } from './player/SettingsSheet'
 import { StatusLine } from './player/StatusLine'
-import { nativeVisible, statusParts } from './player/visibility'
+import { nativeVisible, progressVisible, statusParts } from './player/visibility'
+import { progressBottom } from './player/progress'
+import { PROGRESS_STRIP_H, ProgressStrip } from './player/ProgressStrip'
 
 export interface PlayerProps {
   clip: ClipDetail; learner: LearnerDto; scale: number; challenge: boolean; sessionCode?: string
@@ -151,9 +153,18 @@ function PlayerView(props: PlayerProps) {
     setSaveHandle(explaining && saveRef.current ? findNodeHandle(saveRef.current) ?? undefined : undefined)
   }, [explaining, shownIdx])
 
-  // The card sits above the measured cue block; px(300) until the first layout.
+  // The card sits above the measured cue block. Before the first layout it is laid out at px(300) but not drawn (Explain `ready`),
+  // so it never shows on top of a cue block taller than that.
   const [cueBlockH, setCueBlockH] = useState<number | null>(null)
-  const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(24)
+  const cardBottom = cueBlockH === null ? px(300) : px(tokens.layout.safeY) + cueBlockH + px(tokens.layout.gutter)
+  // The card's own height, for the progress strip above it; forgotten when the card closes so a new card is measured first.
+  const [cardH, setCardH] = useState<number | null>(null)
+  useEffect(() => { if (!explaining) setCardH(null) }, [explaining])
+  const stripBottom = progressBottom(
+    { cueBlockH, card: explaining ? { bottom: cardBottom, height: cueBlockH === null ? null : cardH } : null },
+    { safeY: px(tokens.layout.safeY), gap: px(tokens.layout.gutter), floorH: px(tokens.type.label.line), stripH: px(PROGRESS_STRIP_H), screenH: px(1080) },
+  )
+  const showProgress = progressVisible({ phase: state.phase, now: Date.now(), chromeUntil: state.chromeUntil }) && stripBottom !== null
 
   // Paused before the first line (machine.toExplain): no card, so the stage keeps focus and Select resumes.
   const pausedNoCue = state.phase === 'explain' && !cue
@@ -193,6 +204,7 @@ function PlayerView(props: PlayerProps) {
         chipRefs={wordFocus === 'cue' ? chipRefs : undefined}
       />
       <StatusLine parts={[...statusParts({ challenge, rate: state.rate }), ...(stageActive && !pausedNoCue ? [strings.player.seekHint] : []), ...(pausedNoCue ? [strings.player.pausedHint] : [])]} visible={chromeVisible} />
+      {showProgress && stripBottom !== null ? <ProgressStrip positionS={state.positionS} durationS={clip.durationS} bottom={stripBottom} /> : null}
       {explaining && cue ? (
         <Explain
           cue={cue}
@@ -213,6 +225,8 @@ function PlayerView(props: PlayerProps) {
           chipRefs={chipRefs}
           saveRef={saveRef}
           bottom={cardBottom}
+          ready={cueBlockH !== null}
+          onCardLayout={setCardH}
         />
       ) : null}
       {state.phase === 'sheet' ? (
