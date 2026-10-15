@@ -7,8 +7,10 @@ import { createLaunchBus } from '../src/platform/launch'
 import type { SessionTransport } from '../src/session/types'
 import type { PlusStore } from '../src/plus/types'
 import { strings } from '../src/strings'
+import { guardStore } from '../src/plus/guard'
+import { tokens } from '../src/theme/tokens'
 import { card, catalog, clipReady, learner } from './fixtures'
-import { byLabel, focus, is, labels, preferred, press, pressBack, render, texts } from './helpers'
+import { byLabel, flat, focus, is, labels, preferred, press, pressBack, render, textOf, texts } from './helpers'
 
 vi.mock('../src/screens/Player', () => ({ Player: (p: object) => React.createElement('Player', p) }))
 
@@ -48,6 +50,13 @@ afterEach(() => { vi.unstubAllGlobals() })
 const zugCard = strings.home.cardLabel('Title zug', 'A2', '3 min')
 
 describe('Root', () => {
+  it('QA #3: while /me loads, a visible centred Loading label shows on the ground colour', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const r = render(<Root apiBaseUrl="http://api" scale={1} deviceId="tv-1" transport={transport()} remote={createRemoteBus()} />)
+    const label = r.root.find((n) => is(n, 'Text') && textOf(n) === strings.common.loading)
+    expect(flat(label.props.style).opacity).toBeUndefined()
+    expect(flat(label.props.style).color).toBe(tokens.color.textSecondary)
+  })
   it('H1: every request carries the per-install deviceId the entry passed', async () => {
     const { srv } = await boot()
     const sent = srv.fetchImpl.mock.calls.map((c) => ((c[1] as RequestInit | undefined)?.headers as Record<string, string>)['x-device-id'])
@@ -263,7 +272,7 @@ describe('Root · Lingo Plus (LING-007 wiring)', () => {
       dispose: () => {},
     }
   }
-  async function bootPlus() {
+  async function bootPlus(makeStore: (log: string[]) => PlusStore = fakeStore) {
     const srv = fakeServer()
     let entitled = false
     const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
@@ -274,7 +283,7 @@ describe('Root · Lingo Plus (LING-007 wiring)', () => {
     })
     vi.stubGlobal('fetch', fetchImpl)
     const log: string[] = []
-    const store = fakeStore(log)
+    const store = makeStore(log)
     const r = render(<Root apiBaseUrl="http://api" scale={1} deviceId="tv-1" transport={transport()} remote={createRemoteBus()} plusStore={store} />)
     await settle()
     return { r, srv, log, store }
@@ -304,6 +313,21 @@ describe('Root · Lingo Plus (LING-007 wiring)', () => {
     await press(byLabel(r, strings.plus.backLabel))
     await settle()
     expect(labels(r)).toContain(zugCard)
+  })
+
+  it('QA #14: a store that cannot connect is tried once, stays quiet, leaves Home usable and Plus gated', async () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const failing = (log: string[]) => guardStore({ ...fakeStore(log), init: async () => { log.push('init'); throw new Error('Failed to initialize billing connection') } })
+    const { r, srv, log } = await bootPlus(failing)
+    expect(log).toEqual(['init'])
+    expect(srv.calls.some((c) => c.path === '/iap/verify')).toBe(false)
+    expect(labels(r)).toContain(zugCard)
+    await press(byLabel(r, strings.rail.label(strings.rail.plusLabel)))
+    await settle()
+    expect(texts(r)).toContain(strings.plus.title)
+    expect(texts(r)).not.toContain(strings.plus.active)
+    expect(log).toEqual(['init']) // the Plus screen does not retry the connection
+    vi.restoreAllMocks()
   })
 
   it('without a store (noStore) there is no startup restore and no /iap/status call', async () => {
