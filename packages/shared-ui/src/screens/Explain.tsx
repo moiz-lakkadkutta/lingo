@@ -18,6 +18,12 @@ export interface ExplainProps {
   chipRefs: React.RefObject<Array<View | null>>; saveRef: React.RefObject<View | null>
   /** px from the screen bottom to the card's bottom edge: above the cue block (the Player measures it). */
   bottom: number
+  /** False until the Player has measured the cue block: the card is laid out but not drawn, so it never shows on top of the cue. */
+  ready?: boolean
+  /** The card's measured height, so the Player can stack the progress strip above it (QA #12). */
+  onCardLayout?(height: number): void
+  /** Tallest the card may be: from its bottom edge to the top safe edge (the Player computes it). Under the cap only the text block gives way. */
+  maxHeight?: number
 }
 
 /**
@@ -25,7 +31,7 @@ export interface ExplainProps {
  * word · lemma · rank chip / gloss / grammar / the cue as the example / at most three actions / status line.
  * Not an RN Modal: Vega publishes no Back events behind a Modal (decision 0006 §2). Back resumes (the Player handles it).
  */
-export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, savedIds, savedCount, plus, caps, rate, onSave, onReplay, onSlower, onPlus, chipRefs, saveRef, bottom }: ExplainProps) {
+export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, savedIds, savedCount, plus, caps, rate, onSave, onReplay, onSlower, onPlus, chipRefs, saveRef, bottom, ready = true, onCardLayout, maxHeight }: ExplainProps) {
   const [status, setStatus] = useState<string | null>(null)
   const [limit, setLimit] = useState(false)
   const [justSaved, setJustSaved] = useState<ReadonlySet<string>>(new Set())
@@ -59,8 +65,9 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
   const saveLabel = highlight ? (limit ? strings.explain.plusCta : saved ? strings.explain.savedLabel(highlight.word) : strings.explain.saveLabel(highlight.word)) : ''
 
   return (
-    <View pointerEvents="box-none" accessibilityViewIsModal style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center' }}>
-      <View style={{ width: px(tokens.layout.explainW), minHeight: px(tokens.layout.explainH), backgroundColor: tokens.color.surface1, borderRadius: 8, padding: px(32), gap: px(12) }}>
+    <View pointerEvents="box-none" accessibilityViewIsModal style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center', opacity: ready ? 1 : 0 }}>
+      {/* Sized to its content (QA #8): no minimum height, so a short gloss leaves no gap above the actions. Capped at the top safe edge (review M2). */}
+      <View onLayout={onCardLayout ? (e) => onCardLayout(e.nativeEvent.layout.height) : undefined} style={{ width: px(tokens.layout.explainW), backgroundColor: tokens.color.surface1, borderRadius: px(tokens.radius.lg), padding: px(tokens.layout.explainPad), gap: px(tokens.layout.explainGap), ...(maxHeight !== undefined ? { maxHeight, overflow: 'hidden' as const } : {}) }}>
         {wordFocus === 'card' && cue.highlights.length > 0 ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: px(tokens.layout.wordGap) }}>
             {cue.highlights.map((h, i) => (
@@ -95,16 +102,20 @@ export function Explain({ cue, highlight, wordFocus, focusedIdx, onFocusWord, sa
               </View>
             </View>
             {/* gloss/grammar may be empty for clips prepared with --no-ai (LING-001); rows collapse cleanly. */}
-            {highlight.gloss ? <T variant="cueTarget">{highlight.gloss}</T> : null}
-            {highlight.grammar ? <T variant="body" color={tokens.color.textSecondary}>{highlight.grammar}</T> : null}
-            <T variant="body" style={{ fontStyle: 'italic' }}>{`“${cue.text.replace(/\n/g, ' ')}”`}</T>
+            {/* Review M2: gloss ≤ 2 lines, grammar ≤ 3; under the card's maxHeight only this block shrinks, so the word and the actions stay. */}
+            <View testID="explain-text" style={{ gap: px(tokens.layout.explainGap), flexShrink: 1, overflow: 'hidden' }}>
+              {highlight.gloss ? <T variant="cueTarget" numberOfLines={2}>{highlight.gloss}</T> : null}
+              {highlight.grammar ? <T variant="body" color={tokens.color.textSecondary} numberOfLines={3}>{highlight.grammar}</T> : null}
+              <T variant="body" style={{ fontStyle: 'italic' }}>{`“${cue.text.replace(/\n/g, ' ')}”`}</T>
+            </View>
           </>
         ) : cue.native ? (
           <T variant="cueTarget" color={tokens.color.nativeCue}>{cue.native}</T>
         ) : null}
 
         {/* ▲ from any action goes to the chips, ▼ stays here (decision 0006, S1): pinned so Android's spatial search never jumps to the cue line. */}
-        <View style={{ flexDirection: 'row', gap: px(14), marginTop: 'auto' }}>
+        {/* One extra gap sets the actions apart from the text (two gaps, 24 px, instead of one). */}
+        <View style={{ flexDirection: 'row', gap: px(14), marginTop: px(tokens.layout.explainGap) }}>
           {highlight ? (
             <Button primary focusRef={saveRef} label={saveLabel} text={saveText} preferred nextFocusUp={upHandle} nextFocusDown="self" onPress={save} />
           ) : null}

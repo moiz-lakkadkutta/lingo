@@ -36,6 +36,14 @@ describe('PR2-B-M2: MiniPlayer respects caps.playback', () => {
     expect(texts(r)).not.toContain(strings.playbackOff.title)
   })
 
+  it('review L4: the Words panel caption is held to two lines (Quiz passes no caption)', () => {
+    const caption = 'Der Zug fährt gleich ab, bitte einsteigen und die Türen schließen, Vorsicht an der Bahnsteigkante.'
+    const r = render(<MiniPlayer manifestUrl="https://cdn.example/a.m3u8" startS={1} endS={2} playKey={1} caption={caption} caps={{ rate: true, wordFocusIn: 'cue', playback: true }} />)
+    const cap = r.root.find((n) => is(n, 'Text') && n.props.children === caption)
+    expect(cap.props.numberOfLines).toBe(2)
+    expect(r.root.findAll((n) => is(n, 'Text'))).toHaveLength(1)
+    expect(render(<MiniPlayer manifestUrl="https://cdn.example/a.m3u8" startS={1} endS={2} playKey={1} caps={{ rate: true, wordFocusIn: 'cue', playback: true }} />).root.findAll((n) => is(n, 'Text'))).toHaveLength(0)
+  })
   it('PR2-B-M2: Words — Select on a saved word shows the playback message instead of KitPlayer', async () => {
     const word: LibraryWord = {
       savedWordId: 'a', word: 'a', lemma: 'lemma-a', gloss: 'gloss a', due: new Date(2026, 8, 30).toISOString(), intervalD: 0, reps: 1, learned: false,

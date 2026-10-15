@@ -14,6 +14,7 @@ import { useRemoteKeys } from '../remote/useRemoteKeys'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
+import { oneLine, wordsLayout } from './words/layout'
 
 export interface WordsProps extends FocusMemoryProps {
   words: Resource<LibraryWord[]>; filter: WordsFilter; onFilter(f: WordsFilter): void; remote: RemoteSource
@@ -48,6 +49,8 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
 
   // Back closes the mini player first; added while open, so it runs before Root's listener.
   const open = playing !== null
+  const shown = playing && playing.word.clip.manifestUrl ? playing.word : null
+  const layout = wordsLayout(shown !== null)
   useEffect(() => {
     if (!open) return
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { setPlaying(null); return true })
@@ -77,7 +80,7 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
     const offline = words.error === 'offline'
     body = <StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: onReload }]} />
   } else if (!all) {
-    body = <View style={{ gap: px(16) }}>{Array.from({ length: 5 }, (_, i) => <SkeletonBlock key={i} w={1100} h={96} />)}</View>
+    body = <View style={{ gap: px(16) }}>{Array.from({ length: 5 }, (_, i) => <SkeletonBlock key={i} w={layout.listW} h={96} />)}</View>
   } else if (!list.length) {
     body = <StateMessage title={EMPTY[filter]} actions={[{ label: strings.words.findClip, text: strings.words.findClip, onPress: onFindClip }]} />
   } else {
@@ -98,13 +101,13 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
                 setNoLine(false)
                 setPlaying((p) => ({ word: x, key: (p?.key ?? 0) + 1 }))
               }}
-              style={{ width: px(1100), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: px(28), paddingVertical: px(16), backgroundColor: tokens.color.surface1 }}
+              style={{ width: px(layout.listW), minHeight: px(tokens.layout.rowH), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: px(tokens.layout.gutter), paddingHorizontal: px(tokens.layout.rowPadX), paddingVertical: px(tokens.layout.rowPadY), borderRadius: px(tokens.radius.md), backgroundColor: tokens.color.surface1 }}
             >
               <View style={{ flex: 1 }}>
                 <T variant="title">{x.lemma}</T>
                 <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{x.gloss}</T>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
+              <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
                 <T variant="label">{due}</T>
                 <T variant="label" color={tokens.color.textSecondary} numberOfLines={1}>{x.clip.title}</T>
               </View>
@@ -118,13 +121,20 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
   return (
     <Screen>
       {header}
-      <View style={{ flex: 1 }}>{body}</View>
+      {/* QA #17: list and player side by side inside the safe area; the rows narrow while the player is open (words/layout.ts). */}
+      {/* The list column takes the width the panel leaves, so a focused row's 1.04 growth is not clipped by the ScrollView on the right. */}
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start' }}>
+        <View testID="words-list" style={{ flex: 1, alignSelf: 'stretch' }}>{body}</View>
+        {shown?.clip.manifestUrl ? (
+          <View testID="words-player" style={{ width: px(layout.panelW), padding: px(tokens.layout.panelPad), gap: px(12), borderRadius: px(tokens.radius.lg), backgroundColor: tokens.color.surface1 }}>
+            <T variant="title" numberOfLines={1}>{shown.lemma}</T>
+            <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{shown.gloss}</T>
+            <MiniPlayer manifestUrl={shown.clip.manifestUrl} startS={shown.cue.startS} endS={shown.cue.endS} playKey={playing!.key} caption={oneLine(shown.cue.text)} />
+            <T variant="label" color={tokens.color.textSecondary} aria-label={strings.words.playerHintLabel}>{strings.words.playerHint}</T>
+          </View>
+        ) : null}
+      </View>
       <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite">{noLine ? strings.words.noLine : ''}</T>
-      {playing && playing.word.clip.manifestUrl ? (
-        <View style={{ position: 'absolute', left: px(1180), top: px(tokens.layout.safeY + 200) }}>
-          <MiniPlayer manifestUrl={playing.word.clip.manifestUrl} startS={playing.word.cue.startS} endS={playing.word.cue.endS} playKey={playing.key} caption={playing.word.cue.text.replace('\n', ' ')} />
-        </View>
-      ) : null}
     </Screen>
   )
 }

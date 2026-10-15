@@ -10,7 +10,7 @@ const F = strings.firstRun
 const props = (over: Partial<FirstRunProps> = {}): FirstRunProps => ({ learner: learner({ firstRunDone: false }), session: { ...initialSession, code: 'ABC234', joinUrl: 'lingo://join/ABC234' }, onProfile: vi.fn(), onLevel: vi.fn(), onDone: vi.fn(), ...over })
 const toPlacement = async (r: ReturnType<typeof render>) => {
   await press(byLabel(r, F.learningLabel('Deutsch')))
-  await press(byLabel(r, F.speakLabel('English')))
+  await press(byLabel(r, F.speakContinueLabel('English')))
 }
 
 describe('FirstRun', () => {
@@ -21,20 +21,35 @@ describe('FirstRun', () => {
     expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([F.learningLabel('English')])
     expect(pressBack()).toBe(false) // Back on the first panel leaves the app
   })
-  it('speak panel shows eight native names, never the learning language', async () => {
+  it('speak panel confirms the one supported language instead of offering every native language (QA #15)', async () => {
     const onProfile = vi.fn()
     const r = render(<FirstRun {...props({ onProfile, learner: learner({ native: 'tr' }) })} />)
     await press(byLabel(r, F.learningLabel('English')))
     expect(texts(r)).toContain(F.speak)
-    expect(labels(r)).toHaveLength(8)
-    expect(labels(r)).not.toContain(F.speakLabel('English'))
-    expect(labels(r)[0]).toBe(F.speakLabel('Deutsch'))
-    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([F.speakLabel('Türkçe')])
+    // a plain value, not a picker: one focusable (Continue), the language shown as text
+    expect(labels(r)).toEqual([F.speakContinueLabel('Deutsch')])
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([F.speakContinueLabel('Deutsch')])
+    expect(texts(r.root.find((n) => n.props.testID === 'speak-value'))).toEqual(['Deutsch'])
+    expect(texts(r)).toContain(F.speakNote('English', 'Deutsch'))
+    expect(texts(r)).not.toContain('Türkçe')
     expect(pressBack()).toBe(true)
     expect(texts(r)).toContain(F.learning)
     await press(byLabel(r, F.learningLabel('Deutsch')))
-    await press(byLabel(r, F.speakLabel('Polski')))
-    expect(onProfile).toHaveBeenCalledWith({ learning: 'de', native: 'pl' })
+    expect(labels(r)).toEqual([F.speakContinueLabel('English')])
+    await press(byLabel(r, F.speakContinueLabel('English')))
+    expect(onProfile).toHaveBeenCalledWith({ learning: 'de', native: 'en' })
+    expect(texts(r)).toContain(F.item(1, 6)) // the flow goes on to placement
+  })
+  it('learning English with native Deutsch already set: the speak panel confirms Deutsch and saves en → de (review L7)', async () => {
+    const onProfile = vi.fn()
+    const r = render(<FirstRun {...props({ onProfile, learner: learner({ learning: 'en', native: 'de' }) })} />)
+    await press(byLabel(r, F.learningLabel('English')))
+    expect(labels(r)).toEqual([F.speakContinueLabel('Deutsch')])
+    expect(texts(r.root.find((n) => n.props.testID === 'speak-value'))).toEqual(['Deutsch'])
+    expect(texts(r)).toContain(F.speakNote('English', 'Deutsch'))
+    await press(byLabel(r, F.speakContinueLabel('Deutsch')))
+    expect(onProfile).toHaveBeenCalledWith({ learning: 'en', native: 'de' })
+    expect(texts(r)).toContain(F.item(1, 6))
   })
   it('placement shows one line at a time in a cue box with Yes focused and a Skip button', async () => {
     const onLevel = vi.fn()

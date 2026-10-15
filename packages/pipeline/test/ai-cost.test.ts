@@ -36,14 +36,18 @@ describe('CostLedger', () => {
 
   it('pricesFor strips the geo prefix and knows Lite v1, 2 Lite, Pro and Premier', () => {
     expect(pricesFor('us.amazon.nova-lite-v1:0')).toMatchObject({ input: 0.06, output: 0.24 })
+    // Nova 2 Lite: global cross-Region profile $0.30 / $2.50, any other profile the standard $0.33 / $2.75 (Price List API, 2026-10-15)
     expect(pricesFor('global.amazon.nova-2-lite-v1:0')).toMatchObject({ input: 0.3, output: 2.5 })
+    expect(pricesFor('us.amazon.nova-2-lite-v1:0')).toMatchObject({ input: 0.33, output: 2.75 })
+    expect(pricesFor('amazon.nova-2-lite-v1:0')).toMatchObject({ input: 0.33, output: 2.75 })
     expect(pricesFor('us.amazon.nova-pro-v1:0')).toMatchObject({ input: 0.8, output: 3.2 })
     expect(pricesFor('us.amazon.nova-premier-v1:0')).toMatchObject({ input: 2.5, output: 12.5 })
     expect(pricesFor('eu.amazon.nova-lite-v1:0')).toBe(MODEL_PRICES['amazon.nova-lite-v1:0'])
     expect(pricesFor('apac.amazon.nova-micro-v1:0')).toBeDefined()
     expect(pricesFor('anthropic.some-model')).toBeUndefined()
-    // H4: no figure is verified against the official pricing page yet
-    expect(Object.values(MODEL_PRICES).every((p) => p.verified === false)).toBe(true)
+    // H4: every figure checked against the AWS Price List API (us-east-1) on 2026-10-15
+    expect(Object.values(MODEL_PRICES).every((p) => p.verified === true)).toBe(true)
+    expect(pricesFor('global.amazon.nova-2-lite-v1:0')!.verified).toBe(true)
   })
 
   it('LINGO_AI_MODEL wins over NOVA_LITE_MODEL_ID; the default is Nova Pro v1 (eval 2026-10-03, approved) and Lite v1 stays selectable', () => {

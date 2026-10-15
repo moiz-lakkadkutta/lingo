@@ -1,5 +1,6 @@
 import type { Catalog, ClipCard, LibraryWord } from '@lingo/contracts'
 import { dueLabel, filterWords, formatClock, formatMinutes, homeRows, isDueToday, nextClip, pickHero, progressBody, speakOptions, startPosition } from '../src/app/selectors'
+import { SUPPORTED_NATIVES } from '../src/settings/natives'
 import { strings } from '../src/strings'
 
 const card = (slug: string, o: Partial<ClipCard> = {}): ClipCard => ({ slug, title: slug.toUpperCase(), level: 'A2', durationS: 120, posterUrl: null, resumeS: null, completed: false, attribution: '', ...o })
@@ -83,14 +84,9 @@ describe('selectors', () => {
     expect(filterWords(ws, 'due', now).map((w) => w.lemma)).toEqual(['a', 'b'])
     expect(filterWords(ws, 'learned', now).map((w) => w.lemma)).toEqual(['b', 'd'])
   })
-  it('speakOptions shows eight languages and never the learning language', () => {
-    const de = speakOptions('de')
-    expect(de).toHaveLength(8)
-    expect(de.map((o) => o.code)).not.toContain('de')
-    expect(de[0]).toEqual({ code: 'en', name: 'English' })
-    const en = speakOptions('en')
-    expect(en).toHaveLength(8)
-    expect(en.map((o) => o.code)).not.toContain('en')
-    expect(en[0]!.code).toBe('de')
+  it('speakOptions offers only supported natives and never the learning language (QA #15)', () => {
+    expect(speakOptions('de')).toEqual([{ code: 'en', name: 'English' }])
+    expect(speakOptions('en')).toEqual([{ code: 'de', name: 'Deutsch' }])
+    for (const l of ['de', 'en'] as const) for (const o of speakOptions(l)) expect(SUPPORTED_NATIVES).toContain(o.code)
   })
 })

@@ -4,8 +4,9 @@ import { AccessibilityInfo } from 'react-native'
 import { createRemoteBus } from '../src/remote/types'
 import { Settings, type SettingsProps } from '../src/screens/Settings'
 import { strings } from '../src/strings'
+import { tokens } from '../src/theme/tokens'
 import { learner } from './fixtures'
-import { byLabel, focus, is, labels, preferred, press, render, texts } from './helpers'
+import { box, byLabel, flat, focus, is, labels, preferred, press, render, texts } from './helpers'
 
 const S = strings.settings
 const props = (over: Partial<SettingsProps> = {}): SettingsProps => ({ learner: learner(), phoneName: null, remote: createRemoteBus(), status: null, onAction: vi.fn(), onFocusId: vi.fn(), ...over })
@@ -53,5 +54,34 @@ describe('Settings', () => {
     expect(texts(r)).toContain('English')
     expect(texts(r)).not.toContain(S.cycleValue('English'))
     expect(texts(r)).toContain(S.cycleValue('Deutsch')) // Learning language still cycles
+  })
+  it('QA #1: rows share token height, padding and radius; values sit in one right-aligned column; link rows end in a chevron, not "Open"', () => {
+    const r = render(<Settings {...props()} />)
+    const L = tokens.layout
+    for (const l of labels(r)) {
+      expect(box(byLabel(r, l))).toMatchObject({ width: L.rowW, minHeight: L.rowH, paddingHorizontal: L.rowPadX, paddingVertical: L.rowPadY, borderRadius: tokens.radius.md })
+    }
+    const col = (k: string) => r.root.find((n) => n.props.testID === `value-${k}`)
+    for (const k of ['learning', 'native', 'pair', 'about']) expect(flat(col(k).props.style)).toMatchObject({ width: L.rowValueW, justifyContent: 'flex-end' })
+    expect(texts(r)).not.toContain(S.open)
+    expect(r.root.findAll((n) => is(n, 'Text') && n.props.testID === 'chevron').map((n) => n.props.children)).toEqual([strings.keys.right, strings.keys.right, strings.keys.right])
+    expect(texts(col('pair'))).toEqual([S.pairValue(null), strings.keys.right])
+    expect(texts(col('about'))).toEqual([strings.keys.right])
+    expect(labels(r)).toContain(S.linkLabel(S.about, S.open)) // the label still says what Select does
+  })
+  it('review M1: a long value shrinks with an ellipsis instead of spilling over the row name; the chevron never shrinks', () => {
+    const phone = 'Wohnzimmer-Telefon von Alexandra Müller-X' // 40+ characters
+    expect(phone.length).toBeGreaterThanOrEqual(40)
+    const r = render(<Settings {...props({ phoneName: phone })} />)
+    const col = r.root.find((n) => n.props.testID === 'value-pair')
+    const value = col.find((n) => is(n, 'Text') && n.props.children === S.pairValue(phone))
+    expect(value.props.numberOfLines).toBe(1)
+    expect(value.props.ellipsizeMode ?? 'tail').toBe('tail')
+    expect(flat(value.props.style).flexShrink).toBe(1)
+    expect(flat(col.find((n) => is(n, 'Text') && n.props.testID === 'chevron').props.style).flexShrink).toBe(0)
+    // every value text in the column can shrink, cycle rows included
+    for (const k of ['learning', 'native']) {
+      for (const t of r.root.find((n) => n.props.testID === `value-${k}`).findAll((n) => is(n, 'Text'))) expect(flat(t.props.style).flexShrink).toBe(1)
+    }
   })
 })

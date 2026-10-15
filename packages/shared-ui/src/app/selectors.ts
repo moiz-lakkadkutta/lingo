@@ -1,6 +1,7 @@
-import { NATIVE_LANGS, NEXT } from '@lingo/contracts'
+import { NEXT } from '@lingo/contracts'
 import type { Catalog, ClipCard, Lang, Level, LibraryWord, ProgressPut } from '@lingo/contracts'
 import type { WordsFilter } from '../nav/stack'
+import { supportedNatives } from '../settings/natives'
 import { strings } from '../strings'
 
 export type RowKey = 'continue' | 'justRight' | 'harder' | 'fresh'
@@ -64,7 +65,5 @@ export function filterWords(ws: readonly LibraryWord[], f: WordsFilter, now: Dat
   if (f === 'learned') return ws.filter((w) => w.learned)
   return [...ws]
 }
-/** First 8 of NATIVE_LANGS whose code ≠ learning. */
-export function speakOptions(learning: Lang): Array<{ code: string; name: string }> {
-  return NATIVE_LANGS.filter((l) => l.code !== learning).slice(0, 8).map((l) => ({ code: l.code, name: l.name }))
-}
+/** First run "I speak": the supported natives (settings/natives) minus the learning language, so a new learner cannot pick a language without lines (QA #15). */
+export function speakOptions(learning: Lang): Array<{ code: string; name: string }> { return supportedNatives(learning) }

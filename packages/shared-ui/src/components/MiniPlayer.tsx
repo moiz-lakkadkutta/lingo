@@ -31,8 +31,8 @@ export function MiniPlayer({ manifestUrl, startS, endS, playKey, caption, onEnd,
     onEndRef.current?.()
   }, [off, key])
   return (
-    <View pointerEvents="none" style={{ width: px(640), backgroundColor: tokens.color.surface1, borderRadius: 6, overflow: 'hidden' }}>
-      <View style={{ width: px(640), height: px(360), backgroundColor: tokens.color.stage, justifyContent: off ? 'center' : undefined, padding: off ? px(32) : 0 }}>
+    <View pointerEvents="none" style={{ width: px(tokens.layout.miniW), backgroundColor: tokens.color.surface1, borderRadius: px(tokens.radius.md), overflow: 'hidden' }}>
+      <View style={{ width: px(tokens.layout.miniW), height: px(tokens.layout.miniH), backgroundColor: tokens.color.stage, justifyContent: off ? 'center' : undefined, padding: off ? px(32) : 0 }}>
         {off ? (
           <T testID="mini-playback-off" style={{ fontSize: px(32), lineHeight: px(42) }}>{strings.playbackOff.title}</T>
         ) : (
@@ -51,7 +51,7 @@ export function MiniPlayer({ manifestUrl, startS, endS, playKey, caption, onEnd,
           />
         )}
       </View>
-      {caption ? <T variant="cueTarget" style={{ fontSize: px(32), lineHeight: px(42), padding: px(16) }}>{caption}</T> : null}
+      {caption ? <T variant="cueTarget" numberOfLines={2} style={{ fontSize: px(32), lineHeight: px(42), padding: px(16) }}>{caption}</T> : null}
     </View>
   )
 }

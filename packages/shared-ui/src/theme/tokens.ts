@@ -12,6 +12,7 @@ const color = {
   cueBox: 'rgba(0,0,0,0.65)',
   scrim: 'rgba(15,21,27,0.4)',     // ground at 40 %: dims the picture behind the Explain card
   stage: '#000000',                // letterbox behind the video
+  track: 'rgba(239,241,238,0.3)',  // text at 30 %: the unfilled part of the Player progress bar (QA #12)
 } as const
 /**
  * Fill and text of the one action button per state (Button, the Explain card, Plus). Every text/fill pair keeps ≥ 4.5:1 (test/tokens.test.ts).
@@ -35,7 +36,11 @@ export const tokens = {
     cueTarget: { family: 'NotoSans-Regular', weight: '400', size: 44, line: 57 },
     cueNative: { family: 'NotoSans-Regular', weight: '400', size: 32, line: 40 },
   } as Record<TypeRole, { family: string; weight: '400' | '700'; size: number; line: number; tracking?: number; tabular?: boolean }> & { floor: number },
-  layout: { safeX: 96, safeY: 54, rail: 96, railExpanded: 336, cardW: 412, cardH: 232, gutter: 24, heroH: 520, explainW: 880, explainH: 420, holdBarH: 4, wordGap: 12, wordPadX: 6, sheetW: 640 },
+  layout: { safeX: 96, safeY: 54, rail: 96, railExpanded: 336, cardW: 412, cardH: 232, gutter: 24, heroH: 520, explainW: 880, explainPad: 32, explainGap: 12, holdBarH: 4, progressBarH: 4, progressPadX: 16, progressPadY: 8, wordGap: 12, wordPadX: 6, sheetW: 640,
+    /** list rows (Settings, Words): width, min height, inner padding, gap between rows, the right-aligned value column */
+    rowW: 1100, rowH: 88, rowPadX: 28, rowPadY: 14, rowGap: 12, rowValueW: 460, panelPad: 24, miniW: 640, miniH: 360 },
+  /** corner radii in px at 1920×1080 (sm: chips, md: cards and rows, lg: panels and sheets) */
+  radius: { sm: 3, md: 6, lg: 8 },
   focus: { width: 4, offset: 3, wordWidth: 3, wordOffset: 2 },
   motion: { focusMs: 150, focusScale: 1.04, overlayHideMs: 4000, autoPauseHoldMs: 2000, longPressMs: 500, seekGraceS: 1 },
 } as const

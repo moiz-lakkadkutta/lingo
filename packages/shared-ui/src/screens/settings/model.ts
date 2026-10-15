@@ -1,5 +1,6 @@
-import { LEVELS, NATIVE_LANGS } from '@lingo/contracts'
+import { LEVELS } from '@lingo/contracts'
 import type { Lang, LearnerDto, LearnerSettingsPatch, Level } from '@lingo/contracts'
+import { nativeName, SUPPORTED_NATIVES } from '../../settings/natives'
 import { LINES, SIZES, step } from '../../settings/options'
 import { strings } from '../../strings'
 
@@ -17,13 +18,7 @@ export type SettingsAction =
 const S = strings.settings
 const NAMES: Record<SettingsKey, string> = { learning: S.learning, native: S.native, level: S.level, nativeLine: S.nativeLine, autoPause: S.autoPause, cueSize: S.cueSize, pair: S.pair, plus: S.plus, about: S.about }
 const other = (l: Lang): Lang => (l === 'de' ? 'en' : 'de')
-/**
- * "I speak" values that have native lines today (docs/content-status.md: German clips carry `en` native lines, English clips `de`).
- * The contracts enum (NATIVE_LANGS) stays wide so stored learners with other values still parse; the row shows such a value but
- * ◄► only move to these (QA #15).
- */
-export const SUPPORTED_NATIVES: readonly Lang[] = ['en', 'de']
-const nativeName = (code: string) => NATIVE_LANGS.find((n) => n.code === code)?.name ?? code
+export { SUPPORTED_NATIVES }
 const value = {
   learning: (l: Lang) => S.learningOpts[l],
   native: nativeName,

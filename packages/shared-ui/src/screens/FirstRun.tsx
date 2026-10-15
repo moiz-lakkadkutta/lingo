@@ -64,6 +64,22 @@ export function FirstRun({ learner, session, onProfile, onLevel, onDone }: First
   }
   if (s.panel === 'speak') {
     const opts = speakOptions(s.learning)
+    if (opts.length === 1) {
+      // QA #15: one supported language → a confirmed value and Continue, not a picker with one choice (as Settings shows a single option).
+      const only = opts[0]!
+      return (
+        <Screen>
+          <View style={{ flex: 1, justifyContent: 'center', gap: px(40) }}>
+            <T variant="display">{F.speak}</T>
+            <View testID="speak-value" style={{ alignSelf: 'flex-start', minWidth: px(400), paddingHorizontal: px(tokens.layout.rowPadX), paddingVertical: px(tokens.layout.panelPad), borderRadius: px(tokens.radius.md), backgroundColor: tokens.color.surface1 }}>
+              <T variant="title">{only.name}</T>
+            </View>
+            <T variant="body" color={tokens.color.textSecondary}>{F.speakNote(strings.settings.learningOpts[s.learning], only.name)}</T>
+            <Button primary preferred label={F.speakContinueLabel(only.name)} text={F.speakContinue} onPress={() => dispatch({ type: 'speak', code: only.code })} />
+          </View>
+        </Screen>
+      )
+    }
     const pref = opts.some((o) => o.code === s.native) ? s.native : opts[0]!.code
     return (
       <Screen>
