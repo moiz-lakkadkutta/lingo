@@ -192,3 +192,10 @@ at temperature 0); `sale`, `scavenger`, `old-timer` as before.
 - Pro v1 v7: 16/17, 0 reject hits; the one failure is `tacks` → "Nadel" (the precise "Reißzwecke" came second). In the spot check run
   the same model put "Reißzwecke" first: the order still varies between runs.
 
+
+### LING-001 follow-up (2026-10-15): word-list check made explicit
+
+`pickHighlights` already required a candidate's lemma to have a rank in `data/freq-{lang}.txt`; this is now the stated word-list rule,
+and every countable candidate that is not in the list (neither its lemma nor its surface form, so `I'm` is not reported) is logged by
+prepare as `highlights: N candidates not in the <lang> word list …`. The rule that removes `sal` stays the confidence floor of
+decision 1 (the list ranks `sal` 4972). Picking is unchanged: a dry run over the 12 catalogue clips drops no current highlight.

@@ -48,28 +48,45 @@ export function isNumeral(word: string): boolean {
 export function isCountable(t: Token): boolean { return !t.name && !/\d/.test(t.word) && !isNumeral(t.word) }
 
 
+/** Why pickHighlights skipped a candidate: the ASR filter, or its lemma is not in the language word list. */
+export type SkipReason = 'asr' | 'not-in-word-list'
+
 /**
+ * Word list (LING-001 follow-up, docs/decisions/0009 decision 1): a candidate must be a word of the clip's language, i.e. its lemma has a
+ * rank in data/freq-{lang}.txt (the 20 000-lemma list of decision 0004). A countable token (> 2 letters) whose lemma is not in the list
+ * is never a highlight; when neither its lemma nor its surface form (rankOf: I'm → i) is in the list, `onSkip(…, 'not-in-word-list')`
+ * reports it once per lemma, in every cue (also past the 40 % budget), so the run log shows it. The list alone cannot reject `sal` (the name Sal, rank 4972); the ASR filter below does.
  * ASR filter (LING-002-gate-c §2): a token with `asr` < MIN_HIGHLIGHT_CONFIDENCE, or whose `${cueIndex}|${word}` key is in `exclude`
- * (asrSuspects), is never a candidate; it still counts for level and coverage. `onSkip` is told about each such token that would
- * otherwise have been eligible (countable, ranked at or above the floor), so the caller can warn.
+ * (asrSuspects), is never a candidate; it still counts for level and coverage. `onSkip(…, 'asr')` is told about each such token that
+ * would otherwise have been eligible (countable, ranked at or above the floor), so the caller can warn.
  */
-export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4, exclude?: Set<string>, onSkip?: (cueIndex: number, t: Token) => void): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
+export function pickHighlights(cues: Array<{ index: number; tokens: Token[] }>, rank: (lemma: string) => number | undefined, level: Level, maxShare = 0.4, exclude?: Set<string>, onSkip?: (cueIndex: number, t: Token, reason: SkipReason) => void): Array<{ cueIndex: number; word: string; lemma: string; rank: number }> {
   const lo = highlightFloor(level)
   const out: Array<{ cueIndex: number; word: string; lemma: string; rank: number }> = []
   const seen = new Set<string>()
   const used = new Set<number>()
+  const unknown = new Set<string>()
   const budget = Math.floor(cues.length * maxShare)
   const asrBad = (c: number, t: Token) => (t.asr !== undefined && t.asr < MIN_HIGHLIGHT_CONFIDENCE) || !!exclude?.has(tokenKey(c, t.word))
   for (const c of cues) {
+    const eligible = c.tokens.filter((t) => isCountable(t) && t.word.length > 2)
+    for (const t of eligible) {
+      const k = t.lemma.toLowerCase()
+      if (rankOf(t.word, t.lemma, rank) === undefined && !unknown.has(k)) { unknown.add(k); onSkip?.(c.index, t, 'not-in-word-list') }
+    }
     if (!used.has(c.index) && used.size >= budget) continue
-    const cands = c.tokens
-      .filter((t) => isCountable(t) && t.word.length > 2)
+    const cands = eligible
       .map((t) => ({ ...t, r: rank(t.lemma) })).filter((t): t is Token & { r: number } => t.r !== undefined && t.r >= lo && !seen.has(t.lemma))
-      .filter((t) => { if (!asrBad(c.index, t)) return true; onSkip?.(c.index, t); return false })
+      .filter((t) => { if (!asrBad(c.index, t)) return true; onSkip?.(c.index, t, 'asr'); return false })
       .sort((a, b) => a.r - b.r).slice(0, 2)
     for (const t of cands) { seen.add(t.lemma); used.add(c.index); out.push({ cueIndex: c.index, word: t.word, lemma: t.lemma, rank: t.r }) }
   }
   return out
+}
+/** Run-log line for the candidates pickHighlights skipped because their lemma is not in the word list; undefined when there are none. */
+export function wordListSkipLine(lang: string, skipped: Array<{ cueIndex: number; word: string }>): string | undefined {
+  if (!skipped.length) return undefined
+  return `highlights: ${skipped.length} candidate${skipped.length === 1 ? '' : 's'} not in the ${lang} word list (data/freq-${lang}.txt), never highlighted: ${skipped.map((s) => `${s.word} (cue ${s.cueIndex})`).join(', ')}`
 }
 /** Ranks of the tokens that have one — the token rank of clip.json, rankOf (I'm → i) — (docs/decisions/0008 decision 10: unranked tokens — ASR errors or words beyond the top 20 000 — are ignored). */
 const rankedOf = (tokens: Token[], rank: (l: string) => number | undefined) => tokens.map((t) => rankOf(t.word, t.lemma, rank)).filter((r): r is number => r !== undefined)

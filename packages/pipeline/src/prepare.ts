@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { PreparedClip, type PreparedCost, type PreparedCue, type PreparedHighlight, type PreparedQuizItem, type PreparedToken } from '@lingo/contracts'
 import { segmentWithReport, wrap2, type Dropped, type Seg } from './segment'
 import { assertGate, gateReport } from './gate'
-import { BANDS, clipLevel, coverageRank, highlightFloor, isCountable, NEXT, pickHighlights, reviewHighlights, unrankedShare, type Level } from './highlights'
+import { BANDS, clipLevel, coverageRank, highlightFloor, isCountable, NEXT, pickHighlights, reviewHighlights, unrankedShare, wordListSkipLine, type Level } from './highlights'
 import { DATA_DIR, loadFreqList, rankFn } from './freq'
 import { isName, loadNames, rankOf } from './names'
 import { lemmaKey, pythonLemmatizer, type LemmaResult } from './lemmatize'
@@ -199,7 +199,14 @@ export async function prepare(input: PrepareInput, deps: PrepareDeps = defaultDe
     const phrases = await loadPhrases(lang)
     const notes = new Map(phrases.map((p) => [p.lemma, p.note]))
     // fixed expressions (data/phrases-<lang>.txt): a highlighted token inside one becomes the whole expression
-    const picked = mergeExpressions(pickHighlights(cueTokens, rank, level, 0.4, new Set(suspects.keys()), (ci, t) => warnings.push(asrSkipWarning(ci, t.word, t.asr, suspects.get(`${ci}|${t.word.toLowerCase()}`)))), cueTokens, phrases)
+    // a candidate must be in the word list (data/freq-<lang>.txt) and pass the ASR filter (docs/decisions/0009 decision 1)
+    const notInList: Array<{ cueIndex: number; word: string }> = []
+    const picked = mergeExpressions(pickHighlights(cueTokens, rank, level, 0.4, new Set(suspects.keys()), (ci, t, why) => {
+      if (why === 'asr') warnings.push(asrSkipWarning(ci, t.word, t.asr, suspects.get(`${ci}|${t.word.toLowerCase()}`)))
+      else notInList.push({ cueIndex: ci, word: t.word })
+    }), cueTokens, phrases)
+    const skipLine = wordListSkipLine(lang, notInList)
+    if (skipLine) deps.log(skipLine)
     if (!picked.length) warnings.push(`no highlights: no countable token has rank ≥ ${highlightFloor(level)} (band above ${level}); the clip teaches nothing above its level — swap it (docs/content.md §8)`)
     warnings.push(...reviewHighlights(picked, lang))
     const highlights: PreparedHighlight[] = []
