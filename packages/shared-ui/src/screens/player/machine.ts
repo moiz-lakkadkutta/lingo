@@ -14,6 +14,13 @@ export interface PlayerState {
   revealedCue: number | null; chromeUntil: number; heldCue: number | null; stageKey: number; ended: boolean
   /** Set by seekTo until a position report lands near `t` (or `until` passes): reports sent before the seek took effect are dropped (QA #11). */
   pendingSeek?: { t: number; until: number } | null
+  /**
+   * Until this time (ms) a 'paused' report is not the learner pausing: Fire OS reports the buffering of a seek the Player issued as
+   * 'paused' (LING-003 M2). Set by seekTo (and for a deep-link start), cleared by the next 'playing' report.
+   */
+  seekGuardUntil?: number | null
+  /** Set by a 'buffering' report, cleared by 'playing': a 'paused' report in between is the player buffering, not the learner. */
+  buffering?: boolean
 }
 export type PlayerEvent =
   | { type: 'position'; s: number; now: number }
@@ -38,10 +45,14 @@ const MAX_PLAY_STEP_S = 1
 const SEEK_LAND_BEFORE_S = 0.25
 /** After this long without a report near the target, the player is believed again (a seek that landed elsewhere). */
 const SEEK_SETTLE_MS = 2000
+/** How long after a seek a 'paused' report is ignored if no 'playing' report comes first; after it a pause is believed again. */
+const SEEK_GUARD_MS = 1500
 type KeyEvent = Extract<PlayerEvent, { type: 'key' }>
 
+/** A start position (deep link or resume) is a seek the kit issues on load: guard it until playback first reports 'playing'. */
 export function initialState(startAt: number): PlayerState {
-  return { phase: 'playing', positionS: startAt, cueIndex: null, wordIdx: 0, rate: 1, revealedCue: null, chromeUntil: 0, heldCue: null, stageKey: 0, ended: false }
+  return { phase: 'playing', positionS: startAt, cueIndex: null, wordIdx: 0, rate: 1, revealedCue: null, chromeUntil: 0, heldCue: null, stageKey: 0, ended: false,
+    ...(startAt > 0 ? { seekGuardUntil: Number.POSITIVE_INFINITY } : {}) }
 }
 
 const chrome = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState => ({ ...s, chromeUntil: now + ctx.chromeMs })
@@ -60,6 +71,16 @@ const backToStage = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =
   chrome({ ...s, phase: 'playing', stageKey: s.stageKey + 1, cueIndex: cueAt(ctx.cues, s.positionS) }, now, ctx)
 const toggleReveal = (s: PlayerState, now: number, ctx: PlayerCtx): PlayerState =>
   chrome({ ...s, revealedCue: s.revealedCue === s.cueIndex ? null : s.cueIndex }, now, ctx)
+
+/** A 'paused' report the learner did not cause: the buffering of a seek still pending, or of a rebuffer (LING-003 M2). */
+const notAPause = (s: PlayerState, now: number): boolean => !!s.buffering || (s.seekGuardUntil != null && now < s.seekGuardUntil)
+
+/** Notes buffering and the end of a seek from player reports before the phase handles them; returns s itself when nothing changes. */
+function noteReport(s: PlayerState, r: Extract<PlayerEvent, { type: 'playerState' }>['s']): PlayerState {
+  if (r === 'buffering' && !s.buffering) return { ...s, buffering: true }
+  if (r === 'playing' && (s.buffering || s.seekGuardUntil != null)) return { ...s, buffering: false, seekGuardUntil: null }
+  return s
+}
 
 function ended(s: PlayerState): Result {
   return s.ended ? [s, []] : [{ ...s, ended: true }, [{ kind: 'end' }]]
@@ -97,7 +118,7 @@ function track(s: PlayerState, pos: number, now: number, ctx: PlayerCtx, hold: b
 function seekTo(s: PlayerState, t: number, now: number, ctx: PlayerCtx): [PlayerState, Effect] {
   const cueIndex = cueAt(ctx.cues, t)
   const revealedCue = cueIndex !== s.cueIndex && s.revealedCue !== cueIndex ? null : s.revealedCue
-  return [{ ...s, positionS: t, cueIndex, heldCue: null, revealedCue, pendingSeek: { t, until: now + SEEK_SETTLE_MS } }, { kind: 'seek', s: t }]
+  return [{ ...s, positionS: t, cueIndex, heldCue: null, revealedCue, pendingSeek: { t, until: now + SEEK_SETTLE_MS }, seekGuardUntil: now + SEEK_GUARD_MS }, { kind: 'seek', s: t }]
 }
 
 /** Seek keys in the playing phase. Returns null when the key is not a seek key or the press is ignored (► held). */
@@ -137,7 +158,7 @@ function playing(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
       return [toExplain(s, e.now, ctx), [{ kind: 'pause' }]]
     case 'back': return [s, [{ kind: 'exit', positionS: s.positionS }]]
     case 'playerState':
-      if (e.s === 'paused') return [toExplain(s, e.now, ctx), []]
+      if (e.s === 'paused') return notAPause(s, e.now) ? [s, []] : [toExplain(s, e.now, ctx), []]
       if (e.s === 'ended') return ended(s)
       return [s, []]
     case 'key': {
@@ -210,7 +231,7 @@ function sheet(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
     case 'position': return track(s, e.s, e.now, ctx, false)
     case 'action': return e.action === 'slower' ? slower(s, e.now, ctx) : [s, []] // the sheet's Speed row
     case 'playerState':
-      if (e.s === 'paused') return [toExplain(s, e.now, ctx), []]
+      if (e.s === 'paused') return notAPause(s, e.now) ? [s, []] : [toExplain(s, e.now, ctx), []]
       if (e.s === 'ended') return ended(s)
       return [s, []]
     case 'key':
@@ -224,6 +245,7 @@ export function reduce(s: PlayerState, e: PlayerEvent, ctx: PlayerCtx): Result {
   // Held-key repeats never act. Key events named select fall through to [s, []] in every phase:
   // Select arrives through the stage Pressable's onPress instead.
   if (e.type === 'key' && e.repeat) return [s, []]
+  if (e.type === 'playerState') s = noteReport(s, e.s)
   if (e.type === 'stop') return [s, [...(s.phase === 'holding' ? [{ kind: 'cancelHold' } as const] : []), { kind: 'exit', positionS: s.positionS }]]
   switch (s.phase) {
     case 'playing': return playing(s, e, ctx)
