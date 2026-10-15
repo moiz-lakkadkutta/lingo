@@ -25,6 +25,7 @@ import { Plus } from '../screens/Plus'
 import { Quiz } from '../screens/Quiz'
 import { Settings } from '../screens/Settings'
 import type { SettingsAction } from '../screens/settings/model'
+import { flashStatus, NOTICE_MS, SAVED_MS, savedStatus } from '../screens/settings/status'
 import { Summary } from '../screens/Summary'
 import { Words } from '../screens/Words'
 import type { SessionHandle, SessionTransport } from '../session/types'
@@ -48,7 +49,7 @@ interface Ctx {
   api: Api; plusStore: PlusStore; refreshMe(): void
   saved: HighlightDto[]; setSaved: React.Dispatch<React.SetStateAction<HighlightDto[]>>; lastPlayerSlug: React.MutableRefObject<string | null>
   tvQuiz: Record<string, Score>; setTvQuiz: React.Dispatch<React.SetStateAction<Record<string, Score>>>
-  settingsStatus: string | null; setSettingsStatus(s: string | null): void
+  settingsStatus: string | null; setSettingsStatus: React.Dispatch<React.SetStateAction<string | null>>
 }
 
 /**
@@ -325,16 +326,20 @@ function SettingsRoute({ ctx }: { ctx: Ctx }) {
   const { ep, nav, learner } = ctx
   const onAction = (a: SettingsAction) => {
     if (a.kind === 'open') { nav({ type: 'push', route: { name: a.route } }); return }
-    ctx.setSettingsStatus(null)
+    // A side effect (I speak swapped) shows at once; "Saved." follows the PUT and clears itself (QA #4, #5).
+    ctx.setSettingsStatus(a.kind === 'patch' ? a.notice ?? null : null)
     if (a.kind === 'patch') {
       if (a.patch.learning) { ctx.memory.forget('home'); ctx.setCatalog(null) }
-      void ctx.patchLearner(a.patch).then((ok) => { if (!ok) ctx.setSettingsStatus(strings.common.saveError) })
+      void ctx.patchLearner(a.patch).then((ok) => {
+        if (ok) flashStatus(ctx.setSettingsStatus, savedStatus(a.notice), a.notice ? NOTICE_MS : SAVED_MS)
+        else ctx.setSettingsStatus(strings.common.saveError)
+      })
       return
     }
     const before = learner.level
     ctx.setLearner((l) => ({ ...l, level: a.level }))
     ctx.memory.forget('home'); ctx.setCatalog(null) // rows and their titles follow the new level (review-005 L1)
-    ep.putLevel({ source: 'settings', level: a.level }).catch(() => {
+    ep.putLevel({ source: 'settings', level: a.level }).then(() => { flashStatus(ctx.setSettingsStatus, savedStatus(), SAVED_MS) }, () => {
       ctx.setLearner((l) => (l.level === a.level ? { ...l, level: before } : l))
       ctx.setSettingsStatus(strings.common.saveError)
     })

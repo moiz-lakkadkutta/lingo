@@ -49,14 +49,14 @@ export function Settings({ learner, phoneName, remote, status, onAction, initial
               <T variant="body">{r.name}</T>
               <View style={{ flexDirection: 'row', gap: px(16) }}>
                 {r.kind === 'cycle'
-                  ? <T variant="body" color={tokens.color.interactive}>{r.value}</T>
+                  ? <T variant="body" color={tokens.color.interactive}>{strings.settings.cycleValue(r.value)}</T>
                   : <>{r.value !== strings.settings.open ? <T variant="body" color={tokens.color.textSecondary}>{r.value}</T> : null}<T variant="body" color={tokens.color.textSecondary}>{strings.settings.open}</T></>}
               </View>
             </Focusable>
           )
         })}
       </ScrollView>
-      <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite" style={{ marginTop: px(16) }}>{status ?? strings.settings.hint}</T>
+      <T variant="label" color={tokens.color.textSecondary} accessibilityLiveRegion="polite" aria-label={status ?? strings.settings.hintLabel} style={{ marginTop: px(16) }}>{status ?? strings.settings.hint}</T>
     </Screen>
   )
 }

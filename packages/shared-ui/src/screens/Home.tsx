@@ -36,7 +36,7 @@ export function Home({ catalog, learner, onReload, onWatch, onOpen, onRail, onSe
   const hero = data ? pickHero(data) : null
   const rows = data ? homeRows(data, learner.level) : []
   const ids = data ? [
-    ...(hero ? ['hero:watch', 'hero:meet'] : []),
+    ...(hero ? ['hero:watch', 'hero:meet', 'hero:words'] : []),
     ...rows.flatMap((r) => r.cards.map((c) => `card:${r.key}:${c.slug}`)),
     ...RAIL_ITEMS.map((i) => `rail:${i.key}`),
   ] : []
@@ -97,13 +97,16 @@ export function Home({ catalog, learner, onReload, onWatch, onOpen, onRail, onSe
                 <T variant="label" color={tokens.color.textSecondary}>{`${strings.level.about(hero.level)} · ${formatMinutes(hero.durationS)}`}</T>
               </View>
               <T variant="display" numberOfLines={2}>{hero.title}</T>
-              <View style={{ flexDirection: 'row', gap: px(16), marginTop: px(8) }}>
+              {/* wraps when Resume makes the row too wide for the hero column */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: px(16), marginTop: px(8) }}>
                 <Button
                   primary label={at ? strings.home.resumeLabel(hero.title, at) : strings.home.watchLabel(hero.title)} text={at ? strings.home.resume(at) : strings.home.watch}
                   onPress={() => onWatch(hero)} preferred={preferred === 'hero:watch'} id="hero:watch" onFocusId={onFocusId}
                   focusRef={(v) => { heroWatch.current = v }} nextFocusLeft={handles.left}
                 />
                 <Button label={strings.home.meetLabel(hero.title)} text={strings.home.meet} onPress={() => onOpen(hero.slug)} preferred={preferred === 'hero:meet'} id="hero:meet" onFocusId={onFocusId} />
+                {/* The collapsed rail shows only "W"; this names the saved-words list where people look first (QA #16). */}
+                <Button label={strings.home.yourWordsLabel} text={strings.home.yourWords} onPress={() => onRail('words')} preferred={preferred === 'hero:words'} id="hero:words" onFocusId={onFocusId} />
               </View>
             </View>
             <View style={{ width: px(HERO_POSTER.w), height: px(HERO_POSTER.h), borderRadius: 6, overflow: 'hidden', backgroundColor: tokens.color.surface2 }}>

@@ -51,6 +51,14 @@ describe('Home', () => {
     expect(onReload).toHaveBeenCalled()
     expect(texts(render(<Home {...props({ state: 'error', error: 'server' })} />))).toContain(strings.common.error)
   })
+  it('the hero offers Your words, which opens the saved-words list (QA #16)', () => {
+    const onRail = vi.fn()
+    const r = render(<Home {...props({ state: 'ready', data: full }, { onRail })} />)
+    byLabel(r, strings.home.yourWordsLabel).props.onPress()
+    expect(onRail).toHaveBeenCalledWith('words')
+    const m = render(<Home {...props({ state: 'ready', data: full }, { initialFocus: 'hero:words' })} />)
+    expect(preferred(m).map((p) => p.props['aria-label'])).toEqual([strings.home.yourWordsLabel])
+  })
   it('keeps showing stale rows when a reload fails', () => {
     const r = render(<Home {...props({ state: 'error', error: 'offline', data: full })} />)
     expect(texts(r)).not.toContain(strings.offline)

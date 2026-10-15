@@ -68,7 +68,7 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
           )
         })}
       </View>
-      <T variant="label" color={tokens.color.textSecondary}>{strings.words.hint}</T>
+      <T variant="label" color={tokens.color.textSecondary} aria-label={strings.words.hintLabel}>{strings.words.hint}</T>
     </View>
   )
 
