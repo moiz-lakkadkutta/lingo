@@ -2,7 +2,14 @@
 // Exempt a single line with a trailing comment containing `lint-words-allow` (e.g. a legally required notice).
 import { readFileSync, globSync } from 'node:fs'
 const BLOCK = ["streak broken", "failed", "wrong answer", "wrong"]
-const files = globSync('packages/shared-ui/src/**/*.{ts,tsx}').concat(globSync('apps/phone/src/**/*.{ts,tsx}'))
+// Every app surface: shared-ui, the phone, the Vega entry and the Fire OS (Expo) entry. Generated and installed trees are skipped.
+const SKIP = /(^|\/)(node_modules|android|ios|build|dist|\.expo)\//
+const files = [
+  'packages/shared-ui/src/**/*.{ts,tsx}',
+  'apps/phone/src/**/*.{ts,tsx}',
+  'apps/vega/src/**/*.{ts,tsx}',
+  'apps/expo/**/*.{ts,tsx,js}',
+].flatMap((g) => globSync(g)).filter((f) => !SKIP.test(f))
 let bad = 0
 for (const f of files) {
   const lines = readFileSync(f, 'utf8').split('\n')

@@ -1,0 +1,156 @@
+1
+00:00:01,000 --> 00:00:03,200
+Pause on a German line.
+
+2
+00:00:03,400 --> 00:00:07,000
+Save the word, and it's on your phone
+a second later.
+
+3
+00:00:20,500 --> 00:00:24,500
+You already watch more than an hour
+of TV a day.
+
+4
+00:00:24,800 --> 00:00:28,500
+Lingo turns it into your German lesson.
+
+5
+00:00:31,000 --> 00:00:34,000
+Lingo sits on the Fire TV home screen.
+
+6
+00:00:34,500 --> 00:00:39,000
+One press, and today's clip
+at your level is playing.
+
+7
+00:00:45,500 --> 00:00:48,500
+Two subtitle lines:
+German, large and bright;
+
+8
+00:00:48,700 --> 00:00:51,500
+English, small and quiet.
+
+9
+00:00:52,000 --> 00:00:57,500
+The marked word is the one
+worth learning at your level.
+
+10
+00:01:01,500 --> 00:01:05,000
+Pause, and Lingo explains
+the marked word:
+
+11
+00:01:05,200 --> 00:01:09,000
+what it means, and one grammar note.
+
+12
+00:01:12,500 --> 00:01:16,000
+At the end, a two-minute quiz
+on your phone.
+
+13
+00:01:17,000 --> 00:01:20,000
+Tomorrow it asks again,
+
+14
+00:01:20,200 --> 00:01:25,000
+spaced further out each time
+you get it right.
+
+15
+00:01:30,500 --> 00:01:33,000
+Your place in each clip is kept.
+
+16
+00:01:36,300 --> 00:01:40,000
+Amazon Transcribe writes the German line
+with word timings,
+
+17
+00:01:40,200 --> 00:01:43,500
+and Amazon Translate the English one.
+
+18
+00:01:44,000 --> 00:01:47,500
+Every line is cut
+to subtitle reading limits.
+
+19
+00:01:48,000 --> 00:01:51,800
+Amazon Nova Pro on Bedrock
+writes the glosses,
+
+20
+00:01:52,000 --> 00:01:55,500
+and code builds the quiz from them.
+
+21
+00:01:56,300 --> 00:01:59,800
+Preparing a clip costs about 25 cents
+in AWS calls,
+
+22
+00:02:00,000 --> 00:02:03,800
+so the same pipeline can run
+on licensed catalogues.
+
+23
+00:02:04,000 --> 00:02:07,300
+Lingo Plus is a subscription through
+Amazon's in-app purchasing,
+
+24
+00:02:07,400 --> 00:02:09,000
+shown here in sandbox.
+
+25
+00:02:09,200 --> 00:02:12,400
+Lingo shares vega-media-kit,
+our open-source player
+
+26
+00:02:12,500 --> 00:02:16,000
+and subtitle library,
+with our other entry, Described.
+
+27
+00:02:16,200 --> 00:02:19,000
+One UI package,
+written for Fire OS and Vega;
+
+28
+00:02:19,100 --> 00:02:21,200
+Vega support is experimental.
+
+29
+00:02:21,400 --> 00:02:23,000
+The AWS stack is CDK,
+
+30
+00:02:23,200 --> 00:02:27,500
+and every rough edge we hit
+is a friction log in the repo.
+
+31
+00:02:28,300 --> 00:02:31,800
+Lingo is for adults learning German
+or English at home,
+
+32
+00:02:32,000 --> 00:02:35,500
+like the 363,466 people
+who started an integration course
+
+33
+00:02:35,600 --> 00:02:37,800
+in Germany in 2024.
+
+34
+00:02:38,500 --> 00:02:41,500
+Next: more languages,
+through Translate.

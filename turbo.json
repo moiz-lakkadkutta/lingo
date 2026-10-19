@@ -7,9 +7,7 @@
     "AWS_REGION",
     "BEDROCK_REGION",
     "S3_BUCKET_MEDIA",
-    "S3_BUCKET_NOVA_INGEST",
     "CLOUDFRONT_DOMAIN",
-    "NOVA_PRO_MODEL_ID",
     "NOVA_LITE_MODEL_ID",
     "ADMIN_TOKEN",
     "RVS_BASE",
@@ -20,7 +18,8 @@
     "PHONE_URL",
     "LOG_LEVEL",
     "LINGO_PYTHON",
-    "LINGO_AI_CACHE_DIR"
+    "LINGO_AI_CACHE_DIR",
+    "LINGO_AI_MODEL"
   ],
   "tasks": {
     "build": {

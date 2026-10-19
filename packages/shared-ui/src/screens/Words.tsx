@@ -78,7 +78,7 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
   let body: React.ReactNode
   if (!all && words.state === 'error') {
     const offline = words.error === 'offline'
-    body = <StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: onReload }]} />
+    body = <StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.words.retryLabel, text: strings.common.retry, onPress: onReload }]} />
   } else if (!all) {
     body = <View style={{ gap: px(16) }}>{Array.from({ length: 5 }, (_, i) => <SkeletonBlock key={i} w={layout.listW} h={96} />)}</View>
   } else if (!list.length) {

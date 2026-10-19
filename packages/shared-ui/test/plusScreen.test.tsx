@@ -37,6 +37,14 @@ describe('Plus screen', () => {
     expect(subscribe.props.hasTVPreferredFocus).toBe(true)
   })
 
+  it('B-L9: busy has nothing focusable; the spacer only holds the row height', async () => {
+    const st = { ...store(), purchase: vi.fn(() => new Promise<never>(() => {})) }
+    const r = await show({ store: st })
+    await act(async () => { r.root.find((n) => is(n, 'Pressable') && n.props['aria-label'] === strings.plus.subscribeLabel('2,99 €')).props.onPress() })
+    expect(texts(r)).toContain(strings.plus.busy.purchasing)
+    expect(labels(r)).toEqual([])
+    expect(r.root.findAll((n) => is(n, 'View') && n.props.focusable === true)).toHaveLength(0)
+  })
   it('the sentence omits slower playback where caps.rate is false', async () => {
     const r = await show({ caps: { rate: false, wordFocusIn: 'cue' } })
     expect(texts(r)).toContain(strings.plus.body(false))

@@ -12,7 +12,6 @@
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "Lingo talks to your TV session on this Wi-Fi.",
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
         }
       }

@@ -10,12 +10,12 @@ import { box, byLabel, flat, focus, is, labels, mountId, preferred, press, press
 
 vi.mock('../src/components/MiniPlayer', async (orig) => ({ ...(await orig<object>()), MiniPlayer: (p: object) => React.createElement('MiniPlayer', p) }))
 
-const now = new Date(2026, 9, 1, 10)
+const now = new Date(Date.UTC(2026, 9, 1, 10)) // UTC days (decision 0011 §5)
 const w = (id: string, due: Date, o: Partial<LibraryWord> = {}): LibraryWord => ({
   savedWordId: id, word: id, lemma: `lemma-${id}`, gloss: `gloss ${id}`, due: due.toISOString(), intervalD: 0, reps: 1, learned: false,
   clip: { slug: 'zug', title: 'Der Zug', manifestUrl: 'https://cdn.example/zug.m3u8' }, cue: { index: 2, startS: 4, endS: 6.5, text: 'Der Zug\nfährt ab.', native: 'n' }, ...o,
 })
-const words = [w('a', new Date(2026, 8, 30)), w('b', new Date(2026, 9, 2, 9)), w('c', new Date(2026, 9, 20), { learned: true, intervalD: 30, clip: { slug: 'x', title: 'X', manifestUrl: null } })]
+const words = [w('a', new Date(Date.UTC(2026, 8, 30))), w('b', new Date(Date.UTC(2026, 9, 2, 9))), w('c', new Date(Date.UTC(2026, 9, 20)), { learned: true, intervalD: 30, clip: { slug: 'x', title: 'X', manifestUrl: null } })]
 const props = (over: Partial<WordsProps> = {}): WordsProps => ({ words: { state: 'ready', data: words }, filter: 'all', onFilter: vi.fn(), remote: createRemoteBus(), now, onReload: vi.fn(), onFindClip: vi.fn(), onFocusId: vi.fn(), ...over })
 const rowLabel = (x: LibraryWord, due: string) => strings.words.rowLabel(x.lemma, x.gloss, due, x.clip.title, x.clip.manifestUrl !== null)
 
@@ -87,7 +87,9 @@ describe('Words', () => {
     await press(byLabel(l, strings.words.findClip))
     expect(onFindClip).toHaveBeenCalled()
     expect(pressables(render(<Words {...props({ words: { state: 'loading' } })} />))).toHaveLength(0)
-    expect(texts(render(<Words {...props({ words: { state: 'error', error: 'offline' } })} />))).toContain(strings.offline)
+    const off = render(<Words {...props({ words: { state: 'error', error: 'offline' } })} />)
+    expect(texts(off)).toContain(strings.offline)
+    expect(labels(off)).toContain(strings.words.retryLabel)
   })
   it('Back closes the mini player before leaving', async () => {
     const r = render(<Words {...props()} />)

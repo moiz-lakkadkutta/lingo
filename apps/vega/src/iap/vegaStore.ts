@@ -21,7 +21,7 @@ function purchaseCode(code: PurchaseResponseCode): VegaCode {
     case PurchaseResponseCode.ALREADY_PURCHASED: return 'ALREADY_PURCHASED'
     case PurchaseResponseCode.INVALID_SKU: return 'INVALID_SKU'
     case PurchaseResponseCode.NOT_SUPPORTED: return 'NOT_SUPPORTED'
-    case PurchaseResponseCode.FAILED: return 'FAILED'
+    case PurchaseResponseCode.FAILED: return 'FAILED' // lint-words-allow: Amazon response code
     default: return 'UNKNOWN'
   }
 }
@@ -30,7 +30,7 @@ function updatesCode(code: PurchaseUpdatesResponseCode): VegaCode {
   switch (code) {
     case PurchaseUpdatesResponseCode.SUCCESSFUL: return 'SUCCESSFUL'
     case PurchaseUpdatesResponseCode.NOT_SUPPORTED: return 'NOT_SUPPORTED'
-    case PurchaseUpdatesResponseCode.FAILED: return 'FAILED'
+    case PurchaseUpdatesResponseCode.FAILED: return 'FAILED' // lint-words-allow: Amazon response code
     default: return 'UNKNOWN'
   }
 }

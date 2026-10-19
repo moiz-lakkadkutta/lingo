@@ -24,7 +24,7 @@ export function About({ clips, onBack }: AboutProps) {
           </View>
         ) : null}
       </ScrollView>
-      <Button primary preferred label={strings.common.back} text={strings.common.back} onPress={onBack} />
+      <Button primary preferred label={strings.about.backLabel} text={strings.common.back} onPress={onBack} />
     </Screen>
   )
 }

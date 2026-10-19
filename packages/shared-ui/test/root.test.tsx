@@ -74,9 +74,9 @@ describe('Root', () => {
   it('shows the offline message with Retry when /me cannot be reached, and Retry boots again', async () => {
     const { r, srv } = await boot({ down: true })
     expect(texts(r)).toContain(strings.offline)
-    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.retry])
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.reconnectLabel])
     srv.state.down = false
-    await press(byLabel(r, strings.common.retry))
+    await press(byLabel(r, strings.common.reconnectLabel))
     await settle()
     expect(labels(r)).toContain(zugCard)
   })

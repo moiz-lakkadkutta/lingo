@@ -14,20 +14,32 @@ export interface PhoneApi {
 type Parser<T> = { parse(data: unknown): T }
 type Envelope = { success: true; data: unknown } | { success: false; error: { code: string; message: string } }
 /** Headers on every call: content-type json, x-device-id; plus x-session-code (SESSION_CODE_HEADER) when identity().tvCode.
- *  { success: false, error } → ApiError(status, error.code, error.message); fetch throws → ApiError(0, 'NETWORK', …); data parsed with the Zod schema. */
-export function createApi(baseUrl: () => string, identity: () => Identity, fetchImpl: typeof fetch = (...a) => fetch(...a)): PhoneApi {
+ *  { success: false, error } → ApiError(status, error.code, error.message); fetch throws → ApiError(0, 'NETWORK', …); data parsed with the Zod schema.
+ *  A call (headers and body) slower than timeoutMs is aborted → ApiError(0, 'TIMEOUT', …), so a hung LAN request surfaces as an error and
+ *  the grade buttons re-enable instead of staying disabled (LING-006 L6). */
+export const REQUEST_TIMEOUT_MS = 10_000
+export function createApi(baseUrl: () => string, identity: () => Identity, fetchImpl: typeof fetch = (...a) => fetch(...a), timeoutMs = REQUEST_TIMEOUT_MS): PhoneApi {
   async function call<T>(schema: Parser<T>, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
     const id = identity()
     const headers: Record<string, string> = { 'content-type': 'application/json', 'x-device-id': id.deviceId }
     if (id.tvCode) headers[SESSION_CODE_HEADER] = id.tvCode
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+    const timedOut = () => new ApiError(0, 'TIMEOUT', `No answer within ${timeoutMs / 1000} s`)
     let res: Response
-    try {
-      res = await fetchImpl(`${baseUrl()}${path}`, { method: init.method ?? 'GET', headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) })
-    } catch (e) {
-      throw new ApiError(0, 'NETWORK', e instanceof Error ? e.message : String(e))
-    }
     let body: Envelope
-    try { body = (await res.json()) as Envelope } catch { throw new ApiError(res.status, 'BAD_RESPONSE', `Not JSON (${res.status})`) }
+    try {
+      try {
+        res = await fetchImpl(`${baseUrl()}${path}`, { method: init.method ?? 'GET', headers, body: init.body === undefined ? undefined : JSON.stringify(init.body), signal: ctrl.signal })
+      } catch (e) {
+        if (ctrl.signal.aborted) throw timedOut()
+        throw new ApiError(0, 'NETWORK', e instanceof Error ? e.message : String(e))
+      }
+      try { body = (await res.json()) as Envelope } catch {
+        if (ctrl.signal.aborted) throw timedOut()
+        throw new ApiError(res.status, 'BAD_RESPONSE', `Not JSON (${res.status})`)
+      }
+    } finally { clearTimeout(timer) }
     if (!body || body.success !== true) {
       const err = body && body.success === false ? body.error : { code: 'BAD_RESPONSE', message: `Unexpected response (${res.status})` }
       throw new ApiError(res.status, err.code, err.message)

@@ -50,10 +50,11 @@ export function startPosition(launchS: number | undefined, resumeS: number | nul
 export function progressBody(slug: string, positionS: number, durationS: number): ProgressPut {
   return { clipSlug: slug, positionS, completed: positionS >= durationS - 10 || positionS >= 0.97 * durationS }
 }
-const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
-const dayNumber = (d: Date) => Math.round(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86_400_000)
-/** due ≤ the end of `now`'s local day. */
-export function isDueToday(dueIso: string, now: Date): boolean { return new Date(dueIso).getTime() <= endOfDay(now).getTime() }
+// Days are UTC calendar days, the same as GET /me/words?due=today and the phone's deck (decision 0011 §5; apps/api/src/lib/day.ts).
+const startOfNextUtcDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)
+const dayNumber = (d: Date) => Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86_400_000)
+/** due before the next UTC midnight after `now`. */
+export function isDueToday(dueIso: string, now: Date): boolean { return new Date(dueIso).getTime() < startOfNextUtcDay(now) }
 export function dueLabel(dueIso: string, now: Date): string {
   if (isDueToday(dueIso, now)) return strings.words.dueToday
   const n = dayNumber(new Date(dueIso)) - dayNumber(now)
