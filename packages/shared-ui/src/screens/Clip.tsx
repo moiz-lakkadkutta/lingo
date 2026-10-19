@@ -27,6 +27,11 @@ function usePoll(active: boolean, fn: () => void, ms: number) {
   }, [active, ms])
 }
 
+/** Summary / Quiz opened for a clip the client cache no longer holds: a client-side miss, so no "on our side" error (LING-005 L10). */
+export function ClipGone({ onBack }: { onBack(): void }) {
+  return <Screen><StateMessage title={strings.clip.gone} actions={[{ label: strings.common.backLabel, text: strings.common.back, onPress: onBack }]} /></Screen>
+}
+
 /** Clip page: poster, title, level, duration, words you'll meet (≤ 8 marker chips), attribution; Watch · Challenge · Add to Continue. */
 export function Clip({ clip, learner, inContinue, onReload, onWatch, onPlus, onAddToContinue, onBack, initialFocus, onFocusId }: ClipProps) {
   const data = clip.data
@@ -59,7 +64,8 @@ export function Clip({ clip, learner, inContinue, onReload, onWatch, onPlus, onA
     return <Screen><StateMessage title={strings.clip.preparing(data.etaMin)} body={strings.clip.preparingBody} actions={[back]} /></Screen>
   }
 
-  const showAdd = !inContinue && data.resumeS === null
+  // Hidden for a completed clip too: Add to Continue PUTs completed:false at 0 s, which would undo the finish (LING-005 L10).
+  const showAdd = !inContinue && data.resumeS === null && !data.completed
   const ids = ['watch', 'challenge', ...(showAdd ? ['continue'] : [])]
   if (pref.current === undefined) pref.current = pickPreferred(initialFocus, ids, 'watch')
   const preferred = pref.current

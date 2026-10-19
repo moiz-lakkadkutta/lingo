@@ -15,7 +15,7 @@ export const strings = {
     resume: (at: string) => `Resume from ${at}`, meet: 'Words you\u2019ll meet', watchLabel: (t: string) => `Watch ${t}`, resumeLabel: (t: string, at: string) => `Resume ${t} from ${at}`,
     meetLabel: (t: string) => `Words you\u2019ll meet in ${t}`, cardLabel: (t: string, l: string, min: string) => `Open ${t}. About ${l}, ${min}.`,
     loading: 'Loading clips', empty: 'No clips in this language yet.', emptyAction: 'Open Settings', retryLabel: 'Try loading the clips again' },
-  clip: { wordsYoullMeet: "Words you'll meet", watch: 'Watch', retryLabel: 'Try loading the clip again', challenge: 'Watch in Challenge mode', preparing: (m: number) => `Preparing subtitles — about ${m} minutes.`,
+  clip: { wordsYoullMeet: "Words you'll meet", watch: 'Watch', retryLabel: 'Try loading the clip again', gone: 'This clip isn’t loaded any more. Go back and open it again.', challenge: 'Watch in Challenge mode', preparing: (m: number) => `Preparing subtitles — about ${m} minutes.`,
     challengePlus: 'Challenge mode · Plus', challengeLabel: 'Watch in Challenge mode: native line hidden, Menu shows it',
     challengePlusLabel: 'Challenge mode is part of Lingo Plus. Select to see Lingo Plus', addContinue: 'Add to Continue', inContinue: 'In Continue', added: 'Added to Continue.',
     preparingBody: 'This page checks again by itself.', notFound: 'This clip isn\u2019t available.', noWords: 'No new words at your level in this clip.',

@@ -16,7 +16,7 @@ import { caps } from '../platformCaps'
 import { restoreFlow } from '../plus/flow'
 import { noStore, type PlusStore } from '../plus/types'
 import { About } from '../screens/About'
-import { Clip } from '../screens/Clip'
+import { Clip, ClipGone } from '../screens/Clip'
 import { FirstRun } from '../screens/FirstRun'
 import { Home } from '../screens/Home'
 import { Pair } from '../screens/Pair'
@@ -283,7 +283,7 @@ const goNext = (ctx: Ctx, slug: string) => {
 function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, session } = ctx
   const clip = ctx.clips.peek(slug)
-  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.backLabel, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
+  if (!clip) return <ClipGone onBack={() => nav({ type: 'pop' })} />
   const pq = session.phoneQuiz
   return (
     <Summary
@@ -300,7 +300,7 @@ function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
 function QuizRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, ep } = ctx
   const clip = ctx.clips.peek(slug)
-  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.backLabel, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
+  if (!clip) return <ClipGone onBack={() => nav({ type: 'pop' })} />
   const onFinish = async (r: Score): Promise<LevelResult | null> => {
     ctx.setTvQuiz((m) => ({ ...m, [slug]: r }))
     try {

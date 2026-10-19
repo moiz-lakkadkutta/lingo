@@ -2,7 +2,7 @@ import React from 'react'
 import { act } from 'react-test-renderer'
 import type { ClipResponse } from '@lingo/contracts'
 import type { Resource } from '../src/data/resource'
-import { Clip, type ClipProps } from '../src/screens/Clip'
+import { Clip, ClipGone, type ClipProps } from '../src/screens/Clip'
 import { strings } from '../src/strings'
 import { tokens } from '../src/theme/tokens'
 import { card, clipReady, hl, learner } from './fixtures'
@@ -55,6 +55,23 @@ describe('Clip', () => {
     expect(labels(render(<Clip {...props({ state: 'ready', data: clipReady({ resumeS: 40 }) })} />))).not.toContain(strings.clip.addContinue)
     expect(labels(render(<Clip {...props({ state: 'ready', data: clipReady() }, { inContinue: true })} />))).not.toContain(strings.clip.addContinue)
     expect(texts(render(<Clip {...props({ state: 'ready', data: clipReady({ resumeS: 40 }) })} />))).toContain(strings.home.resume('0:40'))
+  })
+  it('L10: a completed clip offers no Add to Continue, so it cannot PUT completed:false over the finish', () => {
+    const onAddToContinue = vi.fn(async () => true)
+    const r = render(<Clip {...props({ state: 'ready', data: clipReady({ completed: true }) }, { onAddToContinue })} />)
+    expect(labels(r)).not.toContain(strings.clip.addContinue)
+    expect(texts(r)).not.toContain(strings.clip.addContinue)
+    expect(onAddToContinue).not.toHaveBeenCalled()
+  })
+  it('L10: a clip missing from the client cache says so and offers Back, not a server error', async () => {
+    const onBack = vi.fn()
+    const r = render(<ClipGone onBack={onBack} />)
+    expect(texts(r)).toContain(strings.clip.gone)
+    expect(texts(r)).not.toContain(strings.common.error)
+    expect(strings.clip.gone).not.toMatch(/our side/)
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.backLabel])
+    await press(byLabel(r, strings.common.backLabel))
+    expect(onBack).toHaveBeenCalled()
   })
   it('preparing shows the three-minute message with Back focused', () => {
     vi.useFakeTimers()
