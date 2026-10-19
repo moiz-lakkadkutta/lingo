@@ -15,7 +15,7 @@ Actual:
     result, which breaks the 1:1 cue alignment.
 Severity: Medium — visible to every learner on the native track; a learner using the translation to check meaning gets a
 different register in each line, and spelled names become nonsense.
-Workaround (planned in decision 0008 §11, LING-001 quality plan): send `Settings: { Formality: 'INFORMAL' | 'FORMAL',
+Workaround: as done in decision 0008 §11 (LING-001 quality plan), send `Settings: { Formality: 'INFORMAL' | 'FORMAL',
 Brevity: 'ON' }` (formality per clip, default informal, only for target languages that support it; brevity for both
 directions, since en↔de is a supported pair). A cue made only of spelled letters (`A N N A.`) is copied verbatim into the
 native track instead of being translated.
