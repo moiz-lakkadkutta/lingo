@@ -37,6 +37,11 @@ jobs:
       - run: pnpm --filter @lingo/shared-ui lint
       # apps/vega is outside the workspace and needs no Vega SDK for these static checks (docs/plans/LING-008.md §3.5)
       - run: pnpm check:vega
+      # Typecheck the Vega entry (PR #2 review C-L10). An npm project outside the workspace with a committed package-lock.json; all of its
+      # packages, the @amazon-devices ones included, are on public npm, so no Vega SDK is needed (apps/vega/README.md). shared-ui is typed
+      # through apps/vega/types/lingo-shared-ui.d.ts.
+      - run: npm ci --no-audit --no-fund && npx tsc --noEmit
+        working-directory: app/apps/vega
       - run: pnpm test
         env:
           LINGO_PYTHON: ${{ github.workspace }}/app/.venv-lemma/bin/python
