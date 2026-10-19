@@ -30,8 +30,11 @@ at most once an hour per purchase, from `GET /me` and `GET /iap/status`). Sandbo
 receipts (docs/decisions/0012-lingo-plus.md). LING-005, LING-006 and LING-007 added no AWS call (checked 2026-10-02 over
 `git diff f67fd9e..HEAD`): the phone speaks words with on-device TTS, and the TV device id lives on the device.
 
-Whether the pipeline runs under `PipelineRole` or the deploying profile: **TBD by human** <!-- HUMAN: say which credentials ran the pipeline (PipelineRole or the deploying profile). --> (the root-keys friction log says deploys ran as
-root: docs/friction/2026-10-01-cdk-deploy-as-root-user-cannot-assume-bootstrap-roles.md).
+Which credentials ran the pipeline (checked 2026-10-19 with the AWS CLI): the deploying developer profile, not `PipelineRole`.
+CloudTrail in eu-central-1 for `StartTranscriptionJob`, 2026-10-01..2026-10-15, shows 36 jobs: 30 by a shared developer IAM user and 6
+(the early ones) by the root user; none by `PipelineRole`. This is a gap: `PipelineRole` exists in the CDK stack but the pipeline never
+assumed it, so the least-privilege policy above was defined and not exercised. The early deploys ran as root too (friction log
+docs/friction/2026-10-01-cdk-deploy-as-root-user-cannot-assume-bootstrap-roles.md).
 
 ## Declared, not used by Lingo
 
@@ -45,7 +48,8 @@ Kept, not deleted (orchestrator decision 2026-10-01). Nothing in Lingo's code ca
   (Generative) and $100 (Long-Form) per 1M characters, us-east-1, checked 2026-10-15 (sources below). Do not list Polly as a Lingo
   service in the submission (docs/submission.md §15 C36).
 - Stack `lingo-nova-dev` (us-east-1, bucket `lingo-nova-ingest-<stage>-…`, `infra/lib/nova-ingest-stack.ts`), `S3_BUCKET_NOVA_INGEST` and
-  `NOVA_PRO_MODEL_ID`: Nova Pro video ingest, a Described pattern; no Lingo code reads them. Whether `lingo-nova-dev` was deployed: **TBD by human**. <!-- HUMAN: check CloudFormation in us-east-1 for lingo-nova-dev and write deployed or not. -->
+  `NOVA_PRO_MODEL_ID`: Nova Pro video ingest, a Described pattern; no Lingo code reads them. `lingo-nova-dev` was **not deployed** (checked 2026-10-19: CloudFormation in us-east-1 lists only `CDKToolkit` and a stack
+  unrelated to Lingo; eu-central-1 lists `lingo-media-dev`, CREATE_COMPLETE 2026-10-01, `CDKToolkit` and Described's stacks).
 
 ## Cost per clip and for the 12-clip batch (prices checked 2026-10-15; S3 and CloudFront unverified)
 
@@ -91,8 +95,32 @@ Others, accessed 2026-10-15:
   https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/translate/current/eu-central-1/index.json; https://aws.amazon.com/translate/pricing/.
 - Not checked: https://aws.amazon.com/s3/pricing/ · https://aws.amazon.com/cloudfront/pricing/
 
-**Actual spend:** TBD by human <!-- HUMAN: after the batch, enter the actual spend from Cost Explorer for the month. --> after the batch final phase — sum of `clip.json.cost.usd` (Bedrock), Transcribe minutes from
-`work/batch-report.md`, and Cost Explorer for the month.
+### Actual spend (Cost Explorer, checked 2026-10-19)
+
+Cost Explorer, usage only, 2026-10-01..2026-10-19. The account is shared with the Described project, so Lingo's share is attributed by
+service and usage type:
+
+| Lingo | Actual (USD) |
+|---|---|
+| Bedrock Nova Pro (input 1.21 + output 0.19) | 1.40 |
+| Bedrock Nova Lite | 0.05 |
+| Bedrock Nova 2 Lite (Gate C model comparison) | 0.24 |
+| Transcribe | 0.46 |
+| Translate | 0.00 (within the free tier; no Translate usage charge appears) |
+| S3 | ≈ 0.12 (shared with Described, so an upper bound) |
+| CloudFront | ≈ 0.00 |
+| **Lingo total** | **≈ 2.27** (upper bound, S3 shared) |
+
+Not Lingo (Described and experiments, same account): Qwen3-VL $1.69, TwelveLabs Pegasus $0.09, Mistral Large 3 $0.02, DeepSeek v3.2
+$0.21, Polly $1.87, RDS $1.62, Secrets Manager $0.05. Whole account, usage 2026-09-01..2026-10-19: $7.80, fully offset by AWS credits
+($0 billed).
+
+Against the estimates: the 12-clip batch was estimated at ≈ $1.56 (Translate ≈ $0.96, Bedrock ≤ $0.60; docs/content-status.md), and
+the table above at ≈ $2.9. Transcribe came out lower than the per-batch notes in docs/content-status.md (≈ 88 logged minutes priced at
+the old $0.024/min, ≈ $2.11); at the checked $0.006/min those minutes come to ≈ $0.53, close to the $0.46 billed, and the final 12-clip batch ran
+no Transcribe (every clip re-ran from its `--cues` file). Translate's estimate is list price; the actual usage fell within the free
+tier. Bedrock's $1.69 is higher than the per-clip figures in `clip.json` because Cost Explorer also counts the model evaluation and
+Gate C runs (docs/decisions/0009), which no clip ledger includes.
 
 ## Data flow and naming
 
