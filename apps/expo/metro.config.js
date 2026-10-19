@@ -19,7 +19,7 @@ if (!fs.existsSync(kitLink)) {
   throw new Error(
     `metro.config.js: ${kitLink} does not resolve. @moizp/vega-media-kit is a pnpm link: to a sibling checkout ` +
       '(root package.json pnpm.overrides → link:../vega-media-kit). Clone it next to this repo and run pnpm install, ' +
-      'or re-point the symlink to the checkout (git worktrees resolve the relative link to the wrong place).',
+      'or re-point the symlink to the checkout (git worktrees resolve the relative link from a different directory).',
   )
 }
 const kit = fs.realpathSync(kitLink)
