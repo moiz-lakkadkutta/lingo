@@ -56,7 +56,7 @@ learner's own quiz results, never a downgrade, and decision 0007 (M5) asks the A
   can be lost on Vega (friction log `2026-10-02-vega-hastvpreferredfocus-applies-only-on-first-mount.md`).
 - A client cannot raise its own level with a forged score, a draft clip or a phone. The level still trusts the device's own answers
   (`correct`); a modified TV app could post perfect scores. Acceptable for a learning app with no stakes.
-- The TV Words screen's "Due today" uses the device's local end of day (`app/selectors.ts:42`), while the API and the phone use UTC days
-  (decision 0011). Around midnight the two can disagree by a day; recorded as a follow-up in TASKS.md.
+- The TV Words screen's "Due today" used the device's local end of day, while the API and the phone use UTC days (decision 0011). As of
+  PR #14 (`fix/pre-submission-polish`) it uses UTC days too (`isDueToday` in `app/selectors.ts`), so the three agree.
 - Root's clip cache is tagged with the learning language, native language and level it was fetched for (review M3, commit 6a1c73c), so a
   change in Settings refetches native lines and highlights.

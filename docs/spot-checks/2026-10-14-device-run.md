@@ -1,4 +1,4 @@
-# Device run 2026-10-14 (run 2026-10-15..18, all rows passed): Fire TV Stick + phone (LING-003 M2, S1 open rows, LING-006, LING-007 A)
+# Device run 2026-10-14 (run 2026-10-15..18, all rows passed; rows 2, 3, 9 N/A): Fire TV Stick + phone (LING-003 M2, S1 open rows, LING-006, LING-007 A)
 
 The human holds the remote and the phone; everything else is already running on the Mac (section 0). Each row: do the action,
 compare with "Expected", tick Pass or Fail, and write one line under Notes when it fails (what you saw, the time, so the Metro
@@ -39,8 +39,8 @@ then restart Lingo on the stick. Exact steps and the check: docs/video-script.md
 | # | Action | Expected | Pass | Fail | Video |
 |---|---|---|---|---|---|
 | 1 | Phone on the same Wi-Fi as the Mac (192.168.1.x). Open Chrome on the phone → `http://192.168.1.122:8070/` | A file listing with `Expo-Go-54.0.8.apk` and `expo-go-qr.png` | [x] | [ ] | |
-| 2 | Tap `Expo-Go-54.0.8.apk` → allow "install unknown apps" for Chrome if asked → Install. **Do not** use Expo Go from the Play Store (it is SDK 57 and refuses an SDK 54 project) | Expo Go 54.0.8 installed | [x] | [ ] | |
-| 3 | Open Expo Go → "Enter URL manually" → `exp://192.168.1.122:8083` → Connect. (Or scan `expo-go-qr.png` on the Mac screen with Expo Go's scanner; the same URL) | Bundle downloads (about 9.7 MB, 10–40 s on first open), then the dark Join screen with six code boxes, Noto Sans, no long white flash (D1) | [x] | [ ] | S05 |
+| 2 | Tap `Expo-Go-54.0.8.apk` → allow "install unknown apps" for Chrome if asked → Install. **Do not** use Expo Go from the Play Store (it is SDK 57 and refuses an SDK 54 project) | Expo Go 54.0.8 installed | N/A | N/A | |
+| 3 | Open Expo Go → "Enter URL manually" → `exp://192.168.1.122:8083` → Connect. (Or scan `expo-go-qr.png` on the Mac screen with Expo Go's scanner; the same URL) | Bundle downloads (about 9.7 MB, 10–40 s on first open), then the dark Join screen with six code boxes, Noto Sans, no long white flash (D1) | N/A | N/A | S05 |
 | 4 | Join screen footer: the server address | Reads `http://192.168.1.122:4000` (baked by `EXPO_PUBLIC_API_URL`). If not, tap it and set it to that | [x] | [ ] | |
 | 4a | **Web route (decided 14:50: the phone has Android Advanced Protection, which blocks sideloaded APKs, so rows 2–3 cannot run).** Phone Chrome → scan `<scratchpad>/phone-web-qr.png` (also at `http://192.168.1.122:8070/phone-web-qr.png`) or type `http://192.168.1.122:8083/` | The same phone Metro serves the app as a web page (react-native-web, bundle 2.3 MB, 3–10 s first load); dark Join screen, six code boxes, footer `http://192.168.1.122:4000`. **No Scan button on web** (a browser gives the camera to https pages only): in row 8 the phone's camera app reads the TV QR instead; everything else (rows 5–7, 9–28) runs the same. With the API started with `PHONE_URL=http://192.168.1.122:8083/join` (§0), the TV's pair QR carries `http://192.168.1.122:8083/join/<code>`: scanning it with the phone's **camera app** opens this web app, which joins by itself (row 8). Checked 14:50 from a headless Chrome at 412×915: Join → `N3N3PR` → Live "Connected to your TV", no console errors; the API saw the join from origin `:8083` | [x] | [ ] | |
 | 4b | Web route, row 9 equivalent: close the Chrome tab, reopen the URL | Live directly (TV remembered in the browser's localStorage) | [x] | [ ] | |
@@ -57,7 +57,7 @@ cannot run on an iPhone today without an EAS iOS dev build (paid Apple Developer
 | 6 | Phone: type the code slowly; type an `O` once | Each box advances by itself; `O` shows the 0/O/1/I hint and the box stays empty; Backspace on an empty box clears the previous one (D2) | [x] | [ ] | |
 | 7 | Finish the code | Within 2 s the phone shows Live "Connected to your TV"; the TV panel shows a check and "<phone name> connected" (plan 005 §10 step 3) | [x] | [ ] | S01 (phone paired) |
 | 8 | **Web route (API with `PHONE_URL`, §0):** phone camera app → point at the TV's pair QR → open the link. **Native app (API without `PHONE_URL`):** Live → "Use another TV" → Join → Scan → allow the camera (Lingo's own text) → point at the TV QR | Web route: the QR carries `http://192.168.1.122:8083/join/<code>`; Chrome opens the web app, which joins by itself and shows Live "Connected to your TV" (checked 2026-10-14 in a 412×915 browser). Native app: the QR is `lingo://join/<code>`; the in-app scanner reads it and joins; Live again (D5); the phone's camera app cannot open that link into Expo Go | [x] | [ ] | |
-| 9 | Phone: force-quit Expo Go, reopen, reconnect to the same URL | Live directly (TV remembered), "Connected to your TV" again (D4) | [x] | [ ] | |
+| 9 | Phone: force-quit Expo Go, reopen, reconnect to the same URL | Live directly (TV remembered), "Connected to your TV" again (D4) | N/A | N/A | |
 | 10 | TV: Back from the Pair panel | Settings shows "Pair phone: <name>" (or paired); Back → Home | [x] | [ ] | |
 
 ## 3. Player: S1 open rows and LING-003 M2 (keys while playing)
@@ -137,4 +137,6 @@ Console → app → Public Key is added and the app is rebuilt (`EXPO_TV=1 npx e
 
 ## Notes (row → what happened, time)
 
-- All rows passed on the Fire TV Stick, reported by Moiz 2026-10-19; run between 2026-10-15 and 2026-10-18. This includes the LING-003 M2 seek-guard rows 16–17, the deep-link launch (row 47), Save → phone (row 25) and the App Tester purchase rows 30–34. The Pass boxes above are ticked from that report; no per-row times or log excerpts were written into this file.
+- All rows passed on the Fire TV Stick, reported by Moiz 2026-10-19; run between 2026-10-15 and 2026-10-18, except rows 2, 3 and 9, which are N/A.
+- Rows 2–3 (and row 9, their Expo Go reconnect): N/A. The phone ran the app only as a web page, joined through the TV's pair QR (rows 4a, 4b and 8, web route); no Expo Go APK was sideloaded (reported by Moiz 2026-10-19).
+- Rest of the run: this includes the LING-003 M2 seek-guard rows 16–17, the deep-link launch (row 47), Save → phone (row 25) and the App Tester purchase rows 30–34. The Pass boxes above are ticked from that report; no per-row times or log excerpts were written into this file.

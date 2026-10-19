@@ -50,7 +50,8 @@ and that a retried review applied SM-2 twice.
   per-phone token from the socket `join`, a shared limiter store before a second API instance, and `trust proxy` behind a load balancer
   are open (TASKS.md, LING-006 follow-up). The API must not be exposed to the internet as it is; today it runs on the LAN only.
 - One review tap is one SM-2 step, even on a flaky network.
-- UTC days are simple and testable; a per-learner time zone is a follow-up. The TV's Words "Due today" filter still uses local time
-  (decision 0010, Consequences).
+- UTC days are simple and testable; a per-learner time zone is a follow-up. As of PR #14 (`fix/pre-submission-polish`), the TV's Words
+  "Due today" filter also uses UTC days (`isDueToday` in `packages/shared-ui/src/app/selectors.ts`), so the TV, the API and the phone agree
+  on what is due today (decision 0010, Consequences).
 - Open review lows (quiz-event roles, stale room membership, Backspace in the code boxes, ATS keys, streak edge cases, fetch timeout,
   deep-link forgetting the TV, mid-deck repeats, EAS pinning) are listed in TASKS.md.
