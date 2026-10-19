@@ -56,6 +56,36 @@ describe('phone api', () => {
     const f = vi.fn(async () => { throw new TypeError('Network request failed') }) as unknown as typeof fetch
     await expect(make(f).me()).rejects.toMatchObject({ status: 0, code: 'NETWORK' })
   })
+  it('L6: a hung request is aborted after the timeout and becomes ApiError TIMEOUT', async () => {
+    vi.useFakeTimers()
+    try {
+      let signal: AbortSignal | undefined
+      const f = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_res, rej) => {
+        signal = init.signal ?? undefined
+        signal?.addEventListener('abort', () => rej(Object.assign(new Error('Aborted'), { name: 'AbortError' })))
+      })) as unknown as typeof fetch
+      const p = createApi(() => 'http://lan:4000', () => ({ deviceId: 'p', tvCode: null }), f, 10_000).review('s1', 'good').catch((x: unknown) => x)
+      await vi.advanceTimersByTimeAsync(9_999)
+      expect(signal?.aborted).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(signal?.aborted).toBe(true)
+      const e = await p
+      expect(e).toBeInstanceOf(ApiError)
+      expect(e).toMatchObject({ status: 0, code: 'TIMEOUT' })
+    } finally { vi.useRealTimers() }
+  })
+  it('L6: the default timeout is 10 s and a body that never arrives also times out', async () => {
+    vi.useFakeTimers()
+    try {
+      const f = vi.fn(async (_url: string, init: RequestInit) => ({
+        status: 200, ok: true,
+        json: () => new Promise((_res, rej) => init.signal?.addEventListener('abort', () => rej(Object.assign(new Error('Aborted'), { name: 'AbortError' })))),
+      }) as unknown as Response) as unknown as typeof fetch
+      const p = make(f).me().catch((x: unknown) => x)
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(await p).toMatchObject({ status: 0, code: 'TIMEOUT' })
+    } finally { vi.useRealTimers() }
+  })
   it('a response that fails the schema throws', async () => {
     const a = fake(200, ok([{ savedWordId: 's1' }]))
     const e = await make(a.f).dueWords().catch((x: unknown) => x)
