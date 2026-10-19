@@ -39,7 +39,9 @@ export function meRouter(deps: { rvs: RvsClient; now?: () => Date }): Router {
         if ((await savesSince(l.id, new Date())) >= FREE_SAVES_PER_DAY) return ok(res, { limit: true, saved: null })
       }
       const saved = await db.savedWord.upsert({ where: { learnerId_highlightId: { learnerId: l.id, highlightId } }, create: { learnerId: l.id, highlightId }, update: {}, include: { highlight: { include: { cue: { include: { clip: true } } } } } })
-      if (sessionCode) {
+      // Emit only to the learner's own session: any other code (another learner's, or none) saves without an emit (LING-005 L4).
+      const ownSession = sessionCode ? await db.session.findFirst({ where: { code: sessionCode, learnerId: l.id }, select: { code: true } }) : null
+      if (sessionCode && ownSession) {
         // The only place word:saved originates: the save is real once the row exists and the limit is checked (docs/decisions/0005-realtime-session.md).
         // The row is already written, so the emit must never decide the HTTP result: a bad payload is logged, not thrown.
         const h = saved.highlight
