@@ -12,14 +12,14 @@
 - [ ] LING-005 · week 3 · Home, Clip, Summary, Quiz(TV), Words, Settings, First run (placement) — code done 2026-10-02 (plan docs/plans/LING-005.md; decisions 0010, 0014; review docs/reviews/2026-10-02-ling-005.md, H1 and M1–M4 fixed); waiting on the device checklist (plan §10, including step 15: two devices show different pairing codes)
   - follow-up from LING-001 (docs/decisions/0007 M5): GET /clips/:slug returns only highlights with rank ≥ BANDS[NEXT[learner.level]][0] and builds wordsYoullMeet from that set; move BANDS/NEXT to @lingo/contracts; derive or drop Learner.knownRank — done in fdb6928 (decision 0010 §6).
   - [x] follow-up: the Content Launcher / deep-link resume position is dropped. `useLaunchIntents` passes `positionS`, but Root's `onOpen` (packages/shared-ui/src/app/Root.tsx:116) ignores it (review L6). Put it on the player route (clamped to the clip, review-007 L8) or say in a comment that server progress wins. — fixed c6b6138
-  - [ ] follow-up: the TV Words "Due today" filter uses the device's local end of day (packages/shared-ui/src/app/selectors.ts:42), while the API and the phone use UTC days (decision 0011 §5). Align them.
+  - [x] follow-up: the TV Words "Due today" filter uses the device's local end of day (packages/shared-ui/src/app/selectors.ts:42), while the API and the phone use UTC days (decision 0011 §5). Align them. — fixed in fix/pre-submission-polish (UTC days; selectors.ts isDueToday / dueLabel)
   - [x] follow-up (docs/plans/LING-008.md §14, open question 6): import processed clips into Postgres: Clip row from `content/clips.json` + `work/<slug>/clip.json`, poster key `published/<slug>/poster.jpg` — done 65db7bb (`pnpm clips:import [--dry-run] [--status]`); re-run after the batch publishes so rows become `published`. Poster key still awaits human confirmation (open question 6).
   - [ ] review lows left open (docs/reviews/2026-10-02-ling-005.md):
     - [ ] L2: the level-rule window mixes the DB clock (`QuizAttempt.at`) and the API clock (`levelChangedAt`).
     - [ ] L3: the code's expiry and rotation remain (scope, uniform 404 and rate limit done in 9b98e2c); tracked under LING-006 M1.
-    - [ ] L4: `POST /me/words` emits `word:saved` to any room named in `sessionCode`, without checking it belongs to the learner.
-    - [ ] L9: collapsed rail letters are ambiguous (Watch and Words are both "W").
-    - [ ] L10: "on our side" error for a client cache miss; "Add to Continue" on a completed clip clears it; focus ring has no 3 px offset.
+    - [x] L4: `POST /me/words` emits `word:saved` to any room named in `sessionCode`, without checking it belongs to the learner. — fixed in fix/pre-submission-polish
+    - [x] L9: collapsed rail letters are ambiguous (Watch and Words are both "W"). — fixed in fix/pre-submission-polish (strings.rail.short)
+    - [ ] L10: "on our side" error for a client cache miss; "Add to Continue" on a completed clip clears it; focus ring has no 3 px offset. — (a) and (b) fixed in fix/pre-submission-polish (ClipGone; Add to Continue hidden on a completed clip); the focus-ring offset is still open.
 - [ ] LING-006 · week 3 · Phone app: Join (QR/code), Live, Quiz (SM-2 server-side), Progress; EAS build — code done 2026-10-02 (plan docs/plans/LING-006.md; decision 0011, pending human confirmation on the Apple Developer membership and LAN cleartext vs HTTPS; review docs/reviews/2026-10-02-ling-006.md, M2–M6 fixed, M1 partly: scope, uniform 404 and rate limit done, code rotation still open below); waiting on the manual device steps (plan §Manual device steps) and the EAS builds
   - follow-up from LING-004: resolve `learner()` from an `x-session-code` header so the phone's `GET /me/words?due=today` sees the TV's saved words (phone uses its own x-device-id today) — done in c331490, scoped to four routes in 9b98e2c (decision 0011).
   - [ ] follow-up from the LING-006 review (M1): the session code is still a long-lived bearer credential for the phone's read and review routes. Rotate the code when the TV selects "Pair a new phone" (and on "Use another TV"), or have the socket `join` issue a per-phone token that `/me/*` accepts instead of the code. The per-IP miss limiter is in-memory (one API process); move it to a shared store before running more than one instance, and set `trust proxy` behind a load balancer so `req.ip` is the client.
@@ -28,15 +28,15 @@
     - [ ] L1: quiz events do not check the sender's role (a phone can emit `quiz:start`, a TV `quiz:result`).
     - [ ] L2: `join` never leaves a previous room (affects a TV that re-joins with another code).
     - [ ] L3: Backspace on a filled code box may re-insert the character (check in device step D2).
-    - [ ] L4: `NSAllowsArbitraryLoads` is ignored next to `NSAllowsLocalNetworking`; keep one key deliberately.
+    - [x] L4: `NSAllowsArbitraryLoads` is ignored next to `NSAllowsLocalNetworking`; keep one key deliberately. — fixed in fix/pre-submission-polish (NSAllowsLocalNetworking only)
     - [ ] L5: re-saving a saved word counts as a study day; `LearnerDto.streak` is stale after a missed day (read `/me/stats`).
-    - [ ] L6: the phone's fetch has no timeout, so a hung request leaves the grade buttons disabled.
+    - [x] L6: the phone's fetch has no timeout, so a hung request leaves the grade buttons disabled. — fixed in fix/pre-submission-polish (10 s AbortController timeout)
     - [ ] L7: an unknown code from a deep link or QR forgets the remembered TV.
     - [ ] L8: leaving Review mid-deck drops same-session repeats.
-    - [ ] L9: EAS scripts use `eas-cli@latest`; pin a major. Record the workspace install on the EAS builder in a friction log.
+    - [ ] L9: EAS scripts use `eas-cli@latest`; pin a major. Record the workspace install on the EAS builder in a friction log. — pin done in fix/pre-submission-polish (eas-cli@25); the friction log is still open.
 - [ ] LING-007 · week 3 · IAP sandbox on both OSes; Content Launcher; Personalization; Media Controls — code done 2026-10-02 (plan docs/plans/LING-007.md; decision 0012, pending human confirmation on the console SKUs, cancel URL and PEM; review docs/reviews/2026-10-02-ling-007.md, H1 and M1–M5 fixed); waiting on the App Tester / RVS sandbox runs on the stick and the VVD (plan §Manual checklists A and B)
   - [ ] follow-up: kit escalations E1–E4 (plan §Escalations; human decision, kit ↔ app interface): E1 public `contentLauncher.dispatchIntent` (Vega bindings are no-ops, KIT-007); E2 `onLaunchIntent` must be able to answer SUCCESS or failure; E3 `reportPlayback` needs a playback state, namespace and profile; E4 the kit's Vega adapter must register Vega Media Controls itself, and `TransportControl` needs absolute seek. Code markers: `TODO(KIT-E1..E4)` in packages/shared-ui/src/platform.
-  - [ ] follow-up: renumber the "decision 0009" comments for Lingo Plus to 0012 (apps/api/src/lib/entitlement.ts, apps/api/src/routes/iap.ts, apps/api/prisma/schema.prisma:113, packages/contracts/src/iap.ts, packages/shared-ui/src/plus/flow.ts; apps/api/src/lib/env.ts done in the PR #2 review fixes); 0009 is the gloss-quality record.
+  - [x] follow-up: renumber the "decision 0009" comments for Lingo Plus to 0012 (apps/api/src/lib/entitlement.ts, apps/api/src/routes/iap.ts, apps/api/prisma/schema.prisma:113, packages/contracts/src/iap.ts, packages/shared-ui/src/plus/flow.ts; apps/api/src/lib/env.ts done in the PR #2 review fixes); 0009 is the gloss-quality record. — fixed in fix/pre-submission-polish
   - [ ] review lows left open (docs/reviews/2026-10-02-ling-007.md):
     - [ ] L1: `.` and `..` survive `encodeURIComponent` in RVS path segments.
     - [ ] L2: the Vega Content Launcher answers SUCCESS for unknown slugs (`knownSlugs` is `() => null` in apps/vega/src/App.tsx).
@@ -70,10 +70,10 @@
     - [ ] B-L4: Back on the offline screen pops a hidden stack; Retry then resets it, dropping a launch intent's Player.
     - [ ] B-L5: a launch intent over a running Player drops the old clip's position and saved words.
     - [ ] B-L6: `check:vega` compares names only, so the Vega declaration of `RootProps` and the mappers can drift in shape.
-    - [ ] B-L7: several focusables are labelled "Back", "Done", "Continue" or "Try again" rather than their purpose.
+    - [x] B-L7: several focusables are labelled "Back", "Done", "Continue" or "Try again" rather than their purpose. — fixed in fix/pre-submission-polish
     - [ ] B-L8: an `invalid` verify after a purchase shows the "pending" promise, which nothing keeps.
-    - [ ] B-L9: Plus "busy": the comment says focus parks on a view that cannot take focus.
-    - [ ] B-L10: `lint:words` does not cover `apps/vega/src` and `apps/expo`.
+    - [x] B-L9: Plus "busy": the comment says focus parks on a view that cannot take focus. — fixed in fix/pre-submission-polish (comment corrected)
+    - [x] B-L10: `lint:words` does not cover `apps/vega/src` and `apps/expo`. — fixed in fix/pre-submission-polish
     - [ ] C-L2: `segment.confirmed: false` stops only the cut; a later run without the flag uploads, transcribes and can publish it.
     - [ ] C-L3: the cut writes straight to `_cuts/<slug>.mp4` with no `.part` file; a Ctrl-C can leave a partial cut that is skipped and uploaded.
     - [ ] C-L4: the poster and its upload are not keyed on `posterAtS` and the segment.
@@ -81,5 +81,5 @@
     - [ ] C-L6: `--work` and `--report` resolve against `packages/pipeline`, the manifest path against `INIT_CWD`.
     - [ ] C-L7: the number-word rule treats the verb *achten* as an ordinal, so it is never highlighted.
     - [ ] C-L8: the phone's retry after a lost answer reuses the `reviewId` even when the learner taps a different grade.
-    - [ ] C-L10: CI does not typecheck `apps/vega` (`npm ci && npx tsc --noEmit` there, or a recorded manual step).
-    - [ ] C-L11: `.env.example` still exports `POLLY_VOICE_*`, `S3_BUCKET_NOVA_INGEST` and `NOVA_PRO_MODEL_ID`, which docs/aws.md calls "declared, not used".
+    - [x] C-L10: CI does not typecheck `apps/vega` (`npm ci && npx tsc --noEmit` there, or a recorded manual step). — fixed in fix/pre-submission-polish
+    - [x] C-L11: `.env.example` still exports `POLLY_VOICE_*`, `S3_BUCKET_NOVA_INGEST` and `NOVA_PRO_MODEL_ID`, which docs/aws.md calls "declared, not used". — fixed in fix/pre-submission-polish (LINGO_AI_MODEL added)
