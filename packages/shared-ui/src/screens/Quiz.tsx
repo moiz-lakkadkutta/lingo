@@ -46,7 +46,7 @@ export function Quiz({ clip, onFinish, onNext, onAgain, onDone }: QuizProps) {
   // Clear the auto-advance on item change and on unmount.
   useEffect(() => () => { if (timer.current) { clearTimeout(timer.current); timer.current = null } }, [s.i])
 
-  if (!items.length) return <Screen><StateMessage title={strings.quiz.empty} actions={[{ label: strings.common.back, text: strings.common.back, onPress: onDone }]} /></Screen>
+  if (!items.length) return <Screen><StateMessage title={strings.quiz.empty} actions={[{ label: strings.quiz.backLabel, text: strings.common.back, onPress: onDone }]} /></Screen>
 
   if (s.phase === 'done') {
     const r = result ?? { correct: s.correct, total: items.length, level: null }
@@ -58,7 +58,7 @@ export function Quiz({ clip, onFinish, onNext, onAgain, onDone }: QuizProps) {
           <View style={{ flexDirection: 'row', gap: px(16), marginTop: px(16) }}>
             <Button primary preferred label={strings.quiz.next} text={strings.quiz.next} onPress={onNext} />
             <Button label={strings.quiz.again} text={strings.quiz.again} onPress={onAgain} />
-            <Button label={strings.quiz.finish} text={strings.quiz.finish} onPress={onDone} />
+            <Button label={strings.quiz.finishLabel} text={strings.quiz.finish} onPress={onDone} />
           </View>
         </View>
       </Screen>
@@ -99,7 +99,7 @@ export function Quiz({ clip, onFinish, onNext, onAgain, onDone }: QuizProps) {
         </View>
         <View style={{ flexDirection: 'row', gap: px(16) }}>
           {replayable ? <Button label={strings.quiz.replayLine} text={strings.quiz.replayLine} onPress={() => dispatch({ type: 'replay' })} /> : null}
-          {s.phase === 'revealed' ? <Button key={`continue-${item.id}`} primary preferred label={strings.quiz.continue} text={strings.quiz.continue} onPress={() => dispatch({ type: 'continue' })} /> : null}
+          {s.phase === 'revealed' ? <Button key={`continue-${item.id}`} primary preferred label={strings.quiz.continueLabel(s.i === items.length - 1)} text={strings.quiz.continue} onPress={() => dispatch({ type: 'continue' })} /> : null}
         </View>
       </View>
       {replayable && s.replaying ? (

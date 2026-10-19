@@ -87,7 +87,9 @@ describe('Words', () => {
     await press(byLabel(l, strings.words.findClip))
     expect(onFindClip).toHaveBeenCalled()
     expect(pressables(render(<Words {...props({ words: { state: 'loading' } })} />))).toHaveLength(0)
-    expect(texts(render(<Words {...props({ words: { state: 'error', error: 'offline' } })} />))).toContain(strings.offline)
+    const off = render(<Words {...props({ words: { state: 'error', error: 'offline' } })} />)
+    expect(texts(off)).toContain(strings.offline)
+    expect(labels(off)).toContain(strings.words.retryLabel)
   })
   it('Back closes the mini player before leaving', async () => {
     const r = render(<Words {...props()} />)

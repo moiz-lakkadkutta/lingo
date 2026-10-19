@@ -132,7 +132,7 @@ export function Root({ apiBaseUrl, scale, deviceId, transport, remote = noRemote
   }, [memory])
 
   if (boot === 'offline') {
-    return <Screen><StateMessage title={strings.offline} announceOnMount actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: () => setBootTick((t) => t + 1) }]} /></Screen>
+    return <Screen><StateMessage title={strings.offline} announceOnMount actions={[{ label: strings.common.reconnectLabel, text: strings.common.retry, onPress: () => setBootTick((t) => t + 1) }]} /></Screen>
   }
   // Visible on purpose (QA #3): a centred label on ground, so start-up never looks like a blank screen.
   if (boot === 'loading') {
@@ -227,9 +227,9 @@ function PlayerRoute({ ctx, slug, challenge, launchS }: { ctx: Ctx; slug: string
   const savedIds = useMemo(() => new Set(ctx.saved.map((h) => h.id)), [ctx.saved])
   const data = res.data
   if (!data || data.status !== 'ready') {
-    const back = { label: strings.common.back, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }
+    const back = { label: strings.common.backLabel, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }
     if (data?.status === 'preparing') return <Screen><StateMessage title={strings.clip.preparing(data.etaMin)} body={strings.clip.preparingBody} actions={[back]} /></Screen>
-    if (res.state === 'error') return <Screen><StateMessage title={res.error === 'notFound' ? strings.clip.notFound : res.error === 'offline' ? strings.offline : strings.common.error} actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: res.reload }, back]} /></Screen>
+    if (res.state === 'error') return <Screen><StateMessage title={res.error === 'notFound' ? strings.clip.notFound : res.error === 'offline' ? strings.offline : strings.common.error} actions={[{ label: strings.clip.retryLabel, text: strings.common.retry, onPress: res.reload }, back]} /></Screen>
     return <Screen><T accessibilityLiveRegion="polite">{strings.common.loading}</T></Screen>
   }
   const clip = data
@@ -283,7 +283,7 @@ const goNext = (ctx: Ctx, slug: string) => {
 function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, session } = ctx
   const clip = ctx.clips.peek(slug)
-  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.back, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
+  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.backLabel, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
   const pq = session.phoneQuiz
   return (
     <Summary
@@ -300,7 +300,7 @@ function SummaryRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
 function QuizRoute({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { nav, ep } = ctx
   const clip = ctx.clips.peek(slug)
-  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.back, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
+  if (!clip) return <Screen><StateMessage title={strings.common.error} actions={[{ label: strings.common.backLabel, text: strings.common.back, onPress: () => nav({ type: 'pop' }) }]} /></Screen>
   const onFinish = async (r: Score): Promise<LevelResult | null> => {
     ctx.setTvQuiz((m) => ({ ...m, [slug]: r }))
     try {

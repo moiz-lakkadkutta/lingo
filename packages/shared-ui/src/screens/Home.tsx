@@ -74,7 +74,7 @@ export function Home({ catalog, learner, onReload, onWatch, onOpen, onRail, onSe
     const offline = catalog.error === 'offline'
     return (
       <Screen rail={<RailSlot />}>
-        <StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: onReload }]} />
+        <StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.home.retryLabel, text: strings.common.retry, onPress: onReload }]} />
       </Screen>
     )
   }

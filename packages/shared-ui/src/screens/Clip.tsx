@@ -35,12 +35,12 @@ export function Clip({ clip, learner, inContinue, onReload, onWatch, onPlus, onA
   const [added, setAdded] = useState<'no' | 'yes' | 'error'>('no')
   const pref = useRef<string | null | undefined>(undefined)
 
-  const back = { label: strings.common.back, text: strings.common.back, onPress: onBack }
+  const back = { label: strings.common.backLabel, text: strings.common.back, onPress: onBack }
   if (!data) {
     if (clip.state === 'error') {
       if (clip.error === 'notFound') return <Screen><StateMessage title={strings.clip.notFound} actions={[back]} /></Screen>
       const offline = clip.error === 'offline'
-      return <Screen><StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.common.retry, text: strings.common.retry, onPress: onReload }, back]} /></Screen>
+      return <Screen><StateMessage title={offline ? strings.offline : strings.common.error} announceOnMount={offline} actions={[{ label: strings.clip.retryLabel, text: strings.common.retry, onPress: onReload }, back]} /></Screen>
     }
     return (
       <Screen>
