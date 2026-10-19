@@ -8,7 +8,7 @@ export type Api = <T>(path: string, init?: RequestInit) => Promise<T>
 
 const UNAVAILABLE: VerifyResult = { plus: false, outcome: 'unavailable', fulfil: false }
 
-/** Verify, then fulfil (decision 0009 §4): the store is told FULFILLED only after the server answers fulfil: true. */
+/** Verify, then fulfil (decision 0012 §4): the store is told FULFILLED only after the server answers fulfil: true. */
 async function verifyThenFulfil(store: PlusStore, api: Api, r: StoreReceipt): Promise<VerifyResult> {
   if (store.kind === 'none') return UNAVAILABLE
   const sku = isPlusReceipt({ sku: r.sku }) ? r.sku : r.termSku ?? r.sku

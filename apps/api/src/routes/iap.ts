@@ -9,7 +9,7 @@ import { logger } from '../lib/logger'
 import type { RvsClient } from '../lib/rvs'
 
 /**
- * Lingo Plus over Amazon IAP (LING-007, decision 0009). The learner is x-device-id only (lib/learner.ts): a session code never buys or reads Plus.
+ * Lingo Plus over Amazon IAP (LING-007, decision 0012). The learner is x-device-id only (lib/learner.ts): a session code never buys or reads Plus.
  * The client sends the receipt here and fulfils only when `fulfil` is true,
  * so an unverified receipt comes back on the next getPurchaseUpdates.
  * https://developer.amazon.com/docs/in-app-purchasing/iap-implement-iap.html · https://developer.amazon.com/docs/in-app-purchasing/rvs-cloud-sandbox.html
