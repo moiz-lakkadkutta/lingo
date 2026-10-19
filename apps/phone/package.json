@@ -6,9 +6,9 @@
     "start": "expo start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:android": "npx eas-cli@latest build -p android --profile preview",
-    "build:ios": "npx eas-cli@latest build -p ios --profile preview",
-    "build:ios-sim": "npx eas-cli@latest build -p ios --profile preview-simulator",
+    "build:android": "npx eas-cli@25 build -p android --profile preview",
+    "build:ios": "npx eas-cli@25 build -p ios --profile preview",
+    "build:ios-sim": "npx eas-cli@25 build -p ios --profile preview-simulator",
     "eas-build-pre-install": "bash scripts/eas-pre-install.sh"
   },
   "dependencies": {

@@ -7,7 +7,7 @@ import { logger } from './logger'
 import type { RvsClient, RvsReceipt } from './rvs'
 
 /**
- * Lingo Plus is one entitlement, computed on the server (decision 0009): demo → everyone; off → nobody;
+ * Lingo Plus is one entitlement, computed on the server (decision 0012): demo → everyone; off → nobody;
  * iap → the learner has an active Purchase. Learner.plus is only a cache of the last answer.
  * A row is active while its cancelDate is null or still ahead AND (renewalDate is null or renewalDate + RENEWAL_GRACE_MS is ahead):
  * a subscription that RVS never confirms again lapses one billing period (plus grace) after the last answer, even if no client asks.

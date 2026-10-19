@@ -2,17 +2,13 @@ import React from 'react'
 import { AccessibilityInfo } from 'react-native'
 import { Button, Card, Rail, SkeletonBlock, SkeletonCard, SkeletonRow, StateMessage } from '../src/components'
 import { shouldStop } from '../src/components/MiniPlayer'
+import { RAIL_ITEMS } from '../src/screens/Home'
 import { strings } from '../src/strings'
 import { tokens } from '../src/theme/tokens'
 import { blur, box, flat, focus, is, labels, preferred, pressables, render, texts } from './helpers'
 
-const railItems = [
-  { key: 'home' as const, label: strings.rail.watchLabel, text: strings.rail.watch },
-  { key: 'review' as const, label: strings.rail.reviewLabel, text: strings.rail.review },
-  { key: 'words' as const, label: strings.rail.wordsLabel, text: strings.rail.words },
-  { key: 'plus' as const, label: strings.rail.plusLabel, text: strings.rail.plus },
-  { key: 'settings' as const, label: strings.rail.settingsLabel, text: strings.rail.settings },
-]
+/** the rail Home actually renders */
+const railItems = RAIL_ITEMS
 
 describe('components', () => {
   it('Card puts the level chip on surface2 with text colour, never the marker', () => {
@@ -67,15 +63,17 @@ describe('components', () => {
     expect(box(items[0]!)).toMatchObject({ borderColor: tokens.color.interactive, borderWidth: 3 })
     expect(r.root.findAll((n) => is(n, 'View') && n.props.testID === 'rail-current-bar')).toHaveLength(1)
     expect(flat(r.root.find((n) => n.props.testID === 'rail-current-bar').props.style)).toMatchObject({ width: 4, backgroundColor: tokens.color.interactive })
-    // collapsed: first letter; focused: full labels in a 336 px overlay, the slot stays 96 px
-    expect(texts(r)).toEqual(['W', 'R', 'W', 'P', 'S'])
+    // collapsed: a distinct short form per item (Watch and Words were both "W"); focused: full labels in a 336 px overlay, the slot stays 96 px
+    const collapsed = texts(r)
+    expect(collapsed).toEqual(railItems.map((i) => i.short))
+    expect(new Set(collapsed).size).toBe(railItems.length)
     focus(items[1]!)
     expect(texts(r)).toEqual(railItems.map((i) => i.text))
     const overlay = r.root.find((n) => n.props.testID === 'rail-panel')
     expect(flat(overlay.props.style)).toMatchObject({ position: 'absolute', width: tokens.layout.railExpanded, backgroundColor: tokens.color.surface1 })
     expect(flat(r.root.find((n) => n.props.testID === 'rail').props.style).width).toBe(tokens.layout.rail)
     blur(items[1]!)
-    expect(texts(r)).toEqual(['W', 'R', 'W', 'P', 'S'])
+    expect(texts(r)).toEqual(collapsed)
   })
   it('Button primary uses the interactive fill with ground text', () => {
     const r = render(<Button label="Watch Der Zug" text="Watch" primary onPress={() => {}} />)

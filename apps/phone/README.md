@@ -14,7 +14,7 @@ The server address can also be changed in the app (Join screen footer) without a
 
 **Tests:** `pnpm --filter @lingo/phone test` (logic and react-test-renderer screens in Node) and `pnpm --filter @lingo/phone typecheck`.
 
-**Builds (EAS, internal distribution):** after `npx eas-cli@latest login && npx eas-cli@latest init` in this folder,
+**Builds (EAS, internal distribution):** after `npx eas-cli@25 login && npx eas-cli@25 init` in this folder,
 
 - Android APK (primary): `pnpm --filter @lingo/phone build:android`
 - iOS device (needs a paid Apple Developer account): `pnpm --filter @lingo/phone build:ios`

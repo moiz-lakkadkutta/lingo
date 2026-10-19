@@ -1,6 +1,6 @@
 import { z } from 'zod'
 /**
- * Lingo Plus (LING-007, decision 0009). Amazon subscriptions are a non-buyable parent SKU plus buyable term SKUs; the receipt
+ * Lingo Plus (LING-007, decision 0012). Amazon subscriptions are a non-buyable parent SKU plus buyable term SKUs; the receipt
  * carries both (sku = parent, termSku = term): https://developer.amazon.com/docs/in-app-purchasing/iap-create-and-submit-iap-items.html
  */
 export const PLUS_PARENT_SKU = 'lingo.plus' as const

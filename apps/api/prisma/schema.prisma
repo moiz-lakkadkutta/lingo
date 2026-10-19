@@ -110,7 +110,7 @@ model Learner {
   sessions Session[]
   purchases Purchase[]
 }
-/// Amazon IAP receipt verified with RVS (LING-007, decision 0009). One receipt maps to one learner: the newest poster wins.
+/// Amazon IAP receipt verified with RVS (LING-007, decision 0012). One receipt maps to one learner: the newest poster wins.
 model Purchase {
   id              String    @id @default(cuid())
   learnerId       String

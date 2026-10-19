@@ -9,7 +9,6 @@ const word = (id: string, due: Date, intervalD = 0): LibraryWord => ({
   savedWordId: id, word: id, lemma: id, gloss: 'g', due: due.toISOString(), intervalD, reps: 1, learned: intervalD >= 21,
   clip: { slug: 'c', title: 'C', manifestUrl: 'http://x/m.m3u8' }, cue: { index: 0, startS: 1, endS: 2, text: 't', native: 'n' },
 })
-const now = new Date(2026, 9, 1, 10, 0, 0) // local 1 Oct 10:00
 
 describe('selectors', () => {
   it('pickHero prefers an unstarted just-right clip, then any unfinished one, then harder, then fresh', () => {
@@ -67,22 +66,39 @@ describe('selectors', () => {
     expect(startPosition(undefined, 30, 120)).toBe(30) // no launch position: server progress (Continue)
     expect(startPosition(undefined, null, 120)).toBe(0)
   })
-  it('isDueToday counts overdue and later-today as due and tomorrow as not', () => {
-    expect(isDueToday(new Date(2026, 8, 20).toISOString(), now)).toBe(true)
-    expect(isDueToday(new Date(2026, 9, 1, 23, 59).toISOString(), now)).toBe(true)
-    expect(isDueToday(new Date(2026, 9, 2, 0, 1).toISOString(), now)).toBe(false)
+  // Days are UTC calendar days, like GET /me/words?due=today and the phone (decision 0011 §5).
+  const utc = (d: number, h = 0, m = 0) => new Date(Date.UTC(2026, 9, d, h, m))
+  const utcNow = utc(1, 10)
+  it('isDueToday counts overdue and later-today (UTC) as due and the next UTC day as not', () => {
+    expect(isDueToday(new Date(Date.UTC(2026, 8, 20)).toISOString(), utcNow)).toBe(true)
+    expect(isDueToday(utc(1, 23, 59).toISOString(), utcNow)).toBe(true)
+    expect(isDueToday(utc(2, 0, 0).toISOString(), utcNow)).toBe(false) // next UTC midnight is tomorrow, as on the API
+    expect(isDueToday(utc(2, 0, 1).toISOString(), utcNow)).toBe(false)
+  })
+  it('isDueToday and dueLabel ignore the device time zone (LING-005 follow-up)', () => {
+    const tz = process.env.TZ
+    try {
+      for (const zone of ['Pacific/Auckland', 'America/Los_Angeles', 'UTC']) {
+        process.env.TZ = zone
+        const late = utc(1, 23, 30) // 23:30 UTC; local Auckland is already 2 Oct, Los Angeles still 1 Oct afternoon
+        expect(isDueToday(utc(1, 23, 50).toISOString(), late)).toBe(true)
+        expect(isDueToday(utc(2, 0, 10).toISOString(), late)).toBe(false)
+        expect(dueLabel(utc(2, 0, 10).toISOString(), late)).toBe(strings.words.dueTomorrow)
+        expect(dueLabel(utc(4, 0, 10).toISOString(), late)).toBe(strings.words.dueIn(3))
+      }
+    } finally { if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz }
   })
   it('dueLabel says today, tomorrow or in N days', () => {
-    expect(dueLabel(new Date(2026, 8, 20).toISOString(), now)).toBe(strings.words.dueToday)
-    expect(dueLabel(new Date(2026, 9, 1, 22).toISOString(), now)).toBe(strings.words.dueToday)
-    expect(dueLabel(new Date(2026, 9, 2, 8).toISOString(), now)).toBe(strings.words.dueTomorrow)
-    expect(dueLabel(new Date(2026, 9, 5, 1).toISOString(), now)).toBe(strings.words.dueIn(4))
+    expect(dueLabel(new Date(Date.UTC(2026, 8, 20)).toISOString(), utcNow)).toBe(strings.words.dueToday)
+    expect(dueLabel(utc(1, 22).toISOString(), utcNow)).toBe(strings.words.dueToday)
+    expect(dueLabel(utc(2, 8).toISOString(), utcNow)).toBe(strings.words.dueTomorrow)
+    expect(dueLabel(utc(5, 1).toISOString(), utcNow)).toBe(strings.words.dueIn(4))
   })
   it('filterWords keeps due order and applies all, due and learned', () => {
-    const ws = [word('a', new Date(2026, 8, 30)), word('b', new Date(2026, 9, 1, 20), 25), word('c', new Date(2026, 9, 3)), word('d', new Date(2026, 9, 9), 30)]
-    expect(filterWords(ws, 'all', now).map((w) => w.lemma)).toEqual(['a', 'b', 'c', 'd'])
-    expect(filterWords(ws, 'due', now).map((w) => w.lemma)).toEqual(['a', 'b'])
-    expect(filterWords(ws, 'learned', now).map((w) => w.lemma)).toEqual(['b', 'd'])
+    const ws = [word('a', new Date(Date.UTC(2026, 8, 30))), word('b', utc(1, 20), 25), word('c', utc(3)), word('d', utc(9), 30)]
+    expect(filterWords(ws, 'all', utcNow).map((w) => w.lemma)).toEqual(['a', 'b', 'c', 'd'])
+    expect(filterWords(ws, 'due', utcNow).map((w) => w.lemma)).toEqual(['a', 'b'])
+    expect(filterWords(ws, 'learned', utcNow).map((w) => w.lemma)).toEqual(['b', 'd'])
   })
   it('speakOptions offers only supported natives and never the learning language (QA #15)', () => {
     expect(speakOptions('de')).toEqual([{ code: 'en', name: 'English' }])

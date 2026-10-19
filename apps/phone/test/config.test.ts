@@ -36,6 +36,8 @@ describe('phone build config', () => {
     expect(expo.ios.bundleIdentifier).toBe('dev.moizp.lingo.phone')
     expect(expo.android.package).toBe('dev.moizp.lingo.phone')
     expect(expo.ios.infoPlist.NSLocalNetworkUsageDescription).toMatch(/Wi-Fi/)
+    // L4: exactly one ATS key. NSAllowsArbitraryLoads is ignored next to NSAllowsLocalNetworking (iOS 10+); the LAN API is all we need.
+    expect(expo.ios.infoPlist.NSAppTransportSecurity).toEqual({ NSAllowsLocalNetworking: true })
     const plugin = (name: string) => expo.plugins.find((p: unknown) => (Array.isArray(p) ? p[0] : p) === name)
     expect(plugin('expo-camera')[1].cameraPermission).toBe('Lingo uses the camera to scan the code on your TV.')
     expect(plugin('expo-build-properties')[1].android.usesCleartextTraffic).toBe(true)
@@ -47,6 +49,10 @@ describe('phone build config', () => {
     expect(pkg.scripts.build).toBeUndefined()
     expect(pkg.scripts['eas-build-pre-install']).toBe('bash scripts/eas-pre-install.sh')
     expect(pkg.scripts['build:android']).toMatch(/-p android --profile preview$/)
+    // L9: EAS scripts pin eas-cli to a major, never @latest.
+    const eas = Object.values(pkg.scripts as Record<string, string>).filter((s) => s.includes('eas-cli'))
+    expect(eas.length).toBeGreaterThan(0)
+    for (const s of eas) expect(s).toMatch(/eas-cli@\d+ /)
     expect(readFileSync(new URL('../scripts/eas-pre-install.sh', import.meta.url), 'utf8')).toMatch(/EAS_BUILD/)
   })
 })

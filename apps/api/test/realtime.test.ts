@@ -240,6 +240,20 @@ describe('word:saved latency', () => {
     expect(l ? await db.savedWord.count({ where: { learnerId: l.id } }) : 0).toBe(0)
     await expect(p).rejects.toThrow(/timeout/)
   })
+  it('LING-005 L4: saves but does not emit to a session that belongs to another learner', async () => {
+    const other = 'test-tv-other-' + rnd()
+    const p = once(phone, 'word:saved', 500)
+    const res = await request(server).post('/me/words').set('x-device-id', other).send({ highlightId: highlightIds[3], sessionCode: code })
+    expect(res.status).toBe(201)
+    expect(res.body.data.saved.highlightId).toBe(highlightIds[3])
+    await expect(p).rejects.toThrow(/timeout/)
+  })
+  it('does not emit to an unknown sessionCode room either', async () => {
+    const p = once(phone, 'word:saved', 300)
+    const res = await request(server).post('/me/words').set('x-device-id', deviceId).send({ highlightId: highlightIds[4], sessionCode: 'ZZZ999' })
+    expect(res.status).toBe(201)
+    await expect(p).rejects.toThrow(/timeout/)
+  })
   it('does not emit without sessionCode', async () => {
     const p = once(phone, 'word:saved', 500)
     const res = await request(server).post('/me/words').set('x-device-id', 'test-tv-nocode-' + rnd()).send({ highlightId: highlightIds[1] })

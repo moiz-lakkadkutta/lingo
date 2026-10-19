@@ -2,7 +2,7 @@ import React from 'react'
 import { act } from 'react-test-renderer'
 import type { ClipResponse } from '@lingo/contracts'
 import type { Resource } from '../src/data/resource'
-import { Clip, type ClipProps } from '../src/screens/Clip'
+import { Clip, ClipGone, type ClipProps } from '../src/screens/Clip'
 import { strings } from '../src/strings'
 import { tokens } from '../src/theme/tokens'
 import { card, clipReady, hl, learner } from './fixtures'
@@ -56,6 +56,23 @@ describe('Clip', () => {
     expect(labels(render(<Clip {...props({ state: 'ready', data: clipReady() }, { inContinue: true })} />))).not.toContain(strings.clip.addContinue)
     expect(texts(render(<Clip {...props({ state: 'ready', data: clipReady({ resumeS: 40 }) })} />))).toContain(strings.home.resume('0:40'))
   })
+  it('L10: a completed clip offers no Add to Continue, so it cannot PUT completed:false over the finish', () => {
+    const onAddToContinue = vi.fn(async () => true)
+    const r = render(<Clip {...props({ state: 'ready', data: clipReady({ completed: true }) }, { onAddToContinue })} />)
+    expect(labels(r)).not.toContain(strings.clip.addContinue)
+    expect(texts(r)).not.toContain(strings.clip.addContinue)
+    expect(onAddToContinue).not.toHaveBeenCalled()
+  })
+  it('L10: a clip missing from the client cache says so and offers Back, not a server error', async () => {
+    const onBack = vi.fn()
+    const r = render(<ClipGone onBack={onBack} />)
+    expect(texts(r)).toContain(strings.clip.gone)
+    expect(texts(r)).not.toContain(strings.common.error)
+    expect(strings.clip.gone).not.toMatch(/our side/)
+    expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.backLabel])
+    await press(byLabel(r, strings.common.backLabel))
+    expect(onBack).toHaveBeenCalled()
+  })
   it('preparing shows the three-minute message with Back focused', () => {
     vi.useFakeTimers()
     try {
@@ -63,7 +80,7 @@ describe('Clip', () => {
       const r = render(<Clip {...props({ state: 'ready', data: { ...card('p'), status: 'preparing', etaMin: 3 } }, { onReload })} />)
       expect(texts(r)).toContain(strings.clip.preparing(3))
       expect(texts(r)).toContain(strings.clip.preparingBody)
-      expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.back])
+      expect(preferred(r).map((p) => p.props['aria-label'])).toEqual([strings.common.backLabel])
       vi.advanceTimersByTime(30_000)
       expect(onReload).toHaveBeenCalledTimes(1)
       act(() => r.unmount())
@@ -74,10 +91,10 @@ describe('Clip', () => {
   it('not found shows the message and Back; server error adds Retry', () => {
     const nf = render(<Clip {...props({ state: 'error', error: 'notFound' })} />)
     expect(texts(nf)).toContain(strings.clip.notFound)
-    expect(labels(nf)).toEqual([strings.common.back])
+    expect(labels(nf)).toEqual([strings.common.backLabel])
     const se = render(<Clip {...props({ state: 'error', error: 'server' })} />)
     expect(texts(se)).toContain(strings.common.error)
-    expect(labels(se)).toEqual([strings.common.retry, strings.common.back])
+    expect(labels(se)).toEqual([strings.clip.retryLabel, strings.common.backLabel])
     expect(texts(render(<Clip {...props({ state: 'error', error: 'offline' })} />))).toContain(strings.offline)
   })
 })

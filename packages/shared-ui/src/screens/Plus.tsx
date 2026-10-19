@@ -103,7 +103,8 @@ export function Plus({ store, api, caps, onBack, onChanged }: PlusProps) {
       body = <>
         {title}
         <T variant="body" accessibilityLiveRegion="polite">{strings.plus.busy[s.step]}</T>
-        {/* Focus parks here: nothing to press while the store or the server is answering. */}
+        {/* Nothing is focusable while the store or the server is answering, so nothing can be pressed twice. This spacer takes no
+            focus; it only keeps the button row's height so the layout does not jump. Back is handled by the screen stack. */}
         <View focusable={false} style={{ height: px(76) }} />
       </>
       break
