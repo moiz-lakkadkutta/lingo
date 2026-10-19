@@ -4,6 +4,8 @@ const KEYS = { lr: '\u2039 \u203A', left: '\u2039', right: '\u203A' } as const
 export const strings = {
   keys: KEYS,
   rail: { watch: 'Watch', review: 'Review', words: 'Words', plus: 'Plus', settings: 'Settings',
+    /** collapsed-rail forms; each must differ (Watch and Words both start with W) */
+    short: { watch: 'Wa', review: 'Re', words: 'Wo', plus: 'Pl', settings: 'Se' },
     label: (name: string) => `${name}. Menu`, reviewLabel: 'Review: words due today', wordsLabel: 'Words: everything you saved', plusLabel: 'Lingo Plus', settingsLabel: 'Settings', watchLabel: 'Watch: home' },
   common: { back: 'Back', retry: 'Try again', error: 'Something didn\u2019t work on our side.', saveError: 'Couldn\u2019t save. Try again.', loading: 'Loading' },
   level: { about: (l: string) => `about ${l}`, label: (l: string) => `Level about ${l}` },

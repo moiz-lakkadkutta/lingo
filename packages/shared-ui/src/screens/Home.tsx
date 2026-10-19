@@ -15,11 +15,11 @@ export interface HomeProps extends FocusMemoryProps {
 }
 
 export const RAIL_ITEMS: RailItem[] = [
-  { key: 'home', label: strings.rail.watchLabel, text: strings.rail.watch },
-  { key: 'review', label: strings.rail.reviewLabel, text: strings.rail.review },
-  { key: 'words', label: strings.rail.wordsLabel, text: strings.rail.words },
-  { key: 'plus', label: strings.rail.plusLabel, text: strings.rail.plus },
-  { key: 'settings', label: strings.rail.settingsLabel, text: strings.rail.settings },
+  { key: 'home', label: strings.rail.watchLabel, text: strings.rail.watch, short: strings.rail.short.watch },
+  { key: 'review', label: strings.rail.reviewLabel, text: strings.rail.review, short: strings.rail.short.review },
+  { key: 'words', label: strings.rail.wordsLabel, text: strings.rail.words, short: strings.rail.short.words },
+  { key: 'plus', label: strings.rail.plusLabel, text: strings.rail.plus, short: strings.rail.short.plus },
+  { key: 'settings', label: strings.rail.settingsLabel, text: strings.rail.settings, short: strings.rail.short.settings },
 ]
 const FALLBACK = 'hero:watch'
 const HERO_POSTER = { w: 768, h: 432 }

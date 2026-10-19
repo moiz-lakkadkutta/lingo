@@ -6,7 +6,8 @@ import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
 
-export interface RailItem { key: 'home' | 'review' | 'words' | 'plus' | 'settings'; /** purpose, e.g. strings.rail.reviewLabel */ label: string; text: string }
+export interface RailItem { key: 'home' | 'review' | 'words' | 'plus' | 'settings'; /** purpose, e.g. strings.rail.reviewLabel */ label: string; text: string
+  /** shown while the rail is collapsed; distinct per item (e.g. strings.rail.short.words) */ short: string }
 export interface RailProps {
   items: RailItem[]; current: RailItem['key']; onSelect(k: RailItem['key']): void
   /** handle of the element ► should land on */ rightTarget?: number
@@ -38,7 +39,7 @@ export function Rail({ items, current, onSelect, rightTarget, itemRefs, initialF
                 onBlur={() => setFocused((f) => (f === it.key ? null : f))}
                 style={{ paddingVertical: px(20), paddingHorizontal: px(20), minWidth: px(tokens.layout.rail - 16) }}
               >
-                <T variant="label" color={cur ? tokens.color.interactive : tokens.color.textSecondary}>{open ? it.text : it.text.slice(0, 1)}</T>
+                <T variant="label" color={cur ? tokens.color.interactive : tokens.color.textSecondary}>{open ? it.text : it.short}</T>
               </Focusable>
             </View>
           )
