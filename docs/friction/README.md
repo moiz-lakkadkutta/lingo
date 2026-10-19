@@ -53,5 +53,7 @@ from LING-005..008, the Amazon docs log extended; 2026-10-14: nine Vega SDK / VV
 docs/spikes/2026-10-14-vega-vvd.md, the S1 Fire OS remote log of 2026-10-05, and three device-run logs on App Tester, react-native-iap
 and Expo Go; an earlier Expo Go log was folded into the Advanced Protection one and removed).
 Waiting on a trigger, not written yet (docs/plans/LING-008.md §6.2): N3 Fire OS `useExoplayerHls` (unless Described filed it),
-N5 Vega build path needs the full SDK (results of §3.5 are in apps/vega/README.md), N7 Nova Lite glosses (after Gate C scoring),
+N7 Nova Lite glosses (after Gate C scoring),
 N8 Fire OS long press / `enableKeyDownEvents` (after spike S1).
+N5 (Vega build path needs the full SDK) is not a separate log: the VVD spike (docs/spikes/2026-10-14-vega-vvd.md §2) answered it, and the
+request is folded into the "Vega manifest" row of docs/feature-requests.md (2026-10-19).

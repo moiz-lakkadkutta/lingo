@@ -76,9 +76,9 @@ input / output tokens, us-east-1 (US East, N. Virginia), accessed 2026-10-15:
 | Nova Lite v1 (`us.amazon.nova-lite-v1:0`) | $0.06 / $0.24 | matches |
 | Nova Micro v1 | $0.035 / $0.14 | matches |
 | Nova Premier | $2.50 / $12.50 | matches |
-| Nova 2 Lite | $0.33 / $2.75 (standard usage type `USE1-Nova2.0Lite-input-tokens`); $0.30 / $2.50 for the separate `cross-region-global` usage type | lists $0.30 / $2.50, the global cross-Region rate. If a `us.amazon.nova-2-lite-v1:0` run bills at the standard rate, the ledger under-prices it by about 10 % (code change, not made here) |
+| Nova 2 Lite | $0.33 / $2.75 (standard usage type `USE1-Nova2.0Lite-input-tokens`); $0.30 / $2.50 for the separate `cross-region-global` usage type | matches since 505fb1c: `MODEL_PRICES` carries $0.33 / $2.75 for the `us.` profile and `GLOBAL_PRICES` $0.30 / $2.50 for `global.` |
 
-`MODEL_PRICES` still carries `verified: false`; flipping it is a code change, left for an implementer.
+`MODEL_PRICES` now carries `verified: true` for every model, with the prices above (`packages/pipeline/src/ai/cost.ts`, checked 2026-10-15; re-read 2026-10-19).
 
 Others, accessed 2026-10-15:
 - Amazon Polly (not used by Lingo), us-east-1: Standard $4, Neural $16, Generative $30, Long-Form $100 per 1M characters —
@@ -104,8 +104,7 @@ Others, accessed 2026-10-15:
 ## Tooling
 
 Infra as code: `infra/` (AWS CDK, TypeScript, two stacks). The pipeline is a plain commander CLI (`pnpm pipeline prepare` / `batch`),
-no agent framework. Development tools: the repo records Claude Code (commit trailers); whether Kiro Crew and the Amazon Devices
-Builder Tools MCP were used: **TBD by human**. <!-- HUMAN: confirm whether Kiro Crew and the Devices Builder Tools MCP were used; if not, delete this clause (and see docs/submission.md §17). -->
+no agent framework. Development tools: the repo records Claude Code (commit trailers).
 
 ## Sources
 - Word-frequency lists: derived from hermitdave/FrequencyWords (OpenSubtitles 2018), content licensed CC BY-SA 4.0 — https://github.com/hermitdave/FrequencyWords · https://creativecommons.org/licenses/by-sa/4.0/ . Our derived lists (packages/pipeline/data/freq-*.txt) are lemmatized and truncated; they are redistributed under the same licence with this attribution (share-alike).
@@ -114,7 +113,7 @@ Builder Tools MCP were used: **TBD by human**. <!-- HUMAN: confirm whether Kiro 
 - Clip video/audio: per-clip licence and attribution recorded in Clip.license / Clip.attribution.
 
 ## Bedrock / Nova Lite (LING-002)
-- *Prices: the cost ledger (`packages/pipeline/src/ai/cost.ts`) prices each call from `MODEL_PRICES`, keyed by model id without its geo prefix (USD per 1M tokens, input/output, on demand, US East): Nova Micro 0.035/0.14, Nova Lite v1 0.06/0.24, Nova 2 Lite 0.30/2.50, Nova Pro v1 0.80/3.20, Nova Premier 2.50/12.50. Checked 2026-10-15 against the AWS Price List API for us-east-1 (see "Prices checked 2026-10-15"): all match except Nova 2 Lite, whose `us.` profile costs 0.33/2.75 (0.30/2.50 is the `global.` price). The code still says `verified: false`. Extended-thinking tokens are billed as output tokens.
+- *Prices: the cost ledger (`packages/pipeline/src/ai/cost.ts`) prices each call from `MODEL_PRICES`, keyed by model id without its geo prefix (USD per 1M tokens, input/output, on demand, US East): Nova Micro 0.035/0.14, Nova Lite v1 0.06/0.24, Nova 2 Lite 0.30/2.50, Nova Pro v1 0.80/3.20, Nova Premier 2.50/12.50. Checked 2026-10-15 against the AWS Price List API for us-east-1 (see "Prices checked 2026-10-15"): all match; Nova 2 Lite's `us.` profile costs 0.33/2.75 and its `global.` profile 0.30/2.50, and the code now carries both. Every entry is `verified: true`. Extended-thinking tokens are billed as output tokens.
 - Request shape: Converse with one `toolSpec` and `toolChoice.tool` (forced tool use), `temperature: 0`; Zod validates the tool input; one retry with the validation issues, then a gloss fails the clip and a quiz falls back to a deterministic builder. SDK retries (`standard`, 5 attempts) cover throttling and 5xx.
 - Switching models is `LINGO_AI_MODEL` (e.g. `us.amazon.nova-2-lite-v1:0`; the older `NOVA_LITE_MODEL_ID` is still read as a fallback); a model without a `MODEL_PRICES` entry is refused. `LINGO_AI_REASONING=low|medium` turns on Nova 2 Lite extended thinking (`reasoningConfig` in `additionalModelRequestFields`, gloss maxTokens 2000; part of the cache key). Nova 2 Lite is only reachable through inference profiles (`us.`/`global.`), and a `us.` profile routes to us-east-1, us-east-2 and us-west-2, so the pipeline role allows `arn:aws:bedrock:*::foundation-model/amazon.nova-*` (https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-prereq.html).
 - Model choice is measured, not assumed: `pnpm --filter @lingo/pipeline eval:gloss` on the English gold set; results per model in docs/decisions/0009 (Eval results). Since 2026-10-04 the default is Nova Pro v1 (`us.amazon.nova-pro-v1:0`, best in the eval, ≈ $0.035–0.042 per clip, approved by the human); Lite v1 stays selectable with `LINGO_AI_MODEL=us.amazon.nova-lite-v1:0`.

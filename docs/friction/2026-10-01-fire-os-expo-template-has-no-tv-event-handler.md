@@ -12,7 +12,7 @@ the `react-native-tvos` fork, which Amazon's own cross-OS sample (`react-native-
 device verification use.
 Severity: Medium — blocks every remote-driven player interaction on Fire OS. The fix is a native rebuild, so it must be
 proven on the Fire TV Stick (spike S1) before merge and before the Oct 15 freeze.
-Workaround (planned, LING-003 G3): alias `"react-native": "npm:react-native-tvos@0.81.x-y"` (Expo SDK 54 ↔ RN 0.81), add
+Workaround: as done in LING-003 G3, alias `"react-native": "npm:react-native-tvos@0.81.x-y"` (Expo SDK 54 ↔ RN 0.81), add
 `@react-native-tvos/config-tv` to devDependencies and to `app.json` plugins, set `EXPO_TV=1`, and run `expo prebuild` to
 regenerate the native project.
 Suggestion: Ship the Fire OS starter on `react-native-tvos` with `@react-native-tvos/config-tv` already configured, or say in

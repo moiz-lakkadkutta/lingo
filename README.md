@@ -9,20 +9,21 @@ Built for the [Build, Ship, Shape: Amazon Developer Hackathon](https://amazonapp
 AWS Builder and Open Source mini-challenges. Shares [`@moizp/vega-media-kit`](https://github.com/moiz-lakkadkutta/vega-media-kit)
 with [Described](https://github.com/moiz-lakkadkutta/described). MIT. Demo clips are CC BY / CC BY-SA / public domain.
 
-## Status (2026-10-14)
+## Status (2026-10-19)
 
-Status words as in [docs/submission.md](docs/submission.md) §15: **Built** · **Code done, not on device** · **Not built**.
+Status words as in [docs/submission.md](docs/submission.md) §15: **Built** · **Built, run on device** · **Code done, not on device** · **Not built**.
+"Run on device" means the full Fire TV Stick checklist ([device run](docs/spot-checks/2026-10-14-device-run.md)), run between 2026-10-15 and 2026-10-18, on which every row passed (reported by Moiz 2026-10-19).
 
 | Part | State | Evidence |
 |---|---|---|
-| Fire OS app (`apps/expo`, react-native-tvos) | **Code done, not on device** (Player, LING-003; full device checklist pending). Spike S1 ran on a Fire TV Stick on 2026-10-04 with a test clip: 9 of 13 rows pass (seek keys, long-press replay, settings sheet, Explain card and word-chip focus); Play/Pause, Rewind/FF, the Play/Pause hold and the Menu effect on the Player are still open | [docs/spikes/S1-fire-os-remote.md](docs/spikes/S1-fire-os-remote.md), [friction log](docs/friction/2026-10-05-s1-fire-os-remote-events-and-chip-focus.md) |
+| Fire OS app (`apps/expo`, react-native-tvos) | **Built, run on device (2026-10-15..18, reported by Moiz)** (Player, LING-003): dual cues from CloudFront, the Explain card, word focus, the remote's media keys (Play/Pause, Rewind, Fast-forward) and the seek guard (LING-003 M2, rows 16–17). Spike S1 (2026-10-04, 9 of 13 rows) came first | [device run](docs/spot-checks/2026-10-14-device-run.md), [docs/spikes/S1-fire-os-remote.md](docs/spikes/S1-fire-os-remote.md), [friction log](docs/friction/2026-10-05-s1-fire-os-remote-events-and-chip-focus.md) |
 | Vega OS app (`apps/vega`) | **Code done, not on device** (experimental; runs on the Vega Virtual Device): built with SDK 0.24 and run on the Vega Virtual Device on 2026-10-14 (no physical Vega device): Home, the rail, Clip and Words render with the live catalog; Pair/QR, Quiz and the S2 questions not run there yet. No video playback until the kit's Vega adapter is rewritten (KIT-010): the Player, the Words mini player and Quiz replay show a message instead | [apps/vega/README.md](apps/vega/README.md), [VVD spike](docs/spikes/2026-10-14-vega-vvd.md) |
 | Pipeline (`packages/pipeline`) | **Built.** Gate A passed 2026-10-02 on two real clips. Gate C (AI gloss and quiz quality) passed 2026-10-10 on human-scored sheets for both languages (≥ 90 %): Amazon Nova Pro v1 writes the glosses (gloss prompt v7); the quiz is built by code from those glosses, with no model call | [decision 0001](docs/decisions/0001-week0-gates.md), [decision 0009](docs/decisions/0009-gloss-quality.md), [en sheet](docs/spot-checks/2026-10-05-gate-c-en-r3.md), [de sheet](docs/spot-checks/2026-10-10-gate-c-de-r3.md) |
 | Clips | **Built.** 12 of 12 published 2026-10-14 (`pnpm pipeline batch content/clips.json --phase final`: 12 ok, none skipped), served from CloudFront, and imported into the local database with the clip importer `pnpm clips:import` (commit 65db7bb): 12 of 12 `published`. Left: listening checks on a device for the retimed cues of two clips | [docs/content-status.md](docs/content-status.md) §Published, [content/clips.json](content/clips.json) |
-| TV screens: first run, Home, Clip, Summary, Quiz, Words, Settings | **Code done, not checked on a device** (LING-005): placement, focus memory, level rule, TV quiz, saved words; device checklist pending <!-- HUMAN: add one device screenshot of the TV screens from the stick (LING-005 checklist), or leave the row as is. --> | [decision 0010](docs/decisions/0010-tv-navigation-focus-memory-and-level-rule.md), [0014](docs/decisions/0014-per-install-tv-device-id.md), [review](docs/reviews/2026-10-02-ling-005.md) |
-| Phone (`apps/phone`) | **Code done, not checked on a device** (LING-006): Join (QR or code), Live words, Quiz (SM-2 on the server, result mirrored to the TV), Progress; on-device TTS, no Polly. EAS builds and device steps pending <!-- HUMAN: add a photo or recording of the phone receiving a saved word (LING-006 device steps), or leave the row as is. --> | [decision 0011](docs/decisions/0011-phone-session-code-access.md), [review](docs/reviews/2026-10-02-ling-006.md) |
-| Lingo Plus (Amazon Appstore IAP + RVS sandbox) | **Code done, not checked on a device** (LING-007): Plus screen and purchase/restore flow on both OSes (react-native-iap on Fire OS, the Vega IAP library), server-side RVS verification and entitlement. App Tester / RVS sandbox run pending — screenshot or log slot <!-- HUMAN: add the App Tester purchase screenshot or the RVS sandbox log (LING-007 checklist A/B), or say here that it was not run. --> | [decision 0012](docs/decisions/0012-lingo-plus.md), [review](docs/reviews/2026-10-02-ling-007.md) |
-| Content Launcher · Personalization · Media Controls | **Code done, not checked on a device** (LING-007): launch intents open a clip (Fire OS deep link `lingo://clip/<slug>`; Vega Content Launcher handler in `apps/vega`); Personalization and Media Controls go through the kit, whose bindings are still no-ops (KIT-007, escalations E1–E4 in TASKS.md). Screenshot or log slot each <!-- HUMAN: add one screenshot or log per integration that works on the stick (LING-007), and remove any integration without one from the video and docs/submission.md. --> | [decision 0012](docs/decisions/0012-lingo-plus.md), [plan](docs/plans/LING-007.md) |
+| TV screens: first run, Home, Clip, Summary, Quiz, Words, Settings | **Built, run on device (2026-10-15..18, reported by Moiz)** (LING-005): placement, focus memory, level rule, TV quiz, saved words. Screenshot pending <!-- HUMAN: screenshot pending; add one device screenshot of the TV screens from the stick, or leave the row as is. --> | [decision 0010](docs/decisions/0010-tv-navigation-focus-memory-and-level-rule.md), [0014](docs/decisions/0014-per-install-tv-device-id.md), [review](docs/reviews/2026-10-02-ling-005.md) |
+| Phone (`apps/phone`) | **Built, run on device (2026-10-15..18, reported by Moiz)** (LING-006), as a web page in Chrome on an Android phone, opened from the TV's pair QR (no Expo Go, no native build; reported by Moiz 2026-10-19): Join (QR or code), Live words (a TV save arrives on the phone), Quiz (SM-2 on the server, result mirrored to the TV), Progress; on-device TTS, no Polly. No native phone build (Expo Go or EAS) has run on a device yet. Photo pending <!-- HUMAN: screenshot pending; add a photo or recording of the phone receiving a saved word, or leave the row as is. --> | [decision 0011](docs/decisions/0011-phone-session-code-access.md), [review](docs/reviews/2026-10-02-ling-006.md) |
+| Lingo Plus (Amazon Appstore IAP + RVS sandbox) | Fire OS: **Built, run on device (2026-10-15..18, reported by Moiz)** (LING-007): a Lingo Plus sandbox purchase completed in Amazon App Tester on the stick (device run rows 30–34), verified on the server against the RVS sandbox. Vega: code done (the Vega IAP library), the VVD sandbox run was not done. Screenshot pending <!-- HUMAN: screenshot pending; add the App Tester purchase screenshot or the RVS sandbox log. --> | [decision 0012](docs/decisions/0012-lingo-plus.md), [review](docs/reviews/2026-10-02-ling-007.md) |
+| Content Launcher · Personalization · Media Controls | Content Launcher deep link on Fire OS: **Built, run on device (2026-10-15..18, reported by Moiz)** (LING-007): `lingo://clip/<slug>` opens the clip on the stick (device run row 47); the Vega Content Launcher handler in `apps/vega` is code done, not on device. Personalization and Media Controls go through the kit, whose bindings are still no-ops (KIT-007, escalations E1–E4 in TASKS.md), so they are not claimed. Screenshot pending <!-- HUMAN: screenshot pending; add a screenshot or log of the deep link on the stick. --> | [decision 0012](docs/decisions/0012-lingo-plus.md), [plan](docs/plans/LING-007.md) |
 
 ## Run it (10 steps)
 
@@ -46,12 +47,12 @@ had no Docker daemon, so step 3's `pnpm db:up` did not run and the database step
 10. (AWS) Real clips: `pnpm --filter @lingo/infra exec cdk deploy lingo-media-dev --exclusively`, export `S3_BUCKET_MEDIA` and
     `CLOUDFRONT_DOMAIN` from its outputs, then `pnpm pipeline batch content/clips.json --dry-run` and the runbook in
     [docs/plans/LING-008.md](docs/plans/LING-008.md) §2.9 (needs `aws`, `ffmpeg`, `ffprobe`, Shaka `packager`). Costs: [docs/aws.md](docs/aws.md).
-    IAP sandbox: App Tester + `apps/expo/amazon.sdktester.json` on Fire OS, the VVD on Vega: [docs/plans/LING-007.md](docs/plans/LING-007.md) §Manual checklists A and B (not run yet).
+    IAP sandbox: App Tester + `apps/expo/amazon.sdktester.json` on Fire OS, the VVD on Vega: [docs/plans/LING-007.md](docs/plans/LING-007.md) §Manual checklists A and B (A, App Tester on the stick: a sandbox purchase completed 2026-10-15..18, reported by Moiz 2026-10-19; B, the VVD: not run).
 
 ## Architecture
 
 ```
- TV                                                    Phone (apps/phone, Expo)            code done, not on a device
+ TV                                                    Phone (apps/phone, Expo)            run on device 2026-10-15..18
  ├─ apps/expo  Fire OS · react-native-tvos 0.81          Join · Live words · Quiz (SM-2) · Progress
  └─ apps/vega  Vega OS · RN for Vega 0.83 (experimental)          │
         │                                                         │ Socket.IO room = session code
@@ -59,7 +60,7 @@ had no Docker daemon, so step 3's `pnpm db:up` did not run and the database step
  packages/shared-ui  screens, tokens, remote bus ─── REST + Socket.IO ──┐
         │                                                               ▼
         ▼                                            apps/api  Express 4 · Zod · Prisma/Postgres · pg-boss · Socket.IO
- @moizp/vega-media-kit  player adapters (Fire OS:              │  POST /iap/verify → Amazon RVS sandbox   code done, not on a device
+ @moizp/vega-media-kit  player adapters (Fire OS:              │  POST /iap/verify → Amazon RVS sandbox   sandbox purchase run on the stick
    react-native-video · Vega: w3cmedia + Shaka, KIT-010)       │
         ▲ HLS + WebVTT over HTTPS                              ▼ (clip import: pnpm clips:import)
  CloudFront (OAC) ◄── S3 media bucket ◄── packages/pipeline (CLI; `pnpm pipeline prepare` / `batch`)
@@ -96,7 +97,11 @@ Everything. The repository was created on 2026-09-14 (first commit `3f87a00`), d
 - 2026-10-15 — QA fixes (PR #7): the highlight marks the word without its punctuation; the old line no longer flashes back after a seek;
   no billing error at start when the Appstore is absent; dark splash and a visible loading label; Settings shows "Saved." after a change;
   a "Your words" button on Home; the Explain card reads "Saved to Words"; key hints in Settings, Words and the Player.
-- Pending: the device checklists for LING-003/005/006/007, LING-009 video and submission.
+  `@moizp/vega-media-kit` 0.1.0 published to npm (MIT).
+- 2026-10-15..18 — the full device run on a Fire TV Stick: every row passed, including the seek guard, the deep link, Save → phone and an
+  App Tester sandbox purchase ([device run](docs/spot-checks/2026-10-14-device-run.md), reported by Moiz 2026-10-19). The demo video was filmed.
+- 2026-10-19 — upstream README fix opened on an Amazon sample: https://github.com/AmazonAppDev/vega-scrolling-sample/pull/26.
+- Pending: cutting and uploading the video, the README screenshots, the Devpost forms.
 
 ## Built with Amazon and AWS
 

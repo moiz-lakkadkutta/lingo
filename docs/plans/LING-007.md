@@ -6,7 +6,7 @@ Invariants (apply everywhere): sizes are px at 1920×1080 through `px()`. Colour
 
 **Research caveat.** `developer.amazon.com` is blocked by this environment's egress proxy, so no Amazon page could be opened directly. The Amazon facts below come from three sources: search-result excerpts of the cited pages; Amazon's own sample `AmazonAppDev/vega-video-sample` (cloned and read: `manifest.toml`, `src/iap/**`, `src/screens/HomeScreen.tsx`, `src/screens/PlayerScreen.tsx`, `src/utils/AppOverrideMediaControlHandler.ts`); and the published `react-native-iap@16.7.2` and `expo-iap@5.8.2` packages (downloaded and read). The implementer opens each cited page once before coding the matching file and records any difference as a friction log (`pnpm friction "<title>"`).
 
-Done when: `pnpm typecheck && pnpm test && pnpm lint:words` pass (with the known `apps/expo/RemoteBridge.tsx` TS2305 baseline unchanged); every `it(...)` in §Acceptance exists verbatim and passes; the App Tester and VVD checklists in §Manual have been run, or their failures are filed as friction logs and reported to the orchestrator.
+Done when: `pnpm typecheck && pnpm test && pnpm lint:words` pass (the `apps/expo/RemoteBridge.tsx` TS2305 baseline named here when the plan was written is gone: fixed in f67fd9e; CI green on main, https://github.com/moiz-lakkadkutta/lingo/actions/runs/39170139834, checked 2026-10-19); every `it(...)` in §Acceptance exists verbatim and passes; the App Tester and VVD checklists in §Manual have been run, or their failures are filed as friction logs and reported to the orchestrator.
 
 ---
 

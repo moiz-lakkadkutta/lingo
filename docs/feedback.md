@@ -2,7 +2,9 @@
 
 Required by the hackathon. Drafted from the repository's record on 2026-10-01 (LING-008); every claim cites a file, decision, friction
 log or measurement. **TBD by human** marks what only the human knows; the human edits and signs off in week 5. LING-005/006/007 (TV screens,
-phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is done and reviewed, but not checked on a device yet.
+phone, Lingo Plus and the platform wiring) merged on 2026-10-02. The full Fire TV Stick device run (docs/spot-checks/2026-10-14-device-run.md)
+was done between 2026-10-15 and 2026-10-18 and every row passed (reported by Moiz 2026-10-19). Answers filled on 2026-10-19 from Moiz's
+report of that day.
 
 ## 1. Tools, APIs and SDKs used, and why
 
@@ -20,10 +22,14 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
 - **Amazon Appstore IAP and the Receipt Verification Service (RVS)**: one subscription, Lingo Plus, bought on the TV and verified on the
   server before it is fulfilled (decision 0012). Fire OS uses `react-native-iap` ~16.7.2 with the Amazon store flavour and App Tester
   (`apps/expo/src/fireosStore.ts`); Vega uses `@amazon-devices/keplerscript-appstore-iap-lib` ~2.13.0 (`apps/vega/src/iap/vegaStore.ts`);
-  the API calls the RVS Cloud Sandbox (`apps/api/src/lib/rvs.ts`). Code done; the App Tester and Vega Virtual Device sandbox runs: TBD by human. <!-- HUMAN: say whether the App Tester (stick) and VVD sandbox purchase runs were done and what happened. -->
+  the API calls the RVS Cloud Sandbox (`apps/api/src/lib/rvs.ts`). On the Fire TV Stick a Lingo Plus sandbox purchase
+  completed in Amazon App Tester (device run rows 30–34, 2026-10-15..18, reported by Moiz 2026-10-19). The Vega Virtual Device IAP sandbox
+  run was not done.
 - **Content Launcher, Personalization, Media Controls**: a launch intent opens the clip (Fire OS deep link `lingo://clip/<slug>`,
   `apps/expo/LaunchBridge.tsx`; Vega Content Launcher handler, `apps/vega/src/platform/contentLauncher.ts`). Personalization and Media
-  Controls go through `@moizp/vega-media-kit`, whose bindings are still no-ops (KIT-007). Not checked on a device.
+  Controls go through `@moizp/vega-media-kit`, whose bindings are still no-ops (KIT-007), so neither is claimed. On the stick, the deep link
+  opened a clip and the remote's media keys (Play/Pause, Rewind, Fast-forward) drove the Player (device run rows 12–15 and 47, reported by
+  Moiz 2026-10-19).
 - Third party: Shaka Packager (HLS), ffmpeg, simplemma (lemmas), react-native-video (ExoPlayer on Fire OS), Socket.IO (TV ↔ phone),
   Prisma/Postgres, pg-boss, expo-speech (the phone's word audio is on-device TTS, not Amazon Polly; decision 0011 §10).
 
@@ -33,11 +39,16 @@ phone, Lingo Plus and the platform wiring) merged on 2026-10-02: their code is d
   Gate A passed on two real clips; terra-x-friedlaender gave 54 cues with 0 gate findings (docs/decisions/0001-week0-gates.md, 0007).
 - **Translate's `Formality` and `Brevity` settings** are documented with exact language-pair tables, so the register fix for neighbouring
   cues switching between `du` and `Sie` was one request setting per clip (decision 0008 §11; friction log `translate-per-cue-register…`).
-  Whether it removed every switch on the 12 clips: TBD by human after the batch. <!-- HUMAN: skim the 12 published clips' native lines for Sie/du switches and write yes or the count. -->
+  On the 12 published clips it held: the six English clips' German lines (Translate output, `INFORMAL`) use `du` forms only, with no
+  formal `Sie`/`Ihnen` address (du forms per clip: what-to-do-on-a-date-1950 44, sprite-fright 7, shy-guy-1947 46, cosmos-laundromat 20,
+  elephants-dream 28, duck-and-cover 50; every capitalised "Sie" there opens a sentence and means "they" or "she"). The six German clips'
+  own lines are speech, not Translate output: four use no `du`, terra-x-friedlaender has 3 `du` forms in reported speech, and
+  jung-naiv-drogen has 2 `du` and 2 formal `Sie`, as the speakers said them. (Counted 2026-10-19 over `packages/pipeline/work/<slug>/native-de.vtt`
+  and `de.vtt`.)
 - **Bedrock Converse with forced tool use and Zod validation** is cheap to run: the first real Gate C run cost $0.0024 for 37 calls across two
   clips (docs/spot-checks/2026-10-02-gate-c.md). Gloss quality is in answer 3, not here.
 - **Fire OS via the shared kit on the Fire TV Stick** (AFTSS, Fire OS 7.7.1.6; `../vega-media-kit/docs/device-matrix.md`, Described's
-  package — Lingo's own stick run is spike S1, add it when recorded). Row "Seek / rate", Shaka's demo stream: a seek to 3.837 s showed the
+  package). Lingo's own stick runs: spike S1 (2026-10-04) and the full device run, all rows passed (2026-10-15..18, reported by Moiz 2026-10-19). Row "Seek / rate", Shaka's demo stream: a seek to 3.837 s showed the
   first cue 10 ms later. Row "Own HLS via CloudFront": two text tracks at once, seek to 1 s, and 0.75× measured 15.43 s of media in 20.18 s
   wall.
 - **CDK**: two stacks in two regions from one app; the media stack deployed (the root-user caveat is a friction log).
@@ -104,14 +115,17 @@ Third party (not Amazon or AWS)
 
 ## 4. Onboarding quality
 
-- Time from zero to first app on device: **TBD by human** hours. <!-- HUMAN: enter the hours from a blank machine to Lingo first running on the stick. -->
+- Time from zero to first app on a Fire TV device: **4–12 hours** (reported by Moiz 2026-10-19).
 - Record to place around it: the repository was created on 2026-09-14; the first Fire OS playback on the stick through the kit was on
   2026-09-26 (`../vega-media-kit/docs/device-matrix.md`). The Vega SDK was not installed until 2026-10-14: at Gate B (2026-09-26) the SDK install alone was
   ~20 GB plus an unknown day with the kill date twelve days out, so the human chose Fire OS primary and Vega experimental
-  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). The Vega Virtual Device spike ran on 2026-10-14 (docs/spikes/2026-10-14-vega-vvd.md; SDK download 8 min); add its hours here: **TBD by human**. <!-- HUMAN: enter the hours the VVD spike took. -->
+  (`../vega-media-kit/docs/decisions/0001-week0-gates.md`). The Vega Virtual Device spike ran on 2026-10-14 (docs/spikes/2026-10-14-vega-vvd.md; SDK download 8 min); it took **4–12 hours** (reported by Moiz 2026-10-19).
 
 ## 5. Would you build with these tools again? Yes / No — rationale
 
-**TBD by human** (Yes/No is the human's call). <!-- HUMAN: answer Yes or No and keep or rewrite the rationale below. --> The record the rationale can draw on: the AWS AI services were cheap and well documented,
+**Yes** (Moiz, 2026-10-19). The AWS AI services did the heavy lifting cheaply (about $2.9 estimated for the 12-clip batch, docs/aws.md),
+Fire OS ran Lingo on a real stick through react-native-tvos and our shared kit, and the Vega Virtual Device ran the same shared screens on the
+day the SDK was installed; every rough edge on the way is a friction log with a concrete fix, which is why we would build here again.
+The record behind that answer: the AWS AI services were cheap and well documented,
 with quality work needed around Transcribe punctuation and Nova Lite glosses; Fire OS worked through the community react-native-tvos fork
 and the kit; Vega's version story and SDK size kept it experimental.
