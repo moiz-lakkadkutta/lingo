@@ -11,7 +11,7 @@ schema-version = 1
 id = "dev.moizp.lingo"
 title = "Lingo"
 version = "0.1.0"
-# Lingo app icon (brand export, 512×512 PNG, ground #0F151B); the size rules are to be checked in the Vega manifest docs.
+# 512×512 PNG, ≤1 MB (https://developer.amazon.com/docs/vega/0.24/manifest-package)
 icon = "@image/lingo-icon.png"
 
 [os.version]
