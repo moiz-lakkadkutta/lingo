@@ -1,10 +1,19 @@
+# Phone web app (Expo web export). Hashed bundles under /_expo/static are cached for a year; a missing one is a plain 404 (no
+# immutable header), never index.html (try_files would otherwise serve the HTML with an immutable header). Every other path is the app shell, never cached.
 (phone) {
 	encode zstd gzip
-	@hashed path /_expo/static/*
-	header @hashed Cache-Control "public, max-age=31536000, immutable"
-	header /index.html Cache-Control "no-cache"
-	try_files {path} /index.html
-	file_server
+	header Strict-Transport-Security "max-age=31536000"
+	header X-Content-Type-Options nosniff
+	handle /_expo/static/* {
+		@found file
+		header @found Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
 }
 
 iap-51-102-187-91.sslip.io {
