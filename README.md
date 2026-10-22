@@ -11,6 +11,18 @@ Built for the [Build, Ship, Shape: Amazon Developer Hackathon](https://amazonapp
 AWS Builder and Open Source mini-challenges. Shares [`@moizp/vega-media-kit`](https://github.com/moiz-lakkadkutta/vega-media-kit)
 with [Described](https://github.com/moiz-lakkadkutta/described). MIT. Demo clips are CC BY / CC BY-SA / public domain.
 
+## Try it on a Fire TV Stick
+
+No developer tools needed: the TV app is a ready-made APK, the servers are always on, and the phone part is a web page.
+
+1. On the Fire TV, install **Downloader** (AFTVnews) from the Appstore, then turn it on under Settings → My Fire TV → Developer options →
+   Install unknown apps.
+2. In Downloader, open `https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-demo.apk`, then **Install** and
+   **Open** ("Lingo Plus Demo": every feature on).
+3. Choose the language you learn, skip the level check, and scan the pairing QR code with your phone's camera.
+
+Full guide, with a test tour, a remote cheat sheet and troubleshooting: **[docs/try-on-fire-tv.md](docs/try-on-fire-tv.md)**.
+
 ## Status (2026-10-19)
 
 Status words as in [docs/submission.md](docs/submission.md) §15: **Built** · **Built, run on device** · **Code done, not on device** · **Not built**.
