@@ -35,8 +35,8 @@ No IAM role is attached: the APIs make no AWS call (media comes from CloudFront,
 - Swap: 2 GB `/swapfile` (in `/etc/fstab`), `vm.swappiness=10`.
 - Node 22 (NodeSource), pnpm 9.15.9, PostgreSQL 16 (Ubuntu), Caddy 2 (official apt repo).
 - Code: `/opt/lingo/app`, a shallow clone owned by the system user `lingo`. Only `@lingo/api...` dependencies are installed.
-  Since 2026-10-22 it runs branch `fix/api-trust-proxy` (PR #19, commit `1c8ee2d`: `trust proxy`, so the session-code miss limit
-  counts each client, not Caddy) until that PR merges; see [Back to main](#back-to-main-after-pr-19-merges).
+  It runs `main` (`d01fa50` on 2026-10-22, which includes PR #19's `trust proxy`, so the session-code miss limit counts each client,
+  not Caddy). Between PR #19's review and its merge the box ran branch `fix/api-trust-proxy`.
 - The API runs from TypeScript through tsx (`node --import tsx src/index.ts`): `pnpm build` (`tsc`) emits extensionless ESM imports
   and `@lingo/contracts` points at `.ts` source, so the emitted JS does not run under plain Node. Each process uses about 130–140 MB.
 - Env: `/etc/lingo/db.env` (`DATABASE_URL` with a random password for role `lingo`; only on the box), `/etc/lingo/iap.env`,
@@ -151,31 +151,21 @@ needs no install: scan the TV's pair QR, the phone app is a web page.
 
 ## Redeploy the API
 
+The clone is shallow, so `git pull --ff-only` and a plain `git fetch origin main:…` are rejected as non-fast-forward (git cannot see
+that the new `main` descends from the old one). Fetch with a forced refspec (`+`) and reset to it:
+
 ```sh
 ssh -i ~/.ssh/lingo-api.pem ubuntu@51.102.187.91
-sudo -u lingo -H bash -c 'cd /opt/lingo/app && git pull --ff-only && CI=1 pnpm install --frozen-lockfile --filter @lingo/api... \
-  && cd apps/api && set -a && . /etc/lingo/db.env && set +a && pnpm exec prisma generate && pnpm exec prisma migrate deploy'
+sudo -u lingo -H bash -c 'set -e; cd /opt/lingo/app
+  git fetch --depth=1 origin +main:refs/remotes/origin/main && git checkout -B main origin/main && git log --oneline -1
+  CI=1 pnpm install --frozen-lockfile --filter @lingo/api...
+  cd apps/api && set -a && . /etc/lingo/db.env && set +a && pnpm exec prisma generate && pnpm exec prisma migrate deploy'
 sudo systemctl restart lingo-api@iap lingo-api@demo
 ```
 
-How the box was moved to the fix branch (no dependency or schema change, so no install):
-
-```sh
-sudo -u lingo -H bash -c 'cd /opt/lingo/app \
-  && git fetch --depth=1 origin fix/api-trust-proxy:refs/remotes/origin/fix/api-trust-proxy \
-  && git checkout -B fix/api-trust-proxy origin/fix/api-trust-proxy'
-sudo systemctl restart lingo-api@iap lingo-api@demo
-```
-
-### Back to main after PR #19 merges
-
-```sh
-sudo -u lingo -H bash -c 'cd /opt/lingo/app && git fetch --depth=1 origin main && git checkout main && git reset --hard origin/main \
-  && git branch -D fix/api-trust-proxy && git log --oneline -1'
-sudo systemctl restart lingo-api@iap lingo-api@demo
-```
-
-Then check `git log` shows the merge of #19 (or a later commit) and run the [Checks](#checks).
+To run a branch instead (as for PR #19 before it merged), use `+<branch>:refs/remotes/origin/<branch>` and
+`git checkout -B <branch> origin/<branch>`. This is how the box went back to `main` (`d01fa50`) on 2026-10-22: both APIs active,
+iap `"RVS_ENV":"production"`, no pending migrations. Then run the [Checks](#checks).
 
 ## Update the Caddyfile or the unit
 
