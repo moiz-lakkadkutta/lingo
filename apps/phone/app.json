@@ -4,6 +4,7 @@
     "slug": "lingo-phone",
     "version": "0.1.0",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "scheme": "lingo",
     "backgroundColor": "#0F151B",
     "ios": {
@@ -18,7 +19,14 @@
     },
     "android": {
       "package": "dev.moizp.lingo.phone",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F151B"
+      },
       "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [

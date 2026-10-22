@@ -1,3 +1,5 @@
+<img src="docs/images/lingo-icon.png" width="120" alt="Lingo app icon: a subtitle frame with three word pills, one highlighted, over a second line">
+
 # Lingo
 
 **Learn a language from the TV you already watch — on Fire TV (Vega OS: experimental), with your phone as the notebook.**

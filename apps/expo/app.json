@@ -6,13 +6,19 @@
     "version": "0.1.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "backgroundColor": "#0F151B",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "backgroundColor": "#0F151B",
       "resizeMode": "contain"
     },
     "android": {
       "package": "dev.moizp.lingo",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F151B"
+      },
       "backgroundColor": "#0F151B",
       "usesCleartextTraffic": true,
       "permissions": [],
@@ -50,7 +56,12 @@
           ]
         }
       ],
-      "@react-native-tvos/config-tv",
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "androidTVBanner": "./assets/tv-banner.png"
+        }
+      ],
       "./plugins/withKeyDownEvents",
       "./plugins/withAmazonIap"
     ]
