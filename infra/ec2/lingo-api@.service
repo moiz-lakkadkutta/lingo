@@ -1,0 +1,23 @@
+[Unit]
+Description=Lingo API (%i)
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+User=lingo
+Group=lingo
+WorkingDirectory=/opt/lingo/app/apps/api
+EnvironmentFile=/etc/lingo/db.env
+EnvironmentFile=/etc/lingo/%i.env
+ExecStart=/usr/bin/node --max-old-space-size=384 --import tsx src/index.ts
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/lingo/app/apps/api
+
+[Install]
+WantedBy=multi-user.target
