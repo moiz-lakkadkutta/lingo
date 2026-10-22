@@ -2,7 +2,7 @@ import React from 'react'
 import { LogBox, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage' // https://docs.expo.dev/versions/v54.0.0/sdk/async-storage/
 import * as Crypto from 'expo-crypto' // https://docs.expo.dev/versions/v54.0.0/sdk/crypto/
-import { Root, createLaunchBus, createRemoteBus, guardStore, tokens, useDeviceId, type IdStore } from '@lingo/shared-ui'
+import { Root, createLaunchBus, createRemoteBus, guardStore, noStore, tokens, useDeviceId, type IdStore } from '@lingo/shared-ui'
 import { RemoteBridge } from './RemoteBridge'
 import { LaunchBridge } from './LaunchBridge'
 import { createFireOsStore } from './src/fireosStore'
@@ -14,7 +14,10 @@ const launchBus = createLaunchBus()
 // caches "unavailable" and never retries; Plus stays gated. react-native-iap still console.errors the first failure, which LogBox
 // would show over unrelated screens in debug builds, so its "[RN-IAP]" logs are hidden from LogBox (dev only).
 if (__DEV__) LogBox.ignoreLogs(['[RN-IAP]'])
-const plusStore = guardStore(createFireOsStore())
+// The demo variant (app.config.js, LINGO_VARIANT=demo) talks to a demo API where everyone has Plus (LINGO_PLUS_MODE=demo), so it
+// never opens the Appstore billing connection: noStore skips the startup restore, and the Plus screen shows the demo state.
+const demo = process.env.EXPO_PUBLIC_LINGO_VARIANT === 'demo'
+const plusStore = demo ? noStore : guardStore(createFireOsStore())
 // Per-install learner id (review-005 H1): created once with a random UUID, kept in AsyncStorage, the API's x-device-id.
 const idStore: IdStore = { get: (k) => AsyncStorage.getItem(k), set: (k, v) => AsyncStorage.setItem(k, v) }
 const newUuid = () => Crypto.randomUUID()
