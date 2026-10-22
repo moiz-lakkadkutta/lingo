@@ -9,6 +9,7 @@
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -44,6 +45,8 @@ const pkg = path.join(root, 'package.json')
 const pkgText = fs.readFileSync(pkg, 'utf8')
 try { run('npx', ['expo', 'prebuild', '--platform', 'android', '--clean', '--no-install']) } finally { fs.writeFileSync(pkg, pkgText) }
 const android = path.join(root, 'android')
+// Metro caches transformed modules with EXPO_PUBLIC_* already inlined, so a second build with another API URL reuses the first URL.
+fs.rmSync(path.join(os.tmpdir(), 'metro-cache'), { recursive: true, force: true })
 // Fire TV Sticks are armeabi-v7a (older sticks) or arm64-v8a (4K / 4K Max); skipping x86 / x86_64 halves the native build.
 run(path.join(android, 'gradlew'), ['assembleRelease', '--console=plain', '-PreactNativeArchitectures=armeabi-v7a,arm64-v8a'], android)
 
