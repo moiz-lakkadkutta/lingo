@@ -1,5 +1,6 @@
 import { JoinPayload, QuizResultPayload, QuizStartPayload } from '@lingo/contracts'
 import type { SessionErrorPayload } from '@lingo/contracts'
+import { clientIp } from './lib/clientIp'
 import { db } from './lib/db'
 import { logger } from './lib/logger'
 import { codeMisses, type MissLimiter } from './lib/rateLimit'
@@ -28,7 +29,8 @@ export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses):
 
     socket.on('join', (p) => guard(async () => {
       // Same rules as x-session-code on /me (lib/learner.ts): a malformed and an unknown code get the same answer and count a miss per IP.
-      const ip = socket.handshake.address || 'unknown'
+      // handshake.address is Caddy's loopback address on the server; clientIp reads X-Forwarded-For with the same rule as req.ip.
+      const ip = clientIp(socket.handshake.address, socket.handshake.headers['x-forwarded-for'])
       if (limiter.blocked(ip)) return fail({ code: 'RATE_LIMITED', message: 'Too many tries. Wait a minute and try again.' })
       const r = JoinPayload.safeParse(p)
       if (!r.success) {
