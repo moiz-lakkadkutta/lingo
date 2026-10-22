@@ -1,6 +1,6 @@
 import type { Catalog } from '@lingo/contracts'
 import type { LaunchIntent } from '@moizp/vega-media-kit'
-import { catalogItems, createLaunchBus, launchUri, noLaunches, parseLaunchUri } from '../src/platform/launch'
+import { catalogItems, createLaunchBus, launchUri, noLaunches, normalizeLaunchUri, parseLaunchUri } from '../src/platform/launch'
 
 const card = (slug: string, posterUrl: string | null = null) => ({ slug, title: `T ${slug}`, level: 'A2' as const, durationS: 60, posterUrl, resumeS: null, completed: false, attribution: '' })
 
@@ -20,6 +20,17 @@ describe('launch intents', () => {
       'https://clip/der-zug', 'lingo://video/der-zug', 'lingo://clip/', 'lingo://clip/Der-Zug', 'lingo://clip/../etc', 'lingo://clip/a/b',
       'lingo://clip/a%2Fb', 'lingo://clip/' + 'a'.repeat(81), 'lingo://clip/der zug', 'lingo:clip/der-zug', '', 'javascript:alert(1)',
     ]) expect(parseLaunchUri(uri), uri).toBeNull()
+  })
+
+  it('normalizeLaunchUri maps alias schemes (the Fire OS demo app\'s lingodemo://) to lingo:// and leaves the rest alone', () => {
+    expect(normalizeLaunchUri('lingodemo://clip/der-zug?t=30', ['lingodemo'])).toBe('lingo://clip/der-zug?t=30')
+    expect(normalizeLaunchUri('  LingoDemo://clip/der-zug ', ['lingodemo'])).toBe('lingo://clip/der-zug')
+    expect(normalizeLaunchUri('lingo://clip/der-zug', ['lingodemo'])).toBe('lingo://clip/der-zug')
+    expect(normalizeLaunchUri('lingodemo://clip/der-zug', [])).toBe('lingodemo://clip/der-zug')
+    expect(normalizeLaunchUri('lingodemox://clip/der-zug', ['lingodemo'])).toBe('lingodemox://clip/der-zug')
+    expect(normalizeLaunchUri('https://lingodemo://clip/a', ['lingodemo'])).toBe('https://lingodemo://clip/a')
+    expect(parseLaunchUri(normalizeLaunchUri('lingodemo://clip/der-zug?t=7', ['lingodemo']))).toEqual({ itemId: 'der-zug', positionS: 7, source: 'unknown' })
+    expect(parseLaunchUri(normalizeLaunchUri('lingodemo://video/der-zug', ['lingodemo']))).toBeNull()
   })
 
   it('catalogItems dedupes slugs across rows in row order and builds lingo:// uris', () => {

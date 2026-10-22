@@ -53,6 +53,24 @@ EXPO_PUBLIC_LINGO_SPIKE=1 pnpm --filter @lingo/expo android:release`. It bundles
 reverse) and is signed with the template's debug keystore. Gradle path: `cd apps/expo/android && ./gradlew assembleRelease`, then
 `adb install -r app/build/outputs/apk/release/app-release.apk`.
 
+**Sideload APKs, two variants** (`app.config.js`, `scripts/build-apk.mjs`). Both install side by side on one stick:
+
+| Script | Name | Package | Deep link | Lingo Plus |
+| --- | --- | --- | --- | --- |
+| `EXPO_PUBLIC_API_URL=<iap api> pnpm --filter @lingo/expo apk:iap` | Lingo | `dev.moizp.lingo` | `lingo://clip/<slug>` | Amazon IAP (App Tester sandbox) |
+| `EXPO_PUBLIC_API_URL=<demo api> pnpm --filter @lingo/expo apk:demo` | Lingo Plus Demo | `dev.moizp.lingo.demo` | `lingodemo://clip/<slug>` | the API runs `LINGO_PLUS_MODE=demo`; no IAP connection |
+
+Each run first asks `<api>/iap/status` for the API's Plus mode: `apk:demo` stops unless it answers `demo`, `apk:iap` warns unless it
+answers `iap` (`--skip-check` skips this for offline builds, e.g. `pnpm --filter @lingo/expo apk:demo --skip-check`). Then it wipes
+and regenerates `android/` (`expo prebuild --clean`, because the package id differs), runs `gradlew assembleRelease` for armeabi-v7a
+and arm64-v8a, checks the APK carries `assets/index.android.bundle` and copies it to `dist/lingo-<variant>.apk`. After a demo build
+it regenerates `android/` once more as the default app, so `pnpm android` still builds `dev.moizp.lingo`. `EXPO_PUBLIC_API_URL` is
+required and inlined into the bundle (no Metro at run time); the variant reaches the JS through `extra.lingoVariant`
+(`expo-constants`). The demo app leaves out the `withAmazonIap` plugin. Signed with the template's debug keystore.
+Install: `adb install -r apps/expo/dist/lingo-demo.apk`. If `dev.moizp.lingo` is already on the stick from App Tester or EAS, uninstall
+it first (`adb uninstall dev.moizp.lingo`): those builds carry another signature, so `adb install -r` fails with
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE`. A plain `expo prebuild` / `pnpm android` without `LINGO_VARIANT` is the IAP app.
+
 **EAS builds:** `@moizp/vega-media-kit` is a `link:` to a checkout outside this repo (`../vega-media-kit`). EAS uploads only this
 repo, so `build:tv` on EAS cannot resolve the kit until it is published to npm. Build the APK locally (`expo run:android
 --variant release`) until then.
