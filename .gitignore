@@ -20,3 +20,6 @@ apps/expo/ios
 /media/
 # Claude Code agent worktrees (local only)
 .claude/
+
+# Real AWS resource IDs for the EC2 judging server (docs/deploy/ec2.md)
+infra/ec2-resources.local.md
