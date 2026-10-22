@@ -7,7 +7,7 @@ app without the developer's laptop. Set up 2026-10-22. Config files in this repo
 
 | What | URL | Behind it |
 |---|---|---|
-| API, Plus via IAP (RVS sandbox) | https://iap-51-102-187-91.sslip.io | `lingo-api@iap`, port 4000 |
+| API, Plus via IAP (RVS production, for Live App Testing) | https://iap-51-102-187-91.sslip.io | `lingo-api@iap`, port 4000 |
 | API, Plus on for everyone | https://demo-51-102-187-91.sslip.io | `lingo-api@demo`, port 4001 |
 | Phone web app for the iap API | https://phone-iap-51-102-187-91.sslip.io | `/srv/lingo/phone-iap` (static) |
 | Phone web app for the demo API | https://phone-demo-51-102-187-91.sslip.io | `/srv/lingo/phone-demo` (static) |
@@ -41,9 +41,14 @@ No IAM role is attached: the APIs make no AWS call (media comes from CloudFront,
   and `@lingo/contracts` points at `.ts` source, so the emitted JS does not run under plain Node. Each process uses about 130–140 MB.
 - Env: `/etc/lingo/db.env` (`DATABASE_URL` with a random password for role `lingo`; only on the box), `/etc/lingo/iap.env`,
   `/etc/lingo/demo.env` (mode 640, root:lingo). Both: `NODE_ENV=production`, `CLOUDFRONT_DOMAIN=d15iq6m6ohqp4j.cloudfront.net`,
-  `RVS_ENV=sandbox`, `LINGO_ALLOW_UNSAFE_PLUS=true` (on purpose: a sandbox RVS on a deploy; the API logs an `UNSAFE` warning at start).
-  iap adds `LINGO_PLUS_MODE=iap`, `RVS_SHARED_SECRET=sandbox`, `PORT=4000`; demo adds `LINGO_PLUS_MODE=demo`, `PORT=4001`.
-  **These env files are for judging only and must never be reused for production** (sandbox receipts pass, demo gives everyone Plus).
+  `LINGO_ALLOW_UNSAFE_PLUS=true`. iap adds `LINGO_PLUS_MODE=iap`, `RVS_ENV=production`, `RVS_SHARED_SECRET=<the Amazon Shared Key>`
+  (since 2026-10-22, see [RVS production](#rvs-production-for-live-app-testing); it was `RVS_ENV=sandbox` with
+  `RVS_SHARED_SECRET=sandbox` before), `PORT=4000`. demo adds `LINGO_PLUS_MODE=demo`, `RVS_ENV=sandbox`, `PORT=4001`; demo mode
+  gives everyone Plus, so the demo API needs `LINGO_ALLOW_UNSAFE_PLUS=true` and logs an `UNSAFE` warning at start. On iap, production
+  RVS with a real key leaves `plusSafetyProblems` empty (`apps/api/src/lib/env.ts`), so `LINGO_ALLOW_UNSAFE_PLUS=true` there is no
+  longer needed and can be removed (not done yet; check the startup log shows no `UNSAFE` line after removing it).
+  **These env files are for judging only and must never be reused for production**: demo gives everyone Plus, and iap still sets
+  `LINGO_ALLOW_UNSAFE_PLUS=true`, which lets an unsafe Plus setup start with only a log warning.
 - systemd unit `lingo-api@.service` (copy in `infra/ec2/`): runs as `lingo`, `ProtectSystem=strict` with no writable path (the API
   writes nothing to disk; tsx caches in the private `/tmp`), plus `PrivateDevices`, `ProtectKernelTunables`, `ProtectControlGroups`,
   `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX` and an empty `CapabilityBoundingSet`. `systemd-analyze security` rates it 4.7 OK.
@@ -92,6 +97,57 @@ sudo systemctl reload caddy                   # after editing /etc/caddy/Caddyfi
 
 All four services are enabled and come back after a reboot (checked 2026-10-22 with `sudo reboot`, before the hardened unit and the
 new Caddyfile; not re-run since). The previous unit and Caddyfile are at `/var/tmp/*.bak` on the box.
+
+## RVS production for Live App Testing
+
+Since 2026-10-22 the iap API verifies receipts against the RVS production server with the developer's Amazon Shared Key
+(https://developer.amazon.com/sdk/shared-key.html). Amazon: "Use the RVS Sandbox Environment along with the App Tester ... Use the RVS
+Production Environment to verify your receipts in production mode and for Live App Testing"
+(https://developer.amazon.com/docs/in-app-purchasing/iap-testing-overview.html). Live App Testing (LAT) testers are not charged.
+
+Consequence: **App Tester receipts no longer verify on the iap API.** To test with App Tester, roll back to sandbox (below). The demo API
+is unchanged (demo mode, Plus for everyone).
+
+Not yet verified with a real LAT purchase. The RVS page says the production server is available after publishing
+(https://developer.amazon.com/docs/in-app-purchasing/iap-rvs-for-android-apps.html), so check the first LAT purchase in
+`sudo journalctl -u lingo-api@iap` (the `/iap/verify` request and its status) and that `/iap/status` then reports `"plus":true` for that
+device.
+
+How it was switched: key file → SSH stdin → `iap.env`, a backup, a restart. The key lives only in a local file on the developer Mac, `~/lingo-rvs-shared-key.txt` (chmod 600). **Never put the
+key in a command line, a chat, a log or the repo**: it goes over SSH stdin, so it is not in the shell history or `ps` on either side.
+
+The same steps as one command (on the Mac):
+
+```sh
+# the key travels on stdin; the remote script writes a new iap.env and keeps a backup
+ssh -i ~/.ssh/lingo-api.pem ubuntu@51.102.187.91 'set -e; read -r KEY
+  ts=$(date +%Y%m%d%H%M%S); sudo cp -p /etc/lingo/iap.env /var/tmp/iap.env.bak-$ts
+  sudo sed -i -e "/^RVS_ENV=/d" -e "/^RVS_SHARED_SECRET=/d" /etc/lingo/iap.env
+  { echo RVS_ENV=production; printf "RVS_SHARED_SECRET=%s\n" "$KEY"; } | sudo tee -a /etc/lingo/iap.env >/dev/null
+  sudo systemctl restart lingo-api@iap' < ~/lingo-rvs-shared-key.txt
+```
+
+Checks after the restart: the startup line in `sudo journalctl -u lingo-api@iap -n 50 -o cat` shows `"RVS_ENV":"production"`;
+`curl -s https://iap-51-102-187-91.sslip.io/health` is `{"ok":true}`; `/iap/status` (see [Checks](#checks)) shows mode `iap` and
+`"plus":false` for a fresh device. `/etc/lingo/iap.env` stays mode 640, root:lingo (`ls -l /etc/lingo`).
+
+Roll back to sandbox (for App Tester), on the box:
+
+```sh
+ls /var/tmp/iap.env.bak-*                      # pick the backup taken before the switch
+sudo install -m 640 -o root -g lingo /var/tmp/iap.env.bak-<timestamp> /etc/lingo/iap.env
+sudo systemctl restart lingo-api@iap           # startup log: "RVS_ENV":"sandbox" and an UNSAFE warning
+```
+
+## Sideload builds
+
+GitHub release `fire-tv-judging-1` (https://github.com/moiz-lakkadkutta/lingo/releases/tag/fire-tv-judging-1) has two APKs:
+`lingo-demo.apk` ("Lingo Plus Demo", `dev.moizp.lingo.demo`, demo API; start here) and `lingo-iap.apk` ("Lingo", `dev.moizp.lingo`,
+iap API; a sideloaded copy cannot buy, since purchases need the Appstore). Stable links:
+https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-demo.apk and
+https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-iap.apk. On the Fire TV: Settings → My Fire TV → Developer
+options → Install unknown apps → turn on Downloader; open Downloader, enter the URL, Install, Open (or `adb install -r <apk>`). The phone
+needs no install: scan the TV's pair QR, the phone app is a web page.
 
 ## Redeploy the API
 
