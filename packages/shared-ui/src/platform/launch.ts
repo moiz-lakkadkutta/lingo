@@ -45,6 +45,15 @@ export function parseLaunchUri(uri: string): LaunchIntent | null {
 
 export function launchUri(slug: string): string { return 'lingo://clip/' + slug }
 
+/** Rewrites '<alias>://…' to 'lingo://…' for each alias scheme (e.g. the Fire OS demo app's 'lingodemo'), so parseLaunchUri reads it.
+ *  Case-insensitive on the scheme, like Android; any other uri comes back trimmed and otherwise unchanged. */
+export function normalizeLaunchUri(uri: string, aliases: readonly string[]): string {
+  const t = uri.trim()
+  const m = /^([a-z][a-z0-9+.-]*):\/\//i.exec(t)
+  if (!m || !aliases.some((a) => a.toLowerCase() === m[1]!.toLowerCase())) return t
+  return 'lingo://' + t.slice(m[0].length)
+}
+
 /** Unique by slug across continue/justRight/harder/fresh, in that order. */
 export function catalogItems(c: Catalog): CatalogItem[] {
   const seen = new Set<string>()
