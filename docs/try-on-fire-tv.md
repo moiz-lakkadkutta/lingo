@@ -191,9 +191,9 @@ Lingo Plus adds Challenge mode, unlimited saved words and slower playback at 0.7
   "That's 20 today. Lingo Plus removes the limit." with a **See Lingo Plus** button. The Plus screen has **Subscribe** and
   **Restore purchase**.
 
-On a sideloaded copy, buying Lingo Plus is not expected to work: the purchase belongs to the Amazon Appstore, and the server checks
-each receipt with Amazon. During development a test purchase worked with Amazon App Tester on the stick, but the judging server is
-being set up for Amazon's Live App Testing, so App Tester purchases are not accepted there. To try the Plus features, use the demo app.
+On a sideloaded copy, buying Lingo Plus only works with Amazon App Tester installed on the Fire TV: the purchase belongs to the
+Amazon Appstore, and the server checks each receipt with Amazon's test service (the RVS sandbox). Without App Tester, the Plus screen
+can't offer a price. To try the Plus features, use the demo app.
 You are not charged for anything in either app.
 
 ## Troubleshooting

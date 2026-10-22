@@ -24,7 +24,7 @@ code is public: https://github.com/moiz-lakkadkutta/lingo.
 | Lingo Plus purchase receipt: Amazon receipt id, Amazon user id (an id Amazon passes to the app for purchases; not your name or email), product, dates, and the receipt details Amazon returns | Amazon Appstore, when you buy Lingo Plus in the "Lingo" app | To check the purchase with Amazon and turn on Plus. The demo app has no purchases |
 | IP address and request details (time, address, response code) | Every request to the server | Server logs, for fixing problems and limiting repeated tries of session codes that do not exist |
 
-The camera on your phone is used only to scan the TV's QR code, in the browser; no image leaves the phone. "Hear it" uses your phone's own
+Lingo does not use your phone's camera: you scan the TV's QR code with your phone's own camera app, which opens the Lingo page. "Hear it" uses your phone's own
 text-to-speech. Video and subtitles are streamed from Amazon CloudFront; the clips are the same for everyone.
 
 ## Where it is stored
