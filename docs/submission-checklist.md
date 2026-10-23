@@ -38,7 +38,7 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 - [x] Kit release: git tag and npm publish of `@moizp/vega-media-kit` · Moiz · Oct 15 · `git -C ../vega-media-kit tag` lists the tag; `npm view @moizp/vega-media-kit version` prints it · **Tag done**: `v0.1.0` (package version 0.1.0) with a GitHub release published 2026-10-14, https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0. **npm published**: `@moizp/vega-media-kit` 0.1.0, MIT, 2026-10-15 (`npm view @moizp/vega-media-kit` checked 2026-10-19)
 - [x] docs/aws.md corrected: Polly removed unless used in code; Nova Pro (default) and Nova Lite prices checked; dev-tooling line confirmed (open question 3) · Scribe · Oct 15 · `grep -rn -i polly apps packages` finds code, or docs/aws.md no longer lists Polly · **2026-10-15**: Polly stays under "Declared, not used" with $0 cost (grep finds only comments and the unused dependency); Nova Pro and Nova Lite prices checked (they match the code); **2026-10-19**: the dev-tooling clause is removed (Kiro Crew and the MCP were not used, reported by Moiz 2026-10-19)
 - [x] docs/feedback.md (five answers) and docs/feature-requests.md (with priorities) filled · Scribe (LING-008) · Oct 15 · no empty template fields left · **Done 2026-10-19** (reported by Moiz 2026-10-19; Sie/du counted over the published cue files)
-- [ ] README: Vega status note, and one screenshot or log per Fire TV integration that exists · Scribe (LING-008) + Moiz · Oct 15 · links from README open · Vega note present; the integration screenshots are pending (no screenshot exists yet; README slots marked)
+- [ ] README: Vega status note, and one screenshot or log per Fire TV integration that exists · Scribe (LING-008) + Moiz · Oct 15 · links from README open · Vega note present; **2026-10-23**: TV screens, Explain card with a saved word, phone Live tab and the Content Launcher deep-link log added (docs/images/readme/, taken on the stick over adb); the IAP purchase screenshot or RVS sandbox log is still pending (App Tester is not installed on the current stick)
 - [x] Montero Perez 2017 source URL found and added to docs/submission.md §16 · Scribe · Oct 15 · URL opens to the article · https://doi.org/10.1080/09588221.2017.1375960 resolves to the publisher's page (checked 2026-10-15)
 - [x] CI green on the default branch · Orchestrator · Oct 15 · CI run link · https://github.com/moiz-lakkadkutta/lingo/actions/runs/39170139834 (main, 2026-10-18)
 
@@ -65,7 +65,7 @@ The definition of done for the hackathon submission (runbook §9), mapped to own
 - [ ] **Devpost forms filled** from docs/submission.md · Moiz (Scribe drafts) · **Oct 21** · every field in the form matches the file
 - [ ] Reviewer reads the forms cold (someone who did not write them) · Reviewer · Oct 21 · list of fixes, all applied
 - [ ] No placeholders left · Scribe · Oct 21 · `grep -n PLACEHOLDER docs/submission.md docs/video-script.md` prints nothing
-- [ ] Wording check on the three files · Scribe · Oct 21 · `pnpm lint:words` exits 0 and the grep in docs/plans/LING-009.md §5 prints nothing
+- [x] Wording check on the three files · Scribe · Oct 21 · `pnpm lint:words` exits 0 and the grep in docs/plans/LING-009.md §5 prints nothing · **2026-10-23**: both clean
 - [ ] Moiz signs off · Moiz · Oct 21 · written "OK to submit" in the session
 
 ### Oct 22 (submit)
