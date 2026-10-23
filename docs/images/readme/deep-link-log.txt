@@ -1,0 +1,17 @@
+# Content Launcher deep link on a Fire TV Stick (AFTSSS, iap build dev.moizp.lingo), cold start, 2026-10-23
+# Result: the app starts straight into the Player for terra-x-friedlaender (UI dump: "Video. Press Select to pause and explain this line.")
+
+$ adb shell am start -W -a android.intent.action.VIEW -d lingo://clip/terra-x-friedlaender dev.moizp.lingo
+Starting: Intent { act=android.intent.action.VIEW (has data) pkg=dev.moizp.lingo }
+Status: ok
+Activity: dev.moizp.lingo/.MainActivity
+ThisTime: 1095
+TotalTime: 954
+WaitTime: 1559
+Complete
+
+$ adb logcat -d | grep ActivityManager
+10-23 21:02:43.545   532  3855 I ActivityManager: START u0 {act=android.intent.action.VIEW (has data) flg=0x10000000 pkg=dev.moizp.lingo cmp=dev.moizp.lingo/.MainActivity} from uid 2000
+10-23 21:02:44.035   532   553 I ActivityManager: Start proc 16925:dev.moizp.lingo/u0a236 for activity dev.moizp.lingo/.MainActivity
+10-23 21:02:45.089   532   559 I ActivityManager: Displayed dev.moizp.lingo/.MainActivity: +1s95ms (total +954ms)
+10-23 21:02:46.238 16925 17003 I ReactNativeJS: Running "main"
