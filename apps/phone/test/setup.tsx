@@ -52,7 +52,7 @@ vi.mock('react-native', () => {
 vi.mock('expo-speech', () => ({ speak: vi.fn(), stop: vi.fn() }))
 vi.mock('expo-camera', () => ({ CameraView: host('CameraView'), useCameraPermissions: () => [{ granted: true }, vi.fn()] }))
 vi.mock('expo-device', () => ({ deviceName: 'Test phone' }))
-vi.mock('expo-linking', () => ({ useURL: () => null }))
+vi.mock('expo-linking', () => ({ useURL: () => null, getInitialURL: async () => null }))
 vi.mock('expo-crypto', () => ({ randomUUID: () => '00000000-0000-4000-8000-000000000000' }))
 vi.mock('@react-native-async-storage/async-storage', () => {
   const m = new Map<string, string>()

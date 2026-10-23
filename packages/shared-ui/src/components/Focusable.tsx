@@ -15,6 +15,9 @@ export interface FocusableProps {
   label: string // aria-label: purpose, not "button"
   hint?: string
   selected?: boolean
+  /** false: `selected` is announced (aria-selected) but draws no ring — the caller marks it another way (Rail: bar + fill), so a
+   *  selected item never looks like the focused one (device test 2026-10-23, shots 10, 62). Default true. */
+  selectedRing?: boolean
   style?: ViewStyle
   hasTVPreferredFocus?: boolean
   testID?: string
@@ -35,7 +38,7 @@ export interface FocusableProps {
 }
 
 /** Focus is a physical change: outline + 1.04 scale in 150 ms. Selected is a persistent accent ring. Never colour alone. */
-export function Focusable({ children, variant, onPress, onFocus, onBlur, label, hint, selected, style, hasTVPreferredFocus, testID, focusRef, nextFocusUp, nextFocusDown, nextFocusLeft, nextFocusRight, disabled, tone }: FocusableProps) {
+export function Focusable({ children, variant, onPress, onFocus, onBlur, label, hint, selected, selectedRing = true, style, hasTVPreferredFocus, testID, focusRef, nextFocusUp, nextFocusDown, nextFocusLeft, nextFocusRight, disabled, tone }: FocusableProps) {
   const [focused, setFocused] = useState(false)
   const links = { nextFocusUp, nextFocusDown, nextFocusLeft, nextFocusRight }
   const [selfRef, self] = useSelfHandle(Object.values(links).includes('self'))
@@ -70,7 +73,7 @@ export function Focusable({ children, variant, onPress, onFocus, onBlur, label, 
           styles.base,
           style,
           fill !== undefined && { backgroundColor: fill },
-          selected && !tone && { borderColor: tokens.color.interactive, borderWidth: px(3) },
+          selected && selectedRing && !tone && { borderColor: tokens.color.interactive, borderWidth: px(3) },
           tone && { borderColor: tone === 'correct' ? tokens.color.interactive : tokens.color.incorrect, borderWidth: px(3) },
           focused && !ringed && { borderColor: tokens.color.focus, borderWidth: px(tokens.focus.width), margin: -px(tokens.focus.width) },
           { transform: [{ scale }] },

@@ -28,3 +28,10 @@ describe('focusable labels state their purpose (PR #2 review B-L7)', () => {
     expect(hits).toEqual([])
   })
 })
+
+describe('pair copy (device test 2026-10-23)', () => {
+  it('points to the phone page, not an app', () => {
+    expect(strings.pair.body).toMatch(/phone page/)
+    expect(strings.pair.body).not.toMatch(/\bapp\b/i)
+  })
+})

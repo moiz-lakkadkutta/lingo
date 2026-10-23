@@ -32,6 +32,7 @@ function fakeServer(o: { me?: Partial<LearnerDto>; down?: boolean } = {}) {
     if (path === '/me/progress') { const b = JSON.parse(String(init!.body)); state.progress.set(b.clipSlug, b); return ok(b) }
     if (path === '/me/level') return ok({ level: state.me.level, changed: null })
     if (path === '/me/library') return ok([])
+    if (path === '/clips/attributions') return ok([{ slug: 'zug', title: 'Title zug', attribution: 'By zug, CC BY 4.0' }, { slug: 'b2-de', title: 'Ein B2-Clip', attribution: 'By b2, CC BY 4.0' }, { slug: 'en-a2', title: 'An English clip', attribution: 'By en, CC BY 4.0' }])
     return { status: 404, json: async () => ({ success: false, error: { code: 'NOT_FOUND', message: path } }) }
   })
   return { calls, state, fetchImpl }
@@ -335,5 +336,21 @@ describe('Root · Lingo Plus (LING-007 wiring)', () => {
   it('without a store (noStore) there is no startup restore and no /iap/status call', async () => {
     const { srv } = await boot()
     expect(srv.calls.some((c) => c.path.startsWith('/iap'))).toBe(false)
+  })
+})
+
+describe('Root · About & attributions (device test 2026-10-23)', () => {
+  it('lists every published clip from /clips/attributions, not only the current Home rows, even right after a level change', async () => {
+    const { r, srv, remote } = await boot()
+    await press(byLabel(r, strings.rail.label(strings.rail.settingsLabel)))
+    await settle()
+    focus(byLabel(r, strings.settings.rowLabel(strings.settings.level, 'about A2')))
+    act(() => remote.emit({ eventType: 'right' })) // the catalog is dropped and not refetched until Home
+    await settle()
+    await press(byLabel(r, strings.settings.linkLabel(strings.settings.about, strings.settings.open)))
+    await settle()
+    expect(srv.calls.some((c) => c.path === '/clips/attributions')).toBe(true)
+    expect(texts(r)).toEqual(expect.arrayContaining([strings.about.clips, 'Title zug — By zug, CC BY 4.0', 'Ein B2-Clip — By b2, CC BY 4.0', 'An English clip — By en, CC BY 4.0']))
+    expect(texts(r)).not.toContain(strings.about.clipsLoading)
   })
 })

@@ -37,8 +37,9 @@ export const tokens = {
     cueNative: { family: 'NotoSans-Regular', weight: '400', size: 32, line: 40 },
   } as Record<TypeRole, { family: string; weight: '400' | '700'; size: number; line: number; tracking?: number; tabular?: boolean }> & { floor: number },
   layout: { safeX: 96, safeY: 54, rail: 96, railExpanded: 336, cardW: 412, cardH: 232, gutter: 24, heroH: 520, explainW: 880, explainPad: 32, explainGap: 12, holdBarH: 4, progressBarH: 4, progressPadX: 16, progressPadY: 8, wordGap: 12, wordPadX: 6, sheetW: 640,
-    /** list rows (Settings, Words): width, min height, inner padding, gap between rows, the right-aligned value column */
-    rowW: 1100, rowH: 88, rowPadX: 28, rowPadY: 14, rowGap: 12, rowValueW: 460, panelPad: 24, miniW: 640, miniH: 360 },
+    /** list rows (Settings, Words): width, min height, inner padding, gap between rows, the right-aligned value column;
+     *  wordColW: the Words row's word + gloss column, which never shrinks (device test 2026-10-23: it collapsed beside the mini player) */
+    rowW: 1100, rowH: 88, rowPadX: 28, rowPadY: 14, rowGap: 12, rowValueW: 460, wordColW: 480, panelPad: 24, miniW: 640, miniH: 360 },
   /** corner radii in px at 1920×1080 (sm: chips, md: cards and rows, lg: panels and sheets) */
   radius: { sm: 3, md: 6, lg: 8 },
   focus: { width: 4, offset: 3, wordWidth: 3, wordOffset: 2 },

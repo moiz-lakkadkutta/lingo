@@ -8,6 +8,7 @@ import { pickPreferred, type FocusMemoryProps } from '../nav/focusMemory'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
+import { focusBleed } from '../theme/bleed'
 
 export interface HomeProps extends FocusMemoryProps {
   catalog: Resource<Catalog>; learner: LearnerDto; onReload(): void
@@ -90,7 +91,8 @@ export function Home({ catalog, learner, onReload, onWatch, onOpen, onRail, onSe
   const at = hero?.resumeS ? formatClock(hero.resumeS) : null // 0 s (added to Continue, not started) reads Watch
   return (
     <Screen rail={rail}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Reaches left by a focused card's bleed and pads it back, so Resume, Your words and the first card show their whole focus. */}
+      <ScrollView testID="home-scroll" showsVerticalScrollIndicator={false} style={{ marginLeft: -focusBleed(tokens.layout.cardW) }} contentContainerStyle={{ paddingLeft: focusBleed(tokens.layout.cardW) }}>
         {hero ? (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: px(tokens.layout.heroH), marginBottom: px(40) }}>
             <View style={{ flex: 1, gap: px(16), paddingRight: px(48) }}>

@@ -14,7 +14,7 @@ import { useRemoteKeys } from '../remote/useRemoteKeys'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
-import { oneLine, wordsLayout } from './words/layout'
+import { focusOverhang, oneLine, wordsLayout } from './words/layout'
 
 export interface WordsProps extends FocusMemoryProps {
   words: Resource<LibraryWord[]>; filter: WordsFilter; onFilter(f: WordsFilter): void; remote: RemoteSource
@@ -87,8 +87,11 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
     const ids = list.map((x) => `word:${x.savedWordId}`)
     if (pref.current?.filter !== filter) pref.current = { filter, id: pickPreferred(lastFocused.current, ids, ids[0]!) }
     const preferredId = pref.current.id
+    // The ScrollView clips its content, so it reaches left into the safe area by a focused row's overhang and pads it back:
+    // rows stay aligned with the header and the 1.04 scale + outline are drawn in full (device test 2026-10-23, shot 60).
+    const reach = px(Math.ceil(focusOverhang(layout.listW)))
     body = (
-      <ScrollView key={filter} showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(12), paddingVertical: px(8) }}>
+      <ScrollView key={filter} testID="words-scroll" showsVerticalScrollIndicator={false} style={{ marginLeft: -reach }} contentContainerStyle={{ gap: px(12), paddingVertical: px(8) + reach / 2, paddingLeft: reach }}>
         {list.map((x) => {
           const id = `word:${x.savedWordId}`
           const due = dueLabel(x.due, now)
@@ -103,11 +106,13 @@ export function Words({ words, filter, onFilter, remote, now: nowProp, onReload,
               }}
               style={{ width: px(layout.listW), minHeight: px(tokens.layout.rowH), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: px(tokens.layout.gutter), paddingHorizontal: px(tokens.layout.rowPadX), paddingVertical: px(tokens.layout.rowPadY), borderRadius: px(tokens.radius.md), backgroundColor: tokens.color.surface1 }}
             >
-              <View style={{ flex: 1 }}>
-                <T variant="title">{x.lemma}</T>
+              {/* Device test 2026-10-23 (shots 57, 60): the word column has a fixed width that never shrinks, so a word is never broken
+                  mid-word and the gloss gets room; the clip column takes what is left and ellipsises its one-line title. */}
+              <View testID="word-col" style={{ width: px(tokens.layout.wordColW), flexShrink: 0 }}>
+                <T variant="title" numberOfLines={1}>{x.lemma}</T>
                 <T variant="body" color={tokens.color.textSecondary} numberOfLines={1}>{x.gloss}</T>
               </View>
-              <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
+              <View testID="clip-col" style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
                 <T variant="label">{due}</T>
                 <T variant="label" color={tokens.color.textSecondary} numberOfLines={1}>{x.clip.title}</T>
               </View>

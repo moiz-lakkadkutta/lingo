@@ -54,13 +54,18 @@ describe('components', () => {
     expect(card.some((s) => s.width === tokens.layout.cardW && s.height === tokens.layout.cardH && s.backgroundColor === tokens.color.surface2)).toBe(true)
     expect(render(<SkeletonRow />).root.findAll((n) => is(n, 'View') && flat(n.props.style).height === tokens.layout.cardH)).toHaveLength(4)
   })
-  it('Rail labels every item with its purpose and marks the current one with a ring and a bar', () => {
+  it('Rail labels every item with its purpose and marks the current one with a fill and a bar, never a focus-like ring', () => {
     const onSelect = vi.fn()
     const r = render(<Rail items={railItems} current="home" onSelect={onSelect} />)
     expect(labels(r)).toEqual(railItems.map((i) => strings.rail.label(i.label)))
     const items = pressables(r)
     expect(items[0]!.props['aria-selected']).toBe(true)
-    expect(box(items[0]!)).toMatchObject({ borderColor: tokens.color.interactive, borderWidth: 3 })
+    expect(box(items[0]!)).toMatchObject({ backgroundColor: tokens.color.surface2 })
+    expect(box(items[0]!).borderWidth).toBe(0) // device test 2026-10-23: no ring while focus is elsewhere
+    expect(box(items[1]!).backgroundColor).toBe('transparent')
+    focus(items[0]!) // focus is still the outline + scale
+    expect(box(items[0]!)).toMatchObject({ borderColor: tokens.color.focus, borderWidth: tokens.focus.width })
+    blur(items[0]!)
     expect(r.root.findAll((n) => is(n, 'View') && n.props.testID === 'rail-current-bar')).toHaveLength(1)
     expect(flat(r.root.find((n) => n.props.testID === 'rail-current-bar').props.style)).toMatchObject({ width: 4, backgroundColor: tokens.color.interactive })
     // collapsed: a distinct short form per item (Watch and Words were both "W"); focused: full labels in a 336 px overlay, the slot stays 96 px

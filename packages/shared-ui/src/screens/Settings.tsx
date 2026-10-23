@@ -10,6 +10,7 @@ import { useRemoteKeys } from '../remote/useRemoteKeys'
 import { strings } from '../strings'
 import { tokens } from '../theme/tokens'
 import { px } from '../theme/scale'
+import { focusBleed } from '../theme/bleed'
 import { cycleSetting, selectSetting, settingsRows, type SettingsAction, type SettingsKey } from './settings/model'
 
 const L = tokens.layout
@@ -35,18 +36,26 @@ export function Settings({ learner, phoneName, remote, status, onAction, initial
     act(cycleSetting(focused.current, e.key === 'right' ? 1 : -1, live.current.learner))
   }, true)
 
+  // The list reaches left by a focused row's bleed and pads it back; the first and last rows scroll fully into view with their padding,
+  // so their focus is never cut at the ScrollView's edge (device test 2026-10-23, shot 70).
+  const scroll = useRef<ScrollView | null>(null)
+  const bleedX = focusBleed(L.rowW), bleedY = Math.max(px(8), focusBleed(L.rowH))
   return (
     <Screen>
       <T variant="display" style={{ marginBottom: px(24) }}>{strings.settings.title}</T>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: px(L.rowGap), paddingVertical: px(8) }}>
-        {rows.map((r) => {
+      <ScrollView ref={scroll} testID="settings-scroll" showsVerticalScrollIndicator={false} style={{ marginLeft: -bleedX }} contentContainerStyle={{ gap: px(L.rowGap), paddingVertical: bleedY, paddingLeft: bleedX, paddingRight: bleedX }}>
+        {rows.map((r, i) => {
           const id = `row:${r.key}`
           // A link row's value is worth showing only when it says something ("Not paired", "On"); About's value is just "Open".
           const linkValue = r.kind === 'link' && r.value !== strings.settings.open ? r.value : null
           return (
             <Focusable
               key={r.key} label={r.label} hasTVPreferredFocus={preferred === id}
-              onFocus={() => { focused.current = r.key; onFocusId(id) }}
+              onFocus={() => {
+                focused.current = r.key; onFocusId(id)
+                if (i === 0) scroll.current?.scrollTo?.({ y: 0, animated: true })
+                else if (i === rows.length - 1) scroll.current?.scrollToEnd?.({ animated: true })
+              }}
               onPress={() => act(selectSetting(r.key, live.current.learner))}
               style={{ width: px(L.rowW), minHeight: px(L.rowH), flexDirection: 'row', alignItems: 'center', gap: px(L.gutter), paddingHorizontal: px(L.rowPadX), paddingVertical: px(L.rowPadY), borderRadius: px(tokens.radius.md), backgroundColor: tokens.color.surface1 }}
             >

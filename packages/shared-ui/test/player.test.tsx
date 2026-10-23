@@ -4,6 +4,7 @@ import { DualCue } from '../src/components/DualCue'
 import { Explain } from '../src/screens/Explain'
 import { MEASURE_FALLBACK_MS, Player, type PlayerProps } from '../src/screens/Player'
 import { ProgressStrip, PROGRESS_STRIP_H } from '../src/screens/player/ProgressStrip'
+import { StatusLine } from '../src/screens/player/StatusLine'
 import { tokens } from '../src/theme/tokens'
 import { createRemoteBus } from '../src/remote/types'
 import { strings } from '../src/strings'
@@ -157,5 +158,17 @@ describe('Player · Explain card placement and the progress strip (review M2, M3
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('Player · status line backing (device test 2026-10-23)', () => {
+  it('the bottom-left hint and status sit on the cue box, in text colour, like the subtitles', () => {
+    const r = render(<StatusLine parts={['Challenge', '0.75×', strings.player.seekHint]} visible />)
+    const box = r.root.findAll((n) => n.props.testID === 'status-line')[0]!
+    expect(flat(box.props.style)).toMatchObject({ backgroundColor: tokens.color.cueBox, borderRadius: tokens.radius.lg, paddingHorizontal: tokens.layout.progressPadX })
+    expect(texts(r)).toEqual([`Challenge · 0.75× · ${strings.player.seekHint}`])
+  })
+  it('renders nothing while the chrome is hidden', () => {
+    expect(render(<StatusLine parts={['Challenge']} visible={false} />).toJSON()).toBeNull()
   })
 })

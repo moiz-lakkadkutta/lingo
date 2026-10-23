@@ -17,7 +17,8 @@ export interface RailProps {
 }
 /**
  * Left rail: a 96 px slot that never changes width. While any item has focus, a 336 px surface1 panel with full labels is drawn over
- * the content (absolute), so the content never reflows. Current item: selected ring + interactive text + a 4 px bar on its left edge.
+ * the content (absolute), so the content never reflows. Current item: surface2 fill + interactive text + a 4 px bar on its left edge — no
+ * ring, so it never looks like focus (outline + 1.04 scale), which can then sit elsewhere without two outlines on screen.
  */
 export function Rail({ items, current, onSelect, rightTarget, itemRefs, initialFocus, onFocusId }: RailProps) {
   const [focused, setFocused] = useState<RailItem['key'] | null>(null)
@@ -31,13 +32,13 @@ export function Rail({ items, current, onSelect, rightTarget, itemRefs, initialF
             <View key={it.key} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View testID={cur ? 'rail-current-bar' : undefined} style={{ width: px(4), alignSelf: 'stretch', backgroundColor: cur ? tokens.color.interactive : 'transparent' }} />
               <Focusable
-                label={strings.rail.label(it.label)} selected={cur} onPress={() => onSelect(it.key)}
+                label={strings.rail.label(it.label)} selected={cur} selectedRing={false} onPress={() => onSelect(it.key)}
                 hasTVPreferredFocus={initialFocus === `rail:${it.key}`}
                 focusRef={itemRefs ? (r) => { itemRefs.current[it.key] = r } : undefined}
                 nextFocusRight={rightTarget}
                 onFocus={() => { setFocused(it.key); onFocusId?.(`rail:${it.key}`) }}
                 onBlur={() => setFocused((f) => (f === it.key ? null : f))}
-                style={{ paddingVertical: px(20), paddingHorizontal: px(20), minWidth: px(tokens.layout.rail - 16) }}
+                style={{ paddingVertical: px(20), paddingHorizontal: px(20), minWidth: px(tokens.layout.rail - 16), borderRadius: px(tokens.radius.md), backgroundColor: cur ? tokens.color.surface2 : 'transparent' }}
               >
                 <T variant="label" color={cur ? tokens.color.interactive : tokens.color.textSecondary}>{open ? it.text : it.short}</T>
               </Focusable>
