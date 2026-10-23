@@ -6,6 +6,7 @@ import { SessionDto } from '@lingo/contracts'
 import type { ClientToServerEvents, ServerToClientEvents } from '@lingo/contracts'
 import { db } from '../src/lib/db'
 import { createServer, type LingoIo } from '../src/server'
+import { QUIZ_EVENTS_PER_MIN } from '../src/sockets'
 
 // Harness as in realtime.test.ts. quiz:start / quiz:result go to the room except the sender, and only from a socket that joined it.
 type Client = Socket<ServerToClientEvents, ClientToServerEvents>
@@ -95,5 +96,27 @@ describe('quiz events', () => {
     phone.emit('quiz:result', { code, correct: 4, total: 3 })
     expect((await err).code).toBe('VALIDATION')
     expect(await toTv).toBe(false)
+  })
+  it(`more than ${QUIZ_EVENTS_PER_MIN} quiz events a minute from one socket get session:error RATE_LIMITED and are not relayed`, async () => {
+    const { code, tv, phone } = await pair()
+    let relayed = 0
+    phone.on('quiz:start', () => { relayed++ })
+    const err = once(tv, 'session:error', 3000)
+    for (let i = 0; i <= QUIZ_EVENTS_PER_MIN; i++) tv.emit('quiz:start', { code })
+    expect((await err).code).toBe('RATE_LIMITED')
+    await new Promise((r) => setTimeout(r, 200))
+    expect(relayed).toBe(QUIZ_EVENTS_PER_MIN)
+  })
+  it('joining another code leaves the previous room, and that TV hears the phone left', async () => {
+    const a = await pair()
+    const b = await session()
+    const left = once(a.tv, 'phone:disconnected')
+    const joined = once(a.phone, 'phone:connected')
+    a.phone.emit('join', { code: b, role: 'phone' })
+    await joined
+    expect(await left).toEqual({ code: a.code })
+    const stale = arrives(a.phone, 'quiz:start')
+    a.tv.emit('quiz:start', { code: a.code })
+    expect(await stale).toBe(false)
   })
 })

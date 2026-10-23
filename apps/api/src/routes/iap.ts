@@ -3,7 +3,7 @@ import { VerifyReceipt, type VerifyResult } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { acceptsSku, entitled, isActive, plusStatus, purchaseFields } from '../lib/entitlement'
 import { env } from '../lib/env'
-import { AppError, ok, validate } from '../lib/http'
+import { ok, validate } from '../lib/http'
 import { learner } from '../lib/learner'
 import { logger } from '../lib/logger'
 import type { RvsClient } from '../lib/rvs'
@@ -22,8 +22,7 @@ export function iapRouter(deps: { rvs: RvsClient; now: () => Date }): Router {
   r.post('/verify', validate(VerifyReceipt, (q) => q.body), async (req, res, next) => {
     try {
       const body = (req as never as { valid: VerifyReceipt }).valid
-      // A receipt always belongs to a device: without x-device-id it would land on the shared 'anon' learner (review-007 L3).
-      if (!req.header('x-device-id')?.trim()) throw new AppError(400, 'VALIDATION', 'x-device-id: required')
+      // A receipt always belongs to a device (review-007 L3): learner() answers 400 VALIDATION without x-device-id.
       const l = await learner(req)
       const now = deps.now()
       const answer = async (outcome: VerifyResult['outcome'], fulfil: boolean) => {

@@ -174,7 +174,8 @@ describe('learner lookup shared with /me (LING-006) and Plus from entitled() (LI
     const r = await request(app).get('/me/library').set('x-session-code', sc).set('x-device-id', other)
     expect(r.status).toBe(200)
     expect(r.body.data).toEqual([]) // the phone's own (empty) learner, not the TV's
-    expect((await request(app).get('/catalog').set('x-session-code', code())).status).toBe(200)
+    expect((await request(app).get('/catalog').set('x-session-code', code()).set('x-device-id', other)).status).toBe(200)
+    expect((await request(app).get('/catalog').set('x-session-code', code())).status).toBe(400) // the code is ignored, so x-device-id is required
     const before = await row(dev)
     expect((await put('/level', other, { level: 'B2', source: 'settings' }).set('x-session-code', sc)).status).toBe(200)
     expect((await row(dev)).level).toBe(before.level)

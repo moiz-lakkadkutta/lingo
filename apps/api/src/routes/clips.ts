@@ -3,7 +3,7 @@ import { highlightFloor } from '@lingo/contracts'
 import { db } from '../lib/db'
 import { cdn, manifestUrl } from '../lib/cdn'
 import { notFound, ok } from '../lib/http'
-import { learner as resolveLearner } from '../lib/learner'
+import { nativeOf, learner as resolveLearner } from '../lib/learner'
 export const clips: Router = Router()
 const ETA_MIN = 3, MEET_MAX = 8
 /** About & attributions: the credit line of every published clip, all languages and levels, sorted by title. One narrow select;
@@ -23,7 +23,7 @@ clips.get('/:slug', async (req, res, next) => {
     const p = await db.progress.findUnique({ where: { learnerId_clipId: { learnerId: learner.id, clipId: c.id } } })
     const card = { slug: c.slug, title: c.title, level: c.level, durationS: c.durationS, posterUrl: cdn(c.posterKey), resumeS: p && !p.completed ? p.positionS : null, completed: !!p?.completed, attribution: c.attribution }
     if (c.status !== 'published') return ok(res, { ...card, status: 'preparing', etaMin: ETA_MIN })
-    const native = String(req.header('x-native') ?? 'en')
+    const native = nativeOf(req)
     const floor = highlightFloor(learner.level)
     const cues = c.cues.map((q) => ({
       index: q.index, startS: q.startMs / 1000, endS: q.endMs / 1000, text: q.text,

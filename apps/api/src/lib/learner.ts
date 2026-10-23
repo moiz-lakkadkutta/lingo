@@ -1,7 +1,7 @@
 import type { Learner } from '@prisma/client'
-import { DEVICE_ID_HEADER, DEVICE_ID_RE, SESSION_CODE_HEADER, SESSION_CODE_RE } from '@lingo/contracts'
+import { DEVICE_ID_HEADER, DEVICE_ID_RE, NativeLang, SESSION_CODE_HEADER, SESSION_CODE_RE, type NativeLangCode } from '@lingo/contracts'
 import { db } from './db'
-import { AppError } from './http'
+import { AppError, rateLimited } from './http'
 import { codeMisses, type MissLimiter } from './rateLimit'
 export interface HeaderSource { header(name: string): string | undefined; ip?: string }
 export interface LearnerOpts {
@@ -15,28 +15,37 @@ export interface LearnerOpts {
 const UNKNOWN = () => new AppError(404, 'UNKNOWN_CODE', 'No TV with that code')
 /**
  * x-device-id, checked against DEVICE_ID_RE (PR #2 review A-L2: an unchecked 5 KB id overflowed the unique index and answered 500).
- * Missing → 'anon' (review A-L3, tracked in TASKS.md). Malformed → 400 VALIDATION.
+ * Missing → 400 VALIDATION (review A-L3: it used to fall back to one shared 'anon' learner; every shipped TV and phone sends it).
+ * Malformed → 400 VALIDATION.
  */
 export function deviceIdOf(req: Pick<HeaderSource, 'header'>): string {
   const raw = req.header(DEVICE_ID_HEADER)
-  if (raw === undefined) return 'anon'
+  if (raw === undefined) throw new AppError(400, 'VALIDATION', `${DEVICE_ID_HEADER}: required`)
   if (!DEVICE_ID_RE.test(raw)) throw new AppError(400, 'VALIDATION', `${DEVICE_ID_HEADER}: up to 128 letters, digits, ".", "_", ":" or "-"`)
   return raw
 }
 /**
- * The learner a request acts for.
+ * The x-native header (the TV's "I speak" code, for native lines): a NATIVE_LANGS code, else 'en', the value a missing header always had.
+ * An open string reached a Record lookup, where `__proto__` returned Object.prototype instead of a line.
+ */
+export function nativeOf(req: Pick<HeaderSource, 'header'>): NativeLangCode {
+  const r = NativeLang.safeParse(req.header('x-native'))
+  return r.success ? r.data : 'en'
+}
+/**
+ * The learner a request acts for. A known session code is the credential on its own; every other lookup needs x-device-id (deviceIdOf).
  * With allowCode and x-session-code present and non-empty: trim + uppercase; a malformed code and a well-formed code with no
  * Session both answer 404 UNKNOWN_CODE (one answer, so a code's existence can't be probed by its format), and each counts a miss
  * against the client IP. An IP with too many misses gets 429 RATE_LIMITED for any code until its window passes.
  * A known code → the session's learner (the phone sees and grades the TV's words; the code is the pairing secret,
- * docs/decisions/0005-realtime-session.md). Otherwise: upsert by x-device-id (default 'anon'). lastActive = now either way.
+ * docs/decisions/0005-realtime-session.md). Otherwise: upsert by x-device-id (required). lastActive = now either way.
  */
 export async function learner(req: HeaderSource, opts: LearnerOpts = {}): Promise<Learner> {
   const raw = opts.allowCode ? req.header(SESSION_CODE_HEADER)?.trim() : undefined
   if (raw) {
     const limiter = opts.limiter ?? codeMisses
     const key = req.ip ?? 'unknown'
-    if (limiter.blocked(key)) throw new AppError(429, 'RATE_LIMITED', 'Too many tries. Wait a minute and try again.')
+    if (limiter.blocked(key)) throw rateLimited('Too many tries. Wait a minute and try again.', limiter.retryAfterS(key))
     const code = raw.toUpperCase()
     if (!SESSION_CODE_RE.test(code)) { limiter.miss(key); throw UNKNOWN() }
     const session = await db.session.findUnique({ where: { code }, select: { learnerId: true } })

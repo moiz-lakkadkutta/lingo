@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '../lib/db'
 import { manifestUrl } from '../lib/cdn'
 import { AppError, notFound, ok, validate } from '../lib/http'
-import { learner as resolveLearner } from '../lib/learner'
+import { nativeOf, learner as resolveLearner } from '../lib/learner'
 import { levelAfterQuiz } from '../lib/levelRule'
 import { toLibraryWord } from '../lib/library'
 /** TV-only learner routes (LING-005), mounted at /me before the `me` router. Same learner lookup as /me (lib/learner.ts) with x-device-id only: an x-session-code is ignored here, so a paired phone can't change the TV's progress or level. */
@@ -56,7 +56,7 @@ learning.get('/library', async (req, res, next) => {
   try {
     const l = await resolveLearner(req)
     const rows = await db.savedWord.findMany({ where: { learnerId: l.id }, include: { highlight: { include: { cue: { include: { clip: true } } } } }, orderBy: { due: 'asc' } })
-    const native = String(req.header('x-native') ?? 'en')
+    const native = nativeOf(req)
     ok(res, rows.map((r) => toLibraryWord(r, native, manifestUrl)))
   } catch (e) { next(e) }
 })
