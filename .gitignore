@@ -23,3 +23,6 @@ apps/expo/ios
 
 # Real AWS resource IDs for the EC2 judging server (docs/deploy/ec2.md)
 infra/ec2-resources.local.md
+
+# Playwright MCP scratch (snapshots, console logs)
+.playwright-mcp/
