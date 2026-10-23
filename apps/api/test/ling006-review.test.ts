@@ -40,7 +40,7 @@ describe('M1: the session code only reads and reviews', () => {
     const t = await tv()
     const before = await db.learner.findUniqueOrThrow({ where: { deviceId: t.deviceId } })
     const r = await request(app).put('/me').set('x-session-code', t.code).send({ learning: 'en', cueScale: 1.5 })
-    expect(r.status).toBe(200)
+    expect(r.status).toBe(400) // the code is ignored here and x-device-id is required (no shared 'anon' learner)
     const after = await db.learner.findUniqueOrThrow({ where: { deviceId: t.deviceId } })
     expect({ learning: after.learning, cueScale: after.cueScale }).toEqual({ learning: before.learning, cueScale: before.cueScale })
   })

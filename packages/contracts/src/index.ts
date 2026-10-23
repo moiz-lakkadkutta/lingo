@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { Lang, Level } from './base'
+import { ClipSlug, NativeSetting } from './tv'
 export { Lang, Level } from './base'
 export { LEVELS, BANDS, NEXT, highlightFloor } from './base'
 export * from './prepared'
@@ -28,10 +29,12 @@ export const CueScale = z.number().min(1).max(1.5)
 export const LearnerDto = z.object({ learning: Lang, native: z.string(), level: Level, plus: z.boolean(), streak: z.number().int(), firstRunDone: z.boolean(), nativeLine: NativeLine.default('always'), autoPause: z.boolean().default(false), cueScale: CueScale.default(1) })
 /** PUT /me body: only what the learner may change. Strict, so a forbidden key is a 400, not silently dropped.
  *  plus is set only by /iap/verify, level only by PUT /me/level (LING-005), streak and knownRank only server-side. */
-export const LearnerSettingsPatch = z.object({ learning: Lang, native: z.string().min(1), firstRunDone: z.boolean(), nativeLine: NativeLine, autoPause: z.boolean(), cueScale: CueScale }).partial().strict()
+export const LearnerSettingsPatch = z.object({ learning: Lang, native: NativeSetting, firstRunDone: z.boolean(), nativeLine: NativeLine, autoPause: z.boolean(), cueScale: CueScale }).partial().strict()
 /** reviewId: made once per card on the phone and resent on a retry, so a retry after a lost answer never applies SM-2 twice (unique per saved word). */
 export const ReviewId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/, '8-64 letters, digits, _ or -')
-export const ReviewPost = z.object({ savedWordId: z.string(), grade: z.enum(['again', 'hard', 'good', 'easy']), reviewId: ReviewId.optional() })
+/** Row ids are cuids (25 characters); the cap only bounds what a body can carry. */
+export const RowId = z.string().min(1).max(64)
+export const ReviewPost = z.object({ savedWordId: RowId, grade: z.enum(['again', 'hard', 'good', 'easy']), reviewId: ReviewId.optional() })
 export type ReviewPost = z.infer<typeof ReviewPost>
 export const DueWord = z.object({
   savedWordId: z.string(), highlightId: z.string(),
@@ -46,7 +49,7 @@ export const SESSION_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/
 export const SessionCode = z.string().regex(SESSION_CODE_RE, 'six characters, no 0/O/1/I')
 export const SessionDto = z.object({ code: SessionCode, joinUrl: z.string() })
 /** sessionCode is validated here so a bad code is a 400 before any row is written (the emit must never decide the HTTP result). */
-export const SaveWord = z.object({ highlightId: z.string(), sessionCode: SessionCode.optional() })
+export const SaveWord = z.object({ highlightId: RowId, sessionCode: SessionCode.optional() })
 
 /** Typed code, scanned QR text, or deep-link URL → code. Uppercases; takes the last path segment. The code is the single source of truth; the URL is only a carrier. */
 export function extractSessionCode(input: string): string | null {
@@ -69,7 +72,7 @@ export const WordSavedPayload = z.object({
   word: z.string(), lemma: z.string(), gloss: z.string(), example: z.string(), level: Level,
   clipSlug: z.string().nullable(), clipTitle: z.string().nullable(), savedAt: z.string().datetime(),
 })
-export const QuizStartPayload = z.object({ code: SessionCode, clipSlug: z.string().nullable().default(null) })
+export const QuizStartPayload = z.object({ code: SessionCode, clipSlug: z.string().max(128).nullable().default(null) })
 export const QuizResultPayload = z.object({ code: SessionCode, correct: z.number().int().min(0), total: z.number().int().min(0) })
   .refine((r) => r.correct <= r.total, 'correct ≤ total')
 export const SessionErrorPayload = z.object({ code: z.enum(['UNKNOWN_CODE', 'VALIDATION', 'INTERNAL', 'RATE_LIMITED']), message: z.string() })

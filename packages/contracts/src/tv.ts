@@ -7,11 +7,17 @@ export const NATIVE_LANGS = [
   { code: 'ro', name: 'Română' },
 ] as const
 export type NativeLangCode = (typeof NATIVE_LANGS)[number]['code']
-export const ProgressPut = z.object({ clipSlug: z.string().min(1), positionS: z.number().min(0), completed: z.boolean().default(false) })
+/** A NATIVE_LANGS code: PUT /me `native` and the x-native header accept only these (an open string let any value be stored). */
+export const NativeLang = z.enum(NATIVE_LANGS.map((l) => l.code) as [NativeLangCode, ...NativeLangCode[]])
+/** NativeLang for PUT /me, typed as a plain string so the TV's existing `native: string` patches still type-check. */
+export const NativeSetting = z.string().refine((v) => NativeLang.safeParse(v).success, `one of ${NATIVE_LANGS.map((l) => l.code).join(', ')}`)
+/** Clip slugs are short kebab-case names (content/clips.json: 25 characters at most); the cap only bounds what a body can carry. */
+export const ClipSlug = z.string().min(1).max(128)
+export const ProgressPut = z.object({ clipSlug: ClipSlug, positionS: z.number().min(0), completed: z.boolean().default(false) })
 export const LevelPut = z.discriminatedUnion('source', [
   z.object({ source: z.literal('placement'), level: Level }),
   z.object({ source: z.literal('settings'), level: Level }),
-  z.object({ source: z.literal('quiz'), clipSlug: z.string().min(1), correct: z.number().int().min(0), total: z.number().int().min(1) }),
+  z.object({ source: z.literal('quiz'), clipSlug: ClipSlug, correct: z.number().int().min(0), total: z.number().int().min(1) }),
 ]).refine((b) => b.source !== 'quiz' || b.correct <= b.total, 'correct ≤ total')
 export const LevelResult = z.object({ level: Level, changed: z.enum(['up', 'set']).nullable() })
 export const LibraryWord = z.object({

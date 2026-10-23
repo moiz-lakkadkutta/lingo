@@ -3,12 +3,14 @@ import type { SessionErrorPayload } from '@lingo/contracts'
 import { clientIp } from './lib/clientIp'
 import { db } from './lib/db'
 import { logger } from './lib/logger'
-import { codeMisses, type MissLimiter } from './lib/rateLimit'
+import { codeMisses, createRateLimiter, type MissLimiter } from './lib/rateLimit'
 import type { LingoIo } from './server'
 
 const DEFAULT_PHONE = 'Your phone' // mirrors strings.pair.defaultPhone in shared-ui
 const noop = () => {}
 const UNKNOWN: SessionErrorPayload = { code: 'UNKNOWN_CODE', message: 'No TV with that code' }
+/** quiz:start + quiz:result per socket: a real TV or phone sends one per quiz, so 60 a minute only stops a script flooding the room. */
+export const QUIZ_EVENTS_PER_MIN = 60
 
 /** First phone socket's name in the room (first phone wins), else null. `except` skips a socket that is on its way out. Presence is derived from the room, not the DB (docs/decisions/0005-realtime-session.md). */
 export async function phoneIn(io: LingoIo, code: string, except?: string): Promise<string | null> {
@@ -23,6 +25,19 @@ const validationMessage = (issues: { path: (string | number)[]; message: string 
 export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses): void {
   io.on('connection', (socket) => {
     const fail = (e: SessionErrorPayload): void => { socket.emit('session:error', e) }
+    const quizEvents = createRateLimiter({ max: QUIZ_EVENTS_PER_MIN, windowMs: 60_000 })
+    const quizLimited = (): boolean => {
+      if (!quizEvents.hit(socket.id)) return false
+      fail({ code: 'RATE_LIMITED', message: 'Too many quiz events. Wait a minute and try again.' })
+      return true
+    }
+    // Only the last phone leaving counts: another phone still in the room keeps the TV's check mark and the flag.
+    const phoneLeft = async (code: string): Promise<void> => {
+      const remaining = await phoneIn(io, code, socket.id).catch(() => null)
+      if (remaining) return
+      io.to(code).emit('phone:disconnected', { code })
+      db.session.update({ where: { code }, data: { phoneConnected: false } }).catch(noop)
+    }
     const guard = (fn: () => Promise<void> | void) => async () => {
       try { await fn() } catch (e) { logger.error(e, 'socket handler'); fail({ code: 'INTERNAL', message: 'Something went wrong' }) }
     }
@@ -40,6 +55,12 @@ export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses):
       const { code, role, deviceName } = r.data
       const session = await db.session.findUnique({ where: { code } })
       if (!session) { limiter.miss(ip); return fail(UNKNOWN) }
+      // A socket is in one session room at a time: joining another code leaves the previous room first (a phone also tells that TV it left).
+      const prev = socket.data
+      if (prev.code && prev.code !== code) {
+        if (prev.role === 'phone') await phoneLeft(prev.code)
+        await socket.leave(prev.code)
+      }
       socket.data = { code, role, phoneName: role === 'phone' ? (deviceName ?? DEFAULT_PHONE) : undefined }
       await socket.join(code)
       if (role === 'tv') {
@@ -53,6 +74,7 @@ export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses):
     // Quiz events go to everyone else in the room (socket.to excludes the sender: https://socket.io/docs/v4/emit-cheatsheet/),
     // and only from a socket that joined that room. A phone quiz:result is an SM-2 review tally, never a clip quiz score (it must not feed PUT /me/level).
     socket.on('quiz:start', (p) => guard(() => {
+      if (quizLimited()) return
       const r = QuizStartPayload.safeParse(p)
       if (!r.success) return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
       if (socket.data.code !== r.data.code) return fail({ code: 'VALIDATION', message: 'Join the session first' })
@@ -60,6 +82,7 @@ export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses):
     })())
 
     socket.on('quiz:result', (p) => guard(() => {
+      if (quizLimited()) return
       const r = QuizResultPayload.safeParse(p)
       if (!r.success) return fail({ code: 'VALIDATION', message: validationMessage(r.error.issues) })
       if (socket.data.code !== r.data.code) return fail({ code: 'VALIDATION', message: 'Join the session first' })
@@ -67,14 +90,10 @@ export function registerSockets(io: LingoIo, limiter: MissLimiter = codeMisses):
     })())
 
     // Rooms are still known here (unlike 'disconnect'): https://socket.io/docs/v4/server-socket-instance/#disconnecting
-    // Only the last phone leaving counts: another phone still in the room keeps the TV's check mark and the flag.
     socket.on('disconnecting', async () => {
       const { code, role } = socket.data
       if (role !== 'phone' || !code) return
-      const remaining = await phoneIn(io, code, socket.id).catch(() => null)
-      if (remaining) return
-      io.to(code).emit('phone:disconnected', { code })
-      db.session.update({ where: { code }, data: { phoneConnected: false } }).catch(noop)
+      await phoneLeft(code)
     })
   })
 }

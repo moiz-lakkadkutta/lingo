@@ -35,7 +35,8 @@
     "overrides": {
       "react": "19.1.0",
       "react-dom": "19.1.0",
-      "@moizp/vega-media-kit": "link:../vega-media-kit"
+      "@moizp/vega-media-kit": "link:../vega-media-kit",
+      "proxy-addr": "^2.0.8"
     }
   }
 }

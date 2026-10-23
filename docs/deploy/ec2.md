@@ -54,7 +54,15 @@ No IAM role is attached: the APIs make no AWS call (media comes from CloudFront,
   `X-Forwarded-For` and sends the connecting address (https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults); the
   API trusts that header from loopback only. Phone hosts: `/_expo/static/*` files that exist get `Cache-Control: public,
   max-age=31536000, immutable` and a missing one is a 404; every other path serves the file or `index.html` with `no-cache`.
-  Both phone hosts send `Strict-Transport-Security: max-age=31536000` and `X-Content-Type-Options: nosniff`.
+  Both phone hosts send `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: no-referrer` and a `Content-Security-Policy` (self, inline styles, expo-camera's `blob:` worker with jsQR from
+  `cdn.jsdelivr.net`, API on any `https:`/`wss:` origin, `frame-ancestors 'none'`); checked against the real export in headless Chromium
+  with zero violations (PR `fix/security-hardening`). No host sends a `Server` or `Via` banner.
+- API limits (`apps/api/src/lib/rateLimit.ts` `HTTP_LIMITS`, in memory per process): per client IP (`req.ip`) 900 requests a minute on
+  every route but `/health`; within that, `POST /sessions` 60, `PUT /me` 240, `POST /iap/verify` 60 a minute. Over a limit is 429
+  `RATE_LIMITED` with `Retry-After` (the session-code miss limit, 20 a minute, now sends it too). JSON bodies are capped at 16 KB (413
+  `TOO_LARGE`); malformed JSON is 400 `VALIDATION`; an unknown route is a JSON 404 `NOT_FOUND`; `x-device-id` is required wherever a
+  learner is looked up by device (400 `VALIDATION`).
 - Static phone builds: `/srv/lingo/phone-iap` and `/srv/lingo/phone-demo`, owned `ubuntu:ubuntu` (mode 755), so `rsync` as `ubuntu` works.
 - Data: the 12 published clips (with cues, highlights, quiz items) were copied from the developer's local database with
   `pg_dump --data-only` of `Clip`, `Cue`, `Highlight`, `QuizItem`; draft clips were deleted. No learner data was copied.

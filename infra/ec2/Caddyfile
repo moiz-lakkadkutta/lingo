@@ -1,9 +1,25 @@
+# No "Server: Caddy" or "Via" banner on any host (deleting a field defers the header handler until the response is written:
+# https://caddyserver.com/docs/caddyfile/directives/header).
+(nobanner) {
+	header {
+		-Server
+		-Via
+	}
+}
+
 # Phone web app (Expo web export). Hashed bundles under /_expo/static are cached for a year; a missing one is a plain 404 (no
 # immutable header), never index.html (try_files would otherwise serve the HTML with an immutable header). Every other path is the app shell, never cached.
+# CSP checked against the real export (expo export -p web) in headless Chromium, zero violations while loading, typing a code,
+# opening /join/<code> and Review: inline styles (react-native-web and the expo-reset <style>), expo-camera's blob: QR worker that
+# importScripts jsQR from cdn.jsdelivr.net at load, and the API on any https/wss origin (the phone's "Change" server setting).
 (phone) {
 	encode zstd gzip
+	import nobanner
 	header Strict-Transport-Security "max-age=31536000"
 	header X-Content-Type-Options nosniff
+	header X-Frame-Options DENY
+	header Referrer-Policy no-referrer
+	header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: mediastream:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 	handle /_expo/static/* {
 		@found file
 		header @found Cache-Control "public, max-age=31536000, immutable"
@@ -18,11 +34,13 @@
 
 iap-51-102-187-91.sslip.io {
 	encode zstd gzip
+	import nobanner
 	reverse_proxy 127.0.0.1:4000
 }
 
 demo-51-102-187-91.sslip.io {
 	encode zstd gzip
+	import nobanner
 	reverse_proxy 127.0.0.1:4001
 }
 
