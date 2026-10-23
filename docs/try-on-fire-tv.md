@@ -85,9 +85,13 @@ For people who already use adb:
 3. **"I speak"**: the other language is offered (German clips come with English lines, English clips with German lines). Select
    **Continue**.
 4. **"A quick check of your level"**: six short lines, each with **Yes**, **Mostly** or **No**. For the tour, select
-   **"Skip · start at about A2"**. You can change the level later in Settings.
-5. **"Pair your phone for quizzes?"**: a QR code and a six-character code. Pair now ([step 2 of the tour](#a-15-minute-test-tour)) or
-   select **Later**.
+   **"Skip · start at about A2"**.
+   - **English** has clips at A2, so Home is full at this level.
+   - **Deutsch**: five of the six German clips are about B2, so at A2 Home shows a single German clip. After first run, open
+     **Settings** → **Level** and press Right once to **about B1**: Home then shows a B1 clip under "Just right for you" and the B2
+     clips under "A bit harder".
+5. **"Pair your phone for quizzes?"**: a QR code, a six-character code and the line "Scan the code with your phone, or open the Lingo
+   phone page and type it." Pair now ([step 2 of the tour](#a-15-minute-test-tour)) or select **Later**.
 
 You land on Home. The app remembers you on this TV through a random install id; there is no account.
 
@@ -97,9 +101,10 @@ Each step says what to press and what you should see. Labels in quotes are the a
 
 ### TV and phone
 
-1. **Home.** At the top is a featured clip with **Watch**, **"Words you'll meet"** and **"Your words"**. Below are rows such as
-   "Just right for you · about A2", "A bit harder · about B1" and "New this week". Press Left to open the menu on the left: **Watch**,
-   **Review**, **Words**, **Plus**, **Settings**. Focus is shown by an outline and a slight zoom.
+1. **Home.** At the top is a featured clip with **Watch** (or **Resume from …**), **"Words you'll meet"** and **"Your words"**. Below
+   are rows such as "Continue", "Just right for you · about B1" and "A bit harder · about B2" (the levels follow yours). Press Left to
+   open the menu on the left: **Watch**, **Review**, **Words**, **Plus**, **Settings**. Focus is shown by an outline and a slight zoom;
+   the menu marks the screen you are on with a bar and a darker fill, not an outline.
 2. **Pair your phone.** On the pairing screen (first run, or **Settings** → **Pair phone**), point your phone's camera app at the QR code
    and open the link. A web page opens and joins by itself; on the phone you see "Connected to your TV", on the TV a check mark and
    "… connected" (for example "Your phone connected"), and the button changes to **Start watching** (first run) or **Continue**.
@@ -108,8 +113,8 @@ Each step says what to press and what you should see. Labels in quotes are the a
 3. **Open a clip.** Select a clip card (or **"Words you'll meet"** on the featured clip). The clip page shows the title, the level
    ("about A2") and length, the marked words under **"WORDS YOU'LL MEET"**, and the buttons **Watch** and **Watch in Challenge mode**
    (plus **Add to Continue** for a clip you haven't started).
-4. **Watch.** Select **Watch**. The video plays with two subtitle lines: the language you learn, large and bright, and your own
-   language, smaller below it. One or two words per line are marked.
+4. **Watch.** Select **Watch**. The video plays with two subtitle lines: your own language, smaller, on top, and below it the
+   language you learn, large and bright. One or two words per line are marked.
 5. **Move between lines.** Press Right (or Fast-forward) to jump to the next line, Left (or Rewind) to go back to the start of the line.
    Hold Left for half a second to replay the line. A hint "‹ › previous or next line" and a progress strip show for a few seconds.
 6. **Pause and explain.** Press Select (or Play/Pause). The video pauses and a card opens above the subtitles: the marked word, its
@@ -121,20 +126,21 @@ Each step says what to press and what you should see. Labels in quotes are the a
 8. **Save a word.** Select **Save word**. The button reads "Saved to Words" and the card says "Saved. 1 word this clip." On the
    paired phone the word appears in the **Live** tab within about a second. Tap it on the phone to see its meaning; tap **Hear it** to
    hear it with the phone's own voice.
-9. **Replay and slower.** Select **Replay** to hear the line again. Pause again and select **Slower**: playback runs at 0.75× and the
-   status line shows "0.75×". Select **Normal speed** to go back.
+9. **Replay and slower.** Select **Replay**: the card closes, the line plays again and the video keeps playing (it doesn't pause
+   again). Pause again and select **Slower**: playback runs at 0.75× and the status line at the bottom left shows "0.75×". Select
+   **Normal speed** to go back.
 10. **Continue watching.** Press Back or Play/Pause to close the card and keep watching.
 11. **Playback settings.** While the video plays, press Up. A **Playback** panel opens with **Speed** (1× / 0.75×), **Native line**
     (Always / On pause / Never) and **Subtitle size** (100 % / 125 % / 150 %). Left/Right change the focused row; Back closes it.
 12. **Challenge mode.** Press Back to leave the player (your place is kept: Home shows "Resume from …"). On the clip page select
     **Watch in Challenge mode**. Your own language's line is hidden and the status line says "Challenge". Press **Menu** (the button with
     three lines) to show it for the current line; press it again to hide it.
-13. **End of the clip and TV quiz.** Watch a clip to the end (Right skips ahead line by line). The summary shows how many new words you
-    saved, with **Quiz on TV**, **Quiz on your phone** (when paired), **Watch again** and **Next clip**. Select **Quiz on TV**: questions
+13. **End of the clip and TV quiz.** Watch a clip to the end (Right skips ahead line by line). The summary heading counts the new
+    words you saved, in the language you learn (for example "2 neue Wörter"), with **Quiz on TV**, **Quiz on your phone** (when paired), **Watch again** and **Next clip**. Select **Quiz on TV**: questions
     are "What does it mean?" or "Fill the gap" with answer buttons, "Replay the line" for gap questions, and feedback such as
     "Right: …" or "The answer: …". The end shows "… of … right".
-14. **Phone review.** Back on the summary select **Quiz on your phone** (the phone also offers **Quiz me now** in Live once the clip is
-    over). On the phone's **Review** tab, tap a card ("Tap to see the meaning"), then grade it **Again**, **Hard**, **Good** or **Easy**.
+14. **Phone review.** Back on the summary select **Quiz on your phone**. The TV says "Quiz sent to your phone." and only then does
+    the phone's **Live** tab offer **Quiz me now**. On the phone's **Review** tab, tap a card ("Tap to see the meaning"), then grade it **Again**, **Hard**, **Good** or **Easy**.
     The server schedules the next review (SM-2). When you finish, the phone shows "Done for today" and the TV summary shows
     "Phone quiz: … of … right."
 15. **Phone progress.** On the phone's **Progress** tab you see "Day …", "Words known by level (approximate)" with a bar per level, clips
@@ -145,7 +151,8 @@ Each step says what to press and what you should see. Labels in quotes are the a
 17. **Settings.** Open **Settings**: **Learning language**, **I speak**, **Level**, **Native line**, **Pause at the end of each line**,
     **Subtitle size**, **Pair phone**, **Lingo Plus**, **About & attributions**. Left/Right change a value; you see "Saved.". Turn on
     **Pause at the end of each line** and the player stops briefly after each line. **About & attributions** lists the licences and the
-    credit line of each clip.
+    credit line of every one of the 12 clips, in both languages and at every level (it says "Loading the clip credits…" for a moment
+    first).
 18. **Plus screen.** Select **Plus** in the menu. In the demo app it says "Lingo Plus is on for everyone in this demo."
 
 ### Content
@@ -157,7 +164,7 @@ Each step says what to press and what you should see. Labels in quotes are the a
 - English: Blender open movies (Sprite Fright, Cosmos Laundromat, Elephants Dream) and 1940s–50s public-domain films (Shy Guy, What to Do
   on a Date, Duck and Cover). *(6 clips)*
 
-Only clips in the language you learn are shown. Switch it in **Settings** → **Learning language** to see the others.
+Home shows only clips in the language you learn. Switch it in **Settings** → **Learning language** to see the others.
 
 ## Remote cheat sheet
 
@@ -188,12 +195,13 @@ Lingo Plus adds Challenge mode, unlimited saved words and slower playback at 0.7
 - **Lingo Plus Demo** (`lingo-demo.apk`): Plus is on for everyone. Use it to try all features.
 - **Lingo** (`lingo-iap.apk`): Plus is a monthly subscription bought through the Amazon Appstore. Without it you see the free version:
   **"Challenge mode · Plus"** on the clip page, **"Slower · Plus"** on the explain card, and after 20 saves in a day the card says
-  "That's 20 today. Lingo Plus removes the limit." with a **See Lingo Plus** button. The Plus screen has **Subscribe** and
-  **Restore purchase**.
+  "That's 20 today. Lingo Plus removes the limit." with a **See Lingo Plus** button. With Amazon App Tester set up, the Plus screen
+  shows the price with **Subscribe** and **Restore purchase**.
 
 On a sideloaded copy, buying Lingo Plus only works with Amazon App Tester installed on the Fire TV: the purchase belongs to the
 Amazon Appstore, and the server checks each receipt with Amazon's test service (the RVS sandbox). Without App Tester, the Plus screen
-can't offer a price. To try the Plus features, use the demo app.
+says "Checking Lingo Plus…" for several seconds, then "Price unavailable right now." with **Restore purchase** and **Back**, and no
+**Subscribe**. That is expected. To try the Plus features, use the demo app.
 You are not charged for anything in either app.
 
 ## Troubleshooting
@@ -212,6 +220,8 @@ You are not charged for anything in either app.
 | "Can't reach Lingo. Check that the phone is on the same Wi-Fi." | With these servers, same Wi-Fi isn't needed; the phone needs internet. Reload the page, and check the server (last row). |
 | "That's 20 today. Lingo Plus removes the limit." | That is the free limit in the "Lingo" app. Use **Lingo Plus Demo**, or save more words the next day. |
 | "Lingo Plus isn't available on this device yet." or "Price unavailable right now." | The Appstore purchase isn't available to this sideloaded copy. Use **Lingo Plus Demo** for the Plus features. |
+| Home shows only one German clip | At about A2 there is one German clip; the others are about B2. Set **Settings** → **Level** to about B1 (see [First launch](#first-launch)), or learn English. |
+| The first Left on Home after coming back from a clip page doesn't open the menu | A known issue on Fire OS: press Left again. |
 | Almost every word is marked | Your level is very low (about A1). Set **Settings** → **Level** to A2 or higher. |
 | Is the server up? | On any computer: `curl https://demo-51-102-187-91.sslip.io/health` (or open it in a browser) should return `{"success":true,"data":{"ok":true,"service":"lingo-api"}}`. For the "Lingo" app use `https://iap-51-102-187-91.sslip.io/health`. If it doesn't, [open an issue](#report-a-problem). |
 
