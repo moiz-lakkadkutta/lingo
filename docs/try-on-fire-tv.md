@@ -22,7 +22,7 @@ words and reviews them with you later.
 
 ## Which app to install
 
-Both apps are on the release page [fire-tv-judging-1](https://github.com/moiz-lakkadkutta/lingo/releases/tag/fire-tv-judging-1). They can be
+Both apps are on the latest release page, [fire-tv-judging-2](https://github.com/moiz-lakkadkutta/lingo/releases/latest). They can be
 installed side by side.
 
 | File | Name on the Fire TV | Package | Lingo Plus | Download link |
@@ -212,7 +212,7 @@ You are not charged for anything in either app.
 | "Install blocked" or the installer doesn't open | Turn on **Install unknown apps** → **Downloader** (or **Apps from Unknown Sources**), as in [step 3](#install-with-downloader). |
 | "App not installed", or adb says `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | An earlier Lingo build with a different signature is installed. Uninstall it ([Uninstall](#uninstall)), then install again. |
 | "There was a problem parsing the package" | The download is incomplete. Delete the file in Downloader and download it again (about 49 MB). |
-| A red screen "Unable to load script" that mentions Metro | That is an old development build, not one of these release builds. Uninstall it and install from the [release page](https://github.com/moiz-lakkadkutta/lingo/releases/tag/fire-tv-judging-1). |
+| A red screen "Unable to load script" that mentions Metro | That is an old development build, not one of these release builds. Uninstall it and install from the [release page](https://github.com/moiz-lakkadkutta/lingo/releases/latest). |
 | "Can't reach Lingo. Check the network and press Select to retry." | Check the Fire TV's internet connection, then select **Try again**. If it stays, check the server (last row). |
 | Black screen or no video in the player | Check the internet connection, press Back and open the clip again. The video comes from Amazon CloudFront; a very slow connection can take a few seconds to start. |
 | The phone page doesn't open from the QR code | Open the phone page by hand (https://phone-demo-51-102-187-91.sslip.io for Lingo Plus Demo, https://phone-iap-51-102-187-91.sslip.io for Lingo) and type the six-character code from the TV. |

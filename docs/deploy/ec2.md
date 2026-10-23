@@ -122,7 +122,7 @@ sudo systemctl restart lingo-api@iap           # startup log: "RVS_ENV":"sandbox
 
 ## Sideload builds
 
-GitHub release `fire-tv-judging-1` (https://github.com/moiz-lakkadkutta/lingo/releases/tag/fire-tv-judging-1) has two APKs:
+GitHub release `fire-tv-judging-2` (the latest release, https://github.com/moiz-lakkadkutta/lingo/releases/latest; build 1 was `fire-tv-judging-1`) has two APKs:
 `lingo-demo.apk` ("Lingo Plus Demo", `dev.moizp.lingo.demo`, demo API; start here) and `lingo-iap.apk` ("Lingo", `dev.moizp.lingo`,
 iap API; a sideloaded copy cannot buy, since purchases need the Appstore). Stable links:
 https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-demo.apk and

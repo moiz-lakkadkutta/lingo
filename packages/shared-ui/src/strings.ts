@@ -60,7 +60,7 @@ export const strings = {
   about: { title: 'About & attributions', backLabel: 'Back to Settings', machine: 'Subtitles are transcribed and translated by machine. Explanations and quizzes are written by AI and spot-checked by people.',
     fonts: 'Noto Sans and Manrope: SIL Open Font License 1.1.',
     freq: 'Word frequencies: hermitdave/FrequencyWords (OpenSubtitles 2018), CC BY-SA 4.0.', clips: 'Clips',
-    clipsLoading: 'Loading the clip credits…', clipsOffline: 'The clip credits can’t load right now. Open this page again in a moment.' },
+    creditLabel: (title: string, by: string) => `Credit: ${title}. ${by}`, clipsLoading: 'Loading the clip credits…', clipsOffline: 'The clip credits can’t load right now. Open this page again in a moment.' },
   plus: {
     title: 'Lingo Plus',
     body: (rate: boolean) => (rate ? 'Lingo Plus adds Challenge mode, unlimited saved words and slower playback at 0.75×.' : 'Lingo Plus adds Challenge mode and unlimited saved words.'),
