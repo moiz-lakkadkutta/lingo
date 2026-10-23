@@ -78,6 +78,13 @@ For people who already use adb:
    Accept the debugging prompt on the TV the first time. Start the app from **Your Apps & Channels**, or with
    `adb shell monkey -p dev.moizp.lingo.demo 1`.
 
+To let an AI coding agent (Claude Code, for example) install, start and drive the app itself, use `scripts/fire-tv.sh` and follow
+[For an AI agent: run it over adb](filming/new-stick-guide.md#for-an-ai-agent-run-it-over-adb). To get the script and any missing tools:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/moiz-lakkadkutta/lingo/main/scripts/fire-tv.sh && bash fire-tv.sh setup
+```
+
 ## First launch
 
 1. Open **Lingo Plus Demo**. You see "Loading", then the first-run screens.
