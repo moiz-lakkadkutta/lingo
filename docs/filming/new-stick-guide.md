@@ -214,13 +214,14 @@ nothing (known issue, press it again).
 
 - `shot` shows what the human sees; focus is an outline plus a slight zoom. If the video area is black in a screenshot while it plays
   on the TV, that is the capture, not the app.
-- `ui` reads the screen as text. Every focusable item in Lingo has a label stating its purpose, which should show up as
-  `content-desc` (not yet checked on a stick). The dump can fail while a video plays; use `shot` then.
+- `ui` reads the screen as text. Every focusable item in Lingo has a label stating its purpose; `ui` prints it in
+  brackets and marks the focused item with `>` (checked on a stick, e.g. `> [Watch Interview mit … (Terra X)]` on Home). The dump can fail while a video plays; use `shot` then.
 - Expected first launch (section 3): "I'm learning": focus a **Deutsch** tile, Select → "I speak": **English** with **Continue**,
   Select → level check: move to **"Skip · start at about A2"**, Select → pair screen: move to **Later**, Select → Home. Then Left
   (opens the menu) → Down to **Settings** → Select → **Level**: Right until "about B1" and "Saved." → Back.
-- Keep the TV awake: the screensaver step in section 1 does that. `key` presses wake it too; `adb shell input keyevent
-  KEYCODE_WAKEUP` wakes it without pressing anything in the app. Don't change system settings for this.
+- Keep the TV awake: the screensaver step in section 1 does that. `key` presses wake it too; `fire-tv.sh wake` (raw: `adb shell input
+  keyevent KEYCODE_WAKEUP`) wakes it without pressing anything in the app, and `shot`, `ui`, `launch` and `clip` call it first.
+  An all-black screenshot or "null root node" from `ui` means the TV was asleep. Don't change system settings for this.
 
 ### 5. The phone page
 

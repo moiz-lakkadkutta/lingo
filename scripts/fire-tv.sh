@@ -9,6 +9,7 @@
 #   bash scripts/fire-tv.sh launch [demo|iap]      # start the app
 #   bash scripts/fire-tv.sh clip [demo|iap] [t]    # deep link: open the Margot Friedländer clip at t seconds (after first launch)
 #   bash scripts/fire-tv.sh key <name>... [xN]     # up down left right select back home play menu; "key down x3" repeats
+#   bash scripts/fire-tv.sh wake                   # wake a sleeping TV (shot, ui, launch and clip do this first)
 #   bash scripts/fire-tv.sh shot [file]            # screenshot, default ./lingo-shots/<timestamp>.png; prints the path
 #   bash scripts/fire-tv.sh ui                     # labels and text on screen; the focused one is marked with >
 #   bash scripts/fire-tv.sh record [seconds]       # screen recording (default 30, at most 180), pulled into ./lingo-shots
@@ -141,12 +142,20 @@ cmd_install() {
   say "Installed $PKG $(ADB shell dumpsys package "$PKG" | grep -m1 versionName | tr -d ' \r')"
 }
 
-cmd_launch() { app "${1:-demo}"; ADB shell am start -n "$PKG/$PKG.MainActivity"; }
+# A sleeping TV gives black screenshots and "null root node" from uiautomator; KEYCODE_WAKEUP wakes it without a key reaching the app.
+cmd_wake() {
+  [[ $(ADB shell dumpsys power) == *mWakefulness=Awake* ]] && return 0
+  ADB shell input keyevent KEYCODE_WAKEUP
+  sleep 2
+}
+
+cmd_launch() { app "${1:-demo}"; cmd_wake; ADB shell am start -n "$PKG/$PKG.MainActivity"; }
 
 cmd_clip() {
   app "${1:-demo}"
   local t="${2:-0}"
   [[ $t =~ ^[0-9]+$ ]] || die "t must be whole seconds"
+  cmd_wake
   ADB shell "am start -a android.intent.action.VIEW -d '$SCHEME://clip/$SLUG?t=$t'"
 }
 
@@ -174,12 +183,14 @@ cmd_key() {
 cmd_shot() {
   local f="${1:-}"
   if [[ -z $f ]]; then mkdir -p "$SHOT_DIR"; f="$SHOT_DIR/$(date +%Y%m%d-%H%M%S).png"; fi
+  cmd_wake
   sleep 0.5
   ADB exec-out screencap -p >"$f"
   say "$f"
 }
 
 cmd_ui() {
+  cmd_wake
   ADB shell uiautomator dump /sdcard/lingo-ui.xml >/dev/null || die "uiautomator dump did not work (busy screen, e.g. video playing?). Use: shot"
   ADB exec-out cat /sdcard/lingo-ui.xml | tr '>' '\n' | awk '
     /<node / {
@@ -222,6 +233,7 @@ case "${1:-}" in
   doctor) cmd_doctor ;;
   setup) cmd_setup ;;
   connect) shift; cmd_connect "$@" ;;
+  wake) cmd_wake ;;
   install) shift; cmd_install "$@" ;;
   launch) shift; cmd_launch "$@" ;;
   clip) shift; cmd_clip "$@" ;;
