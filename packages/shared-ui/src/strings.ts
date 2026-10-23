@@ -1,5 +1,7 @@
 /** Remote keys in hints. ‹ › (U+2039/203A) are in Noto Sans, the app font; ◄ ► and the arrow blocks are not (QA #2). */
 const KEYS = { lr: '\u2039 \u203A', left: '\u2039', right: '\u203A' } as const
+/** The name a phone gets when it sends none (mirrors DEFAULT_PHONE in apps/api/src/sockets.ts). Starts a sentence, never sits inside one. */
+const DEFAULT_PHONE = 'Your phone'
 
 export const strings = {
   keys: KEYS,
@@ -29,7 +31,7 @@ export const strings = {
     progress: (elapsed: string, total: string | null) => (total ? `${elapsed} / ${total}` : elapsed), progressLabel: (elapsed: string, total: string | null) => (total ? `Played ${elapsed} of ${total}` : `Played ${elapsed}`) },
   sheet: { title: 'Playback', speed: 'Speed', hint: 'Select or left and right to change · Back to close', rateNormal: '1×', rateSlow: '0.75×', sizeValue: (pct: number) => `${pct} %`, rowLabel: (name: string, value: string) => `${name}: ${value}. Select or left and right to change` },
   summary: { newWords: (n: number, lang: 'de' | 'en') => (lang === 'de' ? (n === 1 ? '1 neues Wort' : `${n} neue Wörter`) : n === 1 ? '1 new word' : `${n} new words`),
-    phoneSent: (name: string) => `Quiz sent to ${name}.`, phoneResult: (c: number, n: number) => `Phone quiz: ${c} of ${n} right.`, lastQuiz: (c: number, n: number) => `Last quiz on TV: ${c} of ${n} right.`, quizTv: 'Quiz on TV', quizPhone: 'Quiz on your phone', again: 'Watch again', next: 'Next clip', none: 'You watched the whole clip. Try Challenge mode next time?' },
+    phoneSent: (name: string) => (name && name !== DEFAULT_PHONE ? `Quiz sent to ${name}.` : 'Quiz sent to your phone.'), phoneResult: (c: number, n: number) => `Phone quiz: ${c} of ${n} right.`, lastQuiz: (c: number, n: number) => `Last quiz on TV: ${c} of ${n} right.`, quizTv: 'Quiz on TV', quizPhone: 'Quiz on your phone', again: 'Watch again', next: 'Next clip', none: 'You watched the whole clip. Try Challenge mode next time?' },
   quiz: { progress: (i: number, n: number) => `${i} of ${n}`, replayLine: 'Replay the line', done: (c: number, n: number) => `${c} of ${n} right`,
     meaningKind: 'What does it mean?', clozeKind: 'Fill the gap', right: (o: string) => `Right: ${o}`, answerIs: (o: string) => `The answer: ${o}`,
     inClip: (native: string) => `In the clip: ${native}`, continue: 'Continue', optionLabel: (o: string, i: number, n: number) => `Answer ${i} of ${n}: ${o}`,
@@ -42,7 +44,7 @@ export const strings = {
     dueIn: (n: number) => `Due in ${n} days`, rowLabel: (lemma: string, gloss: string, due: string, clip: string, playable: boolean) => `${lemma}: ${gloss}. ${due}. From ${clip}.${playable ? ' Select to play the line.' : ''}`,
     filterLabel: (name: string, count: number) => `${name}: ${count} words`, noLine: 'This line isn\u2019t available yet.',
     playerHint: 'Select plays again · Back closes', playerHintLabel: 'Select plays the line again. Back closes the player.' },
-  pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code or type it in the Lingo app.', later: 'Later', connected: (name: string) => `${name} connected`, qrLabel: (code: string) => `QR code to pair your phone, code ${code.split('').join(' ')}`, waiting: 'Getting a code…', defaultPhone: 'Your phone', continue: 'Continue',
+  pair: { title: 'Pair your phone for quizzes?', body: 'Scan the code with your phone, or open the Lingo phone page and type it.', later: 'Later', connected: (name: string) => `${name} connected`, qrLabel: (code: string) => `QR code to pair your phone, code ${code.split('').join(' ')}`, waiting: 'Getting a code…', defaultPhone: DEFAULT_PHONE, continue: 'Continue',
     laterLabel: (embedded: boolean) => (embedded ? 'Pair later and start watching' : 'Pair later and go back'), continueLabel: 'Phone paired. Go back' },
   firstRun: { learning: "I'm learning", speak: 'I speak', placement: 'Did you understand this line?', yes: 'Yes', mostly: 'Mostly', no: 'No',
     placementTitle: 'A quick check of your level', placementBody: 'Six short lines. Answer honestly; you can change your level in Settings.',
@@ -57,7 +59,8 @@ export const strings = {
     saved: 'Saved.', savedWith: (notice: string) => `Saved. ${notice}`, nativeSwapped: (name: string) => `I speak is now ${name}.` },
   about: { title: 'About & attributions', backLabel: 'Back to Settings', machine: 'Subtitles are transcribed and translated by machine. Explanations and quizzes are written by AI and spot-checked by people.',
     fonts: 'Noto Sans and Manrope: SIL Open Font License 1.1.',
-    freq: 'Word frequencies: hermitdave/FrequencyWords (OpenSubtitles 2018), CC BY-SA 4.0.', clips: 'Clips' },
+    freq: 'Word frequencies: hermitdave/FrequencyWords (OpenSubtitles 2018), CC BY-SA 4.0.', clips: 'Clips',
+    clipsLoading: 'Loading the clip credits…', clipsOffline: 'The clip credits can’t load right now. Open this page again in a moment.' },
   plus: {
     title: 'Lingo Plus',
     body: (rate: boolean) => (rate ? 'Lingo Plus adds Challenge mode, unlimited saved words and slower playback at 0.75×.' : 'Lingo Plus adds Challenge mode and unlimited saved words.'),

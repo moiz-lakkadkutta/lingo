@@ -76,6 +76,26 @@ describe('Words', () => {
     expect(r.root.findAll((n) => n.props.testID === 'words-player')).toHaveLength(0)
     expect(rowW()).toBe(1100)
   })
+  it('device test 2026-10-23: the word column keeps its width beside the mini player; the clip column takes the rest; focus is not clipped', async () => {
+    const r = render(<Words {...props()} />)
+    const label = rowLabel(words[0]!, strings.words.dueToday)
+    await press(byLabel(r, label))
+    expect(r.root.findAll((n) => n.props.testID === 'words-player').length).toBeGreaterThan(0)
+    const row = byLabel(r, label)
+    const word = flat(row.findAll((n) => n.props.testID === 'word-col')[0]!.props.style)
+    expect(word).toMatchObject({ width: tokens.layout.wordColW, flexShrink: 0 })
+    expect(word.flex).toBeUndefined()
+    expect(flat(row.findAll((n) => n.props.testID === 'clip-col')[0]!.props.style)).toMatchObject({ flex: 1, minWidth: 0 })
+    // the lemma stays on one line: never broken mid-word
+    expect(row.findAll((n) => is(n, 'Text') && n.props.children === 'lemma-a')[0]!.props.numberOfLines).toBe(1)
+    // the row still has room for the clip column (992 px row − padding − gap − word column)
+    expect(992 - 2 * tokens.layout.rowPadX - tokens.layout.gutter - tokens.layout.wordColW).toBeGreaterThan(300)
+    // the ScrollView reaches left by the focus overhang and pads it back, so the scaled outline is fully drawn
+    const scroll = r.root.findAll((n) => n.props.testID === 'words-scroll')[0]!
+    const reach = -(flat(scroll.props.style).marginLeft as number)
+    expect(reach).toBeGreaterThanOrEqual((992 * (tokens.motion.focusScale - 1)) / 2 + tokens.focus.width)
+    expect(flat(scroll.props.contentContainerStyle).paddingLeft).toBe(reach)
+  })
   it('each filter has its own empty message with a Find a clip action', async () => {
     const onFindClip = vi.fn()
     const empty = (filter: WordsProps['filter'], data: LibraryWord[] = []) => render(<Words {...props({ filter, onFindClip, words: { state: 'ready', data } })} />)

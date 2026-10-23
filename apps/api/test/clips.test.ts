@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { ClipResponse, type Level } from '@lingo/contracts'
+import { ClipCredit, ClipResponse, type Level } from '@lingo/contracts'
 import { createApp } from '../src/app'
 import { db } from '../src/lib/db'
 import { fixtures } from './helpers/fixtures005'
@@ -67,5 +67,21 @@ describe('GET /clips/:slug', () => {
     const m = (await ready(c.slug, dev)).manifestUrl
     expect(m.endsWith(`/clips/${c.slug}/master.m3u8`)).toBe(true)
     expect(m).not.toContain('undefined')
+  })
+})
+
+describe('GET /clips/attributions (device test 2026-10-23)', () => {
+  it('lists the credit of every published clip in every language and level, and no unpublished clip', async () => {
+    const de = await fx.clip({ lang: 'de', level: 'B2', attribution: `Credit de ${fx.run}` })
+    const en = await fx.clip({ lang: 'en', level: 'A2', attribution: `Credit en ${fx.run}` })
+    const draft = await fx.clip({ status: 'ready', attribution: `Credit draft ${fx.run}` })
+    const r = await request(app).get('/clips/attributions').set('x-device-id', fx.device())
+    expect(r.status).toBe(200)
+    const list = ClipCredit.array().parse(r.body.data)
+    const slugs = list.map((c) => c.slug)
+    expect(list.find((c) => c.slug === de.slug)).toEqual({ slug: de.slug, title: de.title, attribution: `Credit de ${fx.run}` })
+    expect(list.find((c) => c.slug === en.slug)?.attribution).toBe(`Credit en ${fx.run}`)
+    expect(slugs).not.toContain(draft.slug)
+    expect(Object.keys(r.body.data[0]).sort()).toEqual(['attribution', 'slug', 'title']) // narrow: no posters, progress or cues
   })
 })

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { BackHandler, View } from 'react-native'
-import type { Catalog, ClipCard, ClipReady, HighlightDto, LearnerDto, LearnerSettingsPatch, LevelResult, PlusStatus } from '@lingo/contracts'
+import type { Catalog, ClipCredit, ClipReady, HighlightDto, LearnerDto, LearnerSettingsPatch, LevelResult, PlusStatus } from '@lingo/contracts'
 import { Screen, StateMessage, T } from '../components'
 import { createApi, type Api } from '../api/client'
 import { endpoints, type Endpoints } from '../api/endpoints'
@@ -167,15 +167,19 @@ function RouteView({ route, ctx }: { route: Route; ctx: Ctx }) {
     case 'words': return <WordsRoute ctx={ctx} filter={route.filter} />
     case 'settings': return <SettingsRoute ctx={ctx} />
     case 'pair': return <Screen><Pair code={session.code} joinUrl={session.joinUrl} connected={session.phone} onLater={() => nav({ type: 'pop' })} /></Screen>
-    case 'about': {
-      const c = ctx.catalog
-      const all = c ? [...c.continue, ...c.justRight, ...c.harder, ...c.fresh] : []
-      const unique = [...new Map(all.map((x) => [x.slug, x] as [string, ClipCard])).values()]
-      return <About clips={unique} onBack={() => nav({ type: 'pop' })} />
-    }
+    case 'about': return <AboutRoute ctx={ctx} />
     case 'plus': return <Screen><Plus store={ctx.plusStore} api={ctx.api} caps={caps} onBack={() => nav({ type: 'pop' })} onChanged={ctx.refreshMe} /></Screen>
     default: return null
   }
+}
+
+/** Every published clip's credit from GET /clips/attributions; while it loads the screen says so. If it fails, the cached Home rows are the fallback. */
+function AboutRoute({ ctx }: { ctx: Ctx }) {
+  const res = useResource(() => ctx.ep.credits(), [])
+  const c = ctx.catalog
+  const cached = c ? [...new Map([...c.continue, ...c.justRight, ...c.harder, ...c.fresh].map((x) => [x.slug, { slug: x.slug, title: x.title, attribution: x.attribution }] as [string, ClipCredit])).values()] : []
+  const credits = res.data ?? (res.state === 'error' && cached.length ? cached : null)
+  return <About credits={credits} failed={res.state === 'error'} onBack={() => ctx.nav({ type: 'pop' })} />
 }
 
 function HomeRoute({ ctx }: { ctx: Ctx }) {

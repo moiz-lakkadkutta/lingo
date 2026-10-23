@@ -14,7 +14,8 @@ import { Manrope_800ExtraBold } from '@expo-google-fonts/manrope/800ExtraBold'
 import { extractSessionCode } from '@lingo/contracts'
 import type { Lang } from '@lingo/contracts'
 import { TabBar } from './components/TabBar'
-import { ApiError, createApi, type PhoneApi } from './lib/api'
+import { createApi, type PhoneApi } from './lib/api'
+import { bootCode, guardApi } from './lib/session'
 import { createPhoneLink } from './lib/link'
 import { createStore } from './lib/storage'
 import { JoinScreen } from './screens/JoinScreen'
@@ -48,6 +49,7 @@ export default function App() {
   const deviceIdRef = useRef<string>('phone-starting')
   const tvRef = useRef<string | null>(null)
   const codeRef = useRef<string | null>(null) // the code the link is joining or joined
+  const lastUrl = useRef<string | null>(null)
   tvRef.current = s.tv
 
   const refused = useCallback(() => { codeRef.current = null; void store.forgetTv(); dispatch({ type: 'refused' }) }, [store])
@@ -61,14 +63,11 @@ export default function App() {
   }), [store, refused])
   useEffect(() => () => link.leave(), [link])
 
-  /** Every REST call carries x-session-code once a TV is remembered; an UNKNOWN_CODE answer forgets that TV. */
+  /** Every REST call carries x-session-code once a TV is remembered; an UNKNOWN_CODE answer forgets that TV — unless the phone has
+   *  since moved to another code (a stale /me must not close the new join's socket). */
   const api = useMemo<PhoneApi>(() => {
     const raw = createApi(() => apiUrlRef.current, () => ({ deviceId: deviceIdRef.current, tvCode: tvRef.current }))
-    const guard = <T,>(p: Promise<T>): Promise<T> => p.catch((e: unknown) => {
-      if (e instanceof ApiError && e.code === 'UNKNOWN_CODE') { link.leave(); refused() }
-      throw e
-    })
-    return { me: () => guard(raw.me()), dueWords: () => guard(raw.dueWords()), review: (id, g, rid) => guard(raw.review(id, g, rid)), stats: () => guard(raw.stats()) }
+    return guardApi(raw, () => tvRef.current, () => codeRef.current, () => { link.leave(); refused() })
   }, [link, refused])
 
   const join = useCallback((code: string) => {
@@ -80,8 +79,11 @@ export default function App() {
   useEffect(() => {
     let live = true
     void (async () => {
-      const [deviceId, tv, storedUrl] = await Promise.all([store.deviceId(), store.tv(), store.apiUrl()])
+      const [deviceId, remembered, storedUrl, initialUrl] = await Promise.all([store.deviceId(), store.tv(), store.apiUrl(), Linking.getInitialURL().catch(() => null)])
       if (!live) return
+      // A code in the opening URL wins over the remembered TV, before the first /me goes out.
+      const tv = bootCode(remembered, initialUrl)
+      if (initialUrl && tv !== remembered) lastUrl.current = initialUrl
       deviceIdRef.current = deviceId
       if (storedUrl) { apiUrlRef.current = storedUrl; setApiUrl(storedUrl) }
       tvRef.current = tv
@@ -98,12 +100,11 @@ export default function App() {
   }, [booted, s.tv, api])
 
   const url = Linking.useURL()
-  const lastUrl = useRef<string | null>(null)
   useEffect(() => {
     if (!booted || !url || url === lastUrl.current) return
     lastUrl.current = url
     const code = extractSessionCode(url)
-    if (code) join(code)
+    if (code && code !== codeRef.current) join(code)
   }, [url, booted, join])
 
   const go = (screen: Screen) => dispatch({ type: 'go', screen })

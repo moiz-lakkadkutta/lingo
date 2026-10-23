@@ -6,6 +6,14 @@ import { notFound, ok } from '../lib/http'
 import { learner as resolveLearner } from '../lib/learner'
 export const clips: Router = Router()
 const ETA_MIN = 3, MEET_MAX = 8
+/** About & attributions: the credit line of every published clip, all languages and levels, sorted by title. One narrow select;
+ *  declared before /:slug so "attributions" is never read as a slug. No learner needed. */
+clips.get('/attributions', async (_req, res, next) => {
+  try {
+    const rows = await db.clip.findMany({ where: { status: 'published' }, select: { slug: true, title: true, attribution: true }, orderBy: [{ title: 'asc' }, { slug: 'asc' }] })
+    ok(res, rows.filter((r) => r.attribution.trim() !== ''))
+  } catch (e) { next(e) }
+})
 /** Clip page + player data. Unpublished → status preparing. Highlights filtered per learner (decision 0007 M5): rank ≥ floor of the band above the learner level. */
 clips.get('/:slug', async (req, res, next) => {
   try {

@@ -43,6 +43,9 @@ describe('Summary', () => {
   })
   it('shows the phone quiz status and result', () => {
     expect(texts(render(<Summary {...props({ phoneName: 'Pixel', phoneQuiz: { status: 'sent', clipSlug: 'zug' } })} />))).toContain(strings.summary.phoneSent('Pixel'))
+    // device test 2026-10-23: the default name is not inserted mid-sentence
+    expect(texts(render(<Summary {...props({ phoneName: strings.pair.defaultPhone, phoneQuiz: { status: 'sent', clipSlug: 'zug' } })} />))).toContain('Quiz sent to your phone.')
+    expect(strings.summary.phoneSent('Pixel')).toBe('Quiz sent to Pixel.')
     expect(texts(render(<Summary {...props({ phoneName: 'Pixel', phoneQuiz: { status: 'done', clipSlug: 'zug', correct: 4, total: 5 } })} />))).toContain(strings.summary.phoneResult(4, 5))
     expect(texts(render(<Summary {...props({ lastTvQuiz: { correct: 8, total: 10 } })} />))).toContain(strings.summary.lastQuiz(8, 10))
   })
