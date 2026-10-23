@@ -1,12 +1,12 @@
 # Lingo: Devpost submission draft
 
-Devpost draft for Lingo. Paste-ready. Status as of 2026-10-19.
+Devpost draft for Lingo. Paste-ready. Status as of 2026-10-23.
 
 How to use this file:
 - Each section below is headed with the Devpost field it fills. Paste the text under "Paste:" as it stands.
 - Footnote numbers (¹ ²…) point to §16 Sources. On Devpost, write each source inline as a link, or paste §16 as the last block of "About the project".
 - §15 (claims register) is **not** pasted. The Reviewer audits every claim in §2–§13 against it.
-- Placeholders follow docs/plans/LING-009.md §1.1. Everything the repo or public sources could answer was filled on 2026-10-15, and Moiz's answers of 2026-10-19 were applied that day ("reported by Moiz 2026-10-19"); what only Moiz can still supply is marked `<!-- HUMAN: ... -->`. `grep -n "PLACEHOLDER\|HUMAN:" docs/submission.md` lists every open item. On Oct 21 none may remain: each is either filled with the real value or the sentence that needed it is deleted. HTML comments are not pasted.
+- Placeholders follow docs/plans/LING-009.md §1.1. Everything the repo or public sources could answer was filled on 2026-10-15, and Moiz's answers of 2026-10-19 were applied that day ("reported by Moiz 2026-10-19"); what only Moiz can still supply is marked `<!-- HUMAN: ... -->`. `grep -n "PLACEHOLDER\|HUMAN:" docs/submission.md` lists every open item. As of 2026-10-23 one remains: the video URL in §13. HTML comments are not pasted.
 - Re-check docs/plans/LING-009.md §1 at the Oct 15 freeze. Any feature that lands moves from "What's next" into "What it does", and its row in §15 changes status.
 
 ---
@@ -51,7 +51,7 @@ Paste:
 >
 > **The pipeline** is a plain command-line tool (`pnpm pipeline prepare`) that runs its steps in order; there is no agent framework. Amazon Transcribe produces the spoken line with word timings. Our segmenter cuts it into subtitle cues that keep to broadcast reading limits: at most 42 characters per line, two lines, 20 characters per second, and 1 to 7 seconds on screen.¹ A cue that breaks a limit stops the build; there is no tolerance flag. Amazon Translate writes the second-language line, one cue at a time so the two tracks stay aligned, with its Formality and Brevity settings. Each word is lemmatized with simplemma² and ranked against an open subtitle frequency list (hermitdave/FrequencyWords, CC BY-SA 4.0).³ One or two words per cue, in the band just above the clip's level, become highlights; names and numbers never do, and at most 40 % of cues carry one. Amazon Nova Pro on Amazon Bedrock writes each highlight's gloss and returns its grammar facts (article, plural, verb forms), which code renders into the grammar note, through the Converse API with forced tool use, Zod validation and checks in code; we chose it over Nova Lite by scoring both on a hand-checked set of words. The quiz is then built by code from those glosses, with no model call: "what does this word mean" and fill-the-gap items, each with the right answer and three other options taken from the clip's highlights of the same part of speech, spread across the whole clip. Shaka Packager packages video and both WebVTT tracks, and Amazon S3 + CloudFront serve them. The AWS stack is AWS CDK.
 >
-> **The API** (Express, Zod, Prisma on PostgreSQL, pg-boss, Socket.IO) keeps learners, saved words and reviews. Spaced repetition is literal SM-2, the published scheduling algorithm,⁴ and it runs on the server, so the TV and the phone always agree on what is due.
+> **The API** (Express, Zod, Prisma on PostgreSQL, pg-boss, Socket.IO) keeps learners, saved words and reviews. Spaced repetition is literal SM-2, the published scheduling algorithm,⁴ and it runs on the server, so the TV and the phone always agree on what is due. For judging, both APIs and the phone web pages run on one always-on Amazon EC2 instance behind Caddy, with per-IP rate limits and bounded request sizes.
 >
 > **TV and phone** share one Socket.IO room per 6-character session code (QR or typed). Saving a word on the TV reaches the phone in under one second at p95 in our integration test.⁵
 >
@@ -91,7 +91,7 @@ Paste:
 > - npm: `@moizp/vega-media-kit`, version `0.1.0`, https://www.npmjs.com/package/@moizp/vega-media-kit
 > - Release tag: `v0.1.0`, https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0
 > - GitHub handle: `moiz-lakkadkutta`
-> - Upstream contribution: https://github.com/AmazonAppDev/vega-scrolling-sample/pull/26 (README fix: the stale Kepler CLI commands replaced with `vega virtual-device start` / `vega run-app`)
+> - Upstream contribution: https://github.com/AmazonAppDev/vega-scrolling-sample/pull/26 (open; README fix: the stale Kepler CLI commands replaced with `vega virtual-device start` / `vega run-app`)
 > - App repo: https://github.com/moiz-lakkadkutta/lingo (MIT)
 >
 > vega-media-kit is a React Native player and subtitle library for Fire TV apps: one player component (`KitPlayer`) with Fire OS and web adapters, a WebVTT parser with a subtitle-limit linter (2 lines × 42 characters, 20 characters per second), a cue overlay with 10-foot defaults, remote-key and focus helpers, and Fire TV platform bindings. On Fire OS it is verified on a Fire TV Stick (playback, two text tracks at once, seek, pause, 0.75×). Its Vega OS adapter is experimental and has not been run on a Vega device or the Vega Virtual Device yet.
@@ -100,10 +100,10 @@ Paste:
 
 Paste:
 
-> Lingo and our other entry, Described (https://github.com/moiz-lakkadkutta/described), share one open-source library, vega-media-kit, the way two apps can both use React Native: it is infrastructure. Beyond the kit they share only AWS building blocks (Amazon Transcribe, Amazon Bedrock, Amazon S3 and CloudFront) and ffmpeg; the users, the AI task, the interaction and the business model differ. **Users:** Lingo is for language learners; Described is for blind and low-vision viewers. **The AI that does the work:** in Lingo, Amazon Transcribe, Amazon Translate and Amazon Nova Pro turn speech into aligned two-language subtitles and word glosses, and code builds the quiz from them; in Described, Qwen3-VL on Amazon Bedrock describes each shot, Nova Lite fits the narration into the gaps between dialogue, Amazon Polly voices it and ffmpeg ducks the soundtrack, and the narration arrives as a second audio track. **Interaction:** Lingo is pause-and-study with a second screen that quizzes you; Described is listening. **Business model:** Lingo sells a Lingo Plus subscription through Amazon in-app purchasing.
+> Lingo and our other entry, Described (https://github.com/moiz-lakkadkutta/described), share one open-source library, vega-media-kit, the way two apps can both use React Native: it is infrastructure. Beyond the kit they share only AWS building blocks (Amazon Transcribe, Amazon Bedrock, Amazon S3 and CloudFront) and ffmpeg; the users, the AI task, the interaction and the business model differ. **Users:** Lingo is for language learners; Described is for blind and low-vision viewers. **The AI that does the work:** in Lingo, Amazon Transcribe, Amazon Translate and Amazon Nova Pro turn speech into aligned two-language subtitles and word glosses, and code builds the quiz from them; in Described, Qwen3-VL on Amazon Bedrock describes each shot, Nova Lite fits the narration into the gaps between dialogue, Amazon Polly voices it and ffmpeg ducks the soundtrack, and the narration arrives as a second audio track. **Interaction:** Lingo is pause-and-study with a second screen that quizzes you; Described is listening. **Business model:** Lingo Plus, a monthly subscription through Amazon in-app purchasing, built and tested in the Amazon sandbox and not on sale yet.
 
 Described's services are named as its README names them (https://github.com/moiz-lakkadkutta/described; checked against Described's README 2026-10-14).
-The "Business model" sentence stays: a Lingo Plus sandbox purchase completed in App Tester on the stick (device run rows 30–34, reported by Moiz 2026-10-19).
+The "Business model" sentence says "not on sale yet": a Lingo Plus sandbox purchase completed in App Tester on the stick (device run rows 30–34, reported by Moiz 2026-10-19), and there is no Lingo Plus in-app item in the Developer Console (decision 2026-10-22).
 
 ## 9a. How Lingo differs from subtitle-learning apps (About the project → custom heading)
 
@@ -117,7 +117,7 @@ The pasted text names the compared service once, only as the source of its own s
 
 Paste (one tag each):
 
-> React Native, react-native-tvos, Expo, TypeScript, Node.js, Express, Zod, Prisma, PostgreSQL, pg-boss, Socket.IO, Amazon Transcribe, Amazon Translate, Amazon Bedrock, Amazon Nova Pro, Amazon S3, Amazon CloudFront, Amazon Appstore IAP, AWS CDK, Shaka Packager, ffmpeg, simplemma, vega-media-kit, Vega SDK, Vitest, Turborepo, pnpm
+> React Native, react-native-tvos, Expo, TypeScript, Node.js, Express, Zod, Prisma, PostgreSQL, pg-boss, Socket.IO, Amazon Transcribe, Amazon Translate, Amazon Bedrock, Amazon Nova Pro, Amazon S3, Amazon CloudFront, Amazon EC2, Amazon Appstore IAP, AWS CDK, Shaka Packager, ffmpeg, simplemma, vega-media-kit, Vega SDK, Vitest, Turborepo, pnpm
 
 Add only when true:
 - "Amazon Appstore IAP" is in the list above: a Lingo Plus sandbox purchase completed in App Tester on the Fire TV Stick (device run rows 30–34, reported by Moiz 2026-10-19).
@@ -167,17 +167,17 @@ Before pasting, delete any line whose feature shipped by Oct 15 and move it into
 
 Paste:
 
-> - Video: <!-- HUMAN: paste the public YouTube or Vimeo URL after the Oct 20 upload. -->
+> - Video: <!-- HUMAN: paste the public YouTube or Vimeo URL. -->
+> - Try it on a Fire TV Stick (about 15 minutes, no developer tools): https://github.com/moiz-lakkadkutta/lingo/blob/main/docs/try-on-fire-tv.md (install lingo-demo.apk with the Downloader app; it opens as "Lingo Plus Demo" with every feature on. The phone part is a web page opened from the TV's pair QR, no install.)
+> - Fire TV app, Plus on for everyone: https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-demo.apk
 > - Lingo repo: https://github.com/moiz-lakkadkutta/lingo
 > - vega-media-kit repo: https://github.com/moiz-lakkadkutta/vega-media-kit
 > - vega-media-kit release: https://github.com/moiz-lakkadkutta/vega-media-kit/releases/tag/v0.1.0
 > - Upstream PR: https://github.com/AmazonAppDev/vega-scrolling-sample/pull/26
 > - Described: https://github.com/moiz-lakkadkutta/described
-> - Fire TV app, Plus on for everyone: https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-demo.apk
 > - Fire TV app, Plus through the Appstore: https://github.com/moiz-lakkadkutta/lingo/releases/latest/download/lingo-iap.apk
-> - Fire TV: install with the Downloader app; start with Lingo Plus Demo. The phone app opens from the TV's pair QR, no install.
 
-The two APK links use `/releases/latest/download/`, so they point at the latest GitHub release, `fire-tv-judging-2` (build 1, `fire-tv-judging-1`: both links returned 200, 2026-10-22); the APIs behind them run on one EC2 box (docs/deploy/ec2.md). A sideloaded `lingo-iap.apk` cannot buy Plus (purchases need the Appstore). Judges install from this sideload release; start with `lingo-demo.apk` ("Lingo Plus Demo", Plus on for everyone). Live App Testing is not relied on and there is no Lingo Plus in-app item in the Developer Console (decision 2026-10-22); the real Plus purchase flow is shown with App Tester (C7).
+The two APK links use `/releases/latest/download/`, so they point at the latest GitHub release, `fire-tv-judging-2`, published 2026-10-23 (both links returned 200 on 2026-10-23; build 1 was `fire-tv-judging-1`); the APIs behind them run on one EC2 box (docs/deploy/ec2.md). A sideloaded `lingo-iap.apk` cannot buy Plus (purchases need the Appstore). Judges install from this sideload release; start with `lingo-demo.apk` ("Lingo Plus Demo", Plus on for everyone). Live App Testing is not relied on and there is no Lingo Plus in-app item in the Developer Console (decision 2026-10-22); the real Plus purchase flow is shown with App Tester (C7).
 
 ## 14. Product feedback (Devpost feedback fields)
 
@@ -229,7 +229,7 @@ Status words from docs/plans/LING-009.md §1: **Built** · **Code done, not on d
 | C32 | §11 | Started on Nova Lite, whose model card lists Bedrock structured outputs as not supported → forced tool use + Zod; same path used with Nova Pro; quiz planner in code | Built (history for Nova Lite; Nova Pro's structured-outputs support not checked, so not claimed) | docs/aws.md; friction `…bedrock-nova-lite-temperature-structured-outputs-eol.md`; decision 0009 Round 6 | No |
 | C33 | §12 | Content Launcher voice search, Fire TV Personalization, Lingo on Vega devices: named as next steps only. The TV quiz and the phone's score on the TV passed the device run (rows 40, 43), so their §12 line was deleted | Not built (voice search, Personalization, Vega devices) · Built, run on device (Fire TV Stick, 2026-10-15..18, reported by Moiz) (TV quiz, score) | plan §1; docs/spot-checks/2026-10-14-device-run.md | No |
 | C34 | §13 | Video link | Filmed, with the save words registrieren and Konsulat as planned (reported by Moiz 2026-10-19); not cut or uploaded yet | docs/video-script.md §2 | **Yes** (HUMAN: URL after the upload) |
-| C40 | §13 | Two Fire TV APKs to sideload (demo: Plus for everyone; iap: Plus through the Appstore) against an always-on API; the phone app is a web page opened from the pair QR | Built: release `fire-tv-judging-2` (latest; build 1 `fire-tv-judging-1`, both stable links returned 200 on 2026-10-22) with `lingo-demo.apk` and `lingo-iap.apk`; APIs and phone pages on EC2 checked 2026-10-22 (docs/deploy/ec2.md "Checks"). Judges use this sideload release; Live App Testing not claimed | https://github.com/moiz-lakkadkutta/lingo/releases/latest; docs/deploy/ec2.md | No |
+| C40 | §13 | Two Fire TV APKs to sideload (demo: Plus for everyone; iap: Plus through the Appstore) against an always-on API; the phone app is a web page opened from the pair QR | Built: release `fire-tv-judging-2` (latest, published 2026-10-23; build 1 `fire-tv-judging-1`; both stable links returned 200 on 2026-10-23) with `lingo-demo.apk` and `lingo-iap.apk`; APIs and phone pages on EC2 checked 2026-10-22 (docs/deploy/ec2.md "Checks"). Judges use this sideload release; Live App Testing not claimed | https://github.com/moiz-lakkadkutta/lingo/releases/latest; docs/deploy/ec2.md | No |
 | C35 | §14 | Feedback and feature requests filled | Filled 2026-10-19 (five answers from Moiz's answers of that day; a prioritised request for each of the 36 friction logs); the human's sign-off remains (checklist Oct 21) | docs/feedback.md, docs/feature-requests.md | No |
 | C36 | — | **Never claim:** Content Launcher voice search, Fire TV Personalization, Fire TV Media Controls (the kit's bindings are no-ops, KIT-007), Amazon Polly (in Lingo; §9 names it only as Described's), Strands Agents, AgentCore, Lingo playing video on Vega, Vega IAP run on the VVD, Kiro Crew / Devices Builder Tools MCP (not used, reported by Moiz 2026-10-19). May be claimed for Fire OS since the device run (reported by Moiz 2026-10-19): the client IAP sandbox purchase, the Content Launcher deep link `lingo://clip/<slug>` (row 47), the remote's media keys (rows 12–15) and the TV quiz score from the phone (row 40) | Not built / Not used | plan §1, §6 check 8; docs/spot-checks/2026-10-14-device-run.md | — |
 | C37 | §9a | Lingopie's TV app has clickable subtitles that its own page calls easier to use on mobile or computer; Lingo picks the words per level, Pause explains, the phone reviews, the pipeline needs no hand-subtitling | Sourced (Lingopie) · rests on C3, C4, C5, C6, C8 (C4 and the phone deck run on device 2026-10-15..18) | source ¹³; C3–C8 | No |
